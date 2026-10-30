@@ -53,7 +53,7 @@
 - Modify: `packages/contracts/src/index.ts` (already exports `./actions` and `./citation` as empty modules; no change needed)
 
 **Interfaces:**
-- Produces: `Citation`, `Action` (discriminated on `name`), `ActionName`, `Column`, `ElementId`; per-tool arg schemas `SpeakArgs`, `WriteTextArgs`, `WriteTimelineArgs`, `HighlightArgs`, `CircleAnnotateArgs`, `DrawArgs`, `DrawResultArgs`, `UpdateElementArgs`, `RemoveElementArgs`, `AskVerificationArgs`.
+- Produces: `Citation`, `Action` (discriminated on `name`), `ActionName`, `Column`, `ElementId`; per-tool arg schemas `SpeakArgs`, `WriteTextArgs`, `WriteTimelineArgs`, `HighlightArgs`, `CircleAnnotateArgs`, `DrawArgs`, `DrawResultArgs`, `UpdateElementArgs`, `RemoveElementArgs`, `AskVerificationArgs`; model-facing bases without server-filled fields `SpeakBase`, `WriteTextBase`, `AskVerificationBase` (used by Plan 3 to build the tool schemas).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -61,7 +61,7 @@ Create `packages/contracts/src/actions.test.ts`:
 
 ```ts
 import { describe, expect, it } from "vitest";
-import { Action, ActionName } from "./actions";
+import { Action, ActionName, AskVerificationArgs, AskVerificationBase, SpeakArgs, SpeakBase, WriteTextBase } from "./actions";
 
 const speak = (args: Record<string, unknown>) => ({ id: "act_1", name: "speak", args });
 
@@ -97,6 +97,14 @@ describe("Action", () => {
     const draw = { id: "act_6", name: "draw", args: { id: "colosseum", column: "visuals", prompt: "Coliseu romano", is_structured: false, max_dimensions: { w: 500, h: 400 } } };
     expect(Action.safeParse(draw).success).toBe(true);
     expect(Action.safeParse({ ...draw, args: { ...draw.args, max_dimensions: { w: 0, h: 400 } } }).success).toBe(false);
+  });
+
+  it("exposes model-facing bases without the server-filled fields", () => {
+    expect("audio_url" in SpeakBase.shape).toBe(false);
+    expect("audio_url" in SpeakArgs.shape).toBe(true);
+    expect("verification_id" in AskVerificationBase.shape).toBe(false);
+    expect("concept_key" in AskVerificationArgs.shape).toBe(true);
+    expect(WriteTextBase.safeParse({ id: "t", column: "main", html: "<p>x</p>" }).success).toBe(true);
   });
 
   it("lists every tool name", () => {
@@ -153,29 +161,29 @@ const Grounding = {
   outside_material: z.boolean().optional(),
 };
 
-export const SpeakArgs = z
-  .object({
-    text: z.string().min(1).max(600),
-    style: z.string().max(40).optional(),
-    purpose: Purpose.optional(),
-    hint_level: HintLevel.optional(),
-    // Filled by the server in voice mode (Plan 2); absent in text mode.
-    audio_url: z.string().optional(),
-    audio_format: z.literal("pcm_s16le_24000").optional(),
-    ...Grounding,
-  })
-  .refine(needsHintLevel, hintMessage);
+/** What the model may send (no server-filled fields, no refinement: safe to turn into a JSON schema). */
+export const SpeakBase = z.object({
+  text: z.string().min(1).max(600),
+  style: z.string().max(40).optional(),
+  purpose: Purpose.optional(),
+  hint_level: HintLevel.optional(),
+  ...Grounding,
+});
+/** What the client receives: adds the audio fields the server fills in voice mode (Plan 2). */
+export const SpeakArgs = SpeakBase.extend({
+  audio_url: z.string().optional(),
+  audio_format: z.literal("pcm_s16le_24000").optional(),
+}).refine(needsHintLevel, hintMessage);
 
-export const WriteTextArgs = z
-  .object({
-    id: ElementId,
-    column: Column,
-    html: z.string().min(1).max(4000),
-    purpose: Purpose.optional(),
-    hint_level: HintLevel.optional(),
-    ...Grounding,
-  })
-  .refine(needsHintLevel, hintMessage);
+export const WriteTextBase = z.object({
+  id: ElementId,
+  column: Column,
+  html: z.string().min(1).max(4000),
+  purpose: Purpose.optional(),
+  hint_level: HintLevel.optional(),
+  ...Grounding,
+});
+export const WriteTextArgs = WriteTextBase.refine(needsHintLevel, hintMessage);
 
 export const WriteTimelineArgs = z.object({
   id: ElementId,
@@ -208,14 +216,17 @@ export const DrawResultArgs = z.object({ element_id: ElementId, url: z.string().
 export const UpdateElementArgs = z.object({ id: ElementId, html: z.string().min(1).max(4000) });
 export const RemoveElementArgs = z.object({ id: ElementId });
 
-export const AskVerificationArgs = z.object({
+/** What the model may send; the server adds `verification_id` and `concept_key`. */
+export const AskVerificationBase = z.object({
   id: ElementId,
   column: Column,
-  verification_id: z.string().min(1),
   concept: z.string().min(1).max(60),
-  concept_key: z.string().min(1).max(60),
   question: z.string().min(1).max(300),
   kind: z.enum(["explain", "transfer", "place_on_timeline"]),
+});
+export const AskVerificationArgs = AskVerificationBase.extend({
+  verification_id: z.string().min(1),
+  concept_key: z.string().min(1).max(60),
 });
 
 export const ActionName = z.enum([
