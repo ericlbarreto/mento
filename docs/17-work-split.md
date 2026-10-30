@@ -9,14 +9,14 @@
 2. **Ownership by directory.** Every path has one owner. Edit only your paths; ask the owner for changes elsewhere.
 3. **Must first, always.** Inside each lane the order is Must → Should → Nice. The **cut line is at hour 18**.
 4. **Integrate early and often.** Three checkpoints (H8, H14, H18), not one big merge at the end.
-5. **No over-engineering.** One Next.js project, no monorepo tooling, no extra services.
+5. **No over-engineering.** A light pnpm-workspace monorepo (no Turborepo/Nx), no extra services.
 
 ## 2. Stack (decided; see D24)
 
 | Layer | Choice |
 |---|---|
 | Language | **TypeScript** everywhere (frontend, backend, scripts) |
-| App | **Next.js** (App Router): React UI + route handlers for the API; one project |
+| App | **Next.js** (App Router) in `apps/web`: React UI + thin route handlers; internal packages in `packages/*` (`21-repo-structure.md`) |
 | Contracts | **Zod** schemas shared by client and server |
 | Styling | Tailwind; handwriting fonts from Google Fonts |
 | DB | **SQLite** file (Drizzle or `better-sqlite3`) |
@@ -24,29 +24,16 @@
 | Scripts | `tsx` (`scripts/ingest.ts`, `scripts/pregenerate-images.ts`) |
 | Demo hosting | Run on a laptop or a small VM with Node (serverless limits SSE and breaks file-based SQLite) |
 
-Planned layout (the only structure changes happen at kickoff):
+Repository layout: a **light pnpm-workspace monorepo** (`apps/web` + `packages/*`), fully described in `21-repo-structure.md` (D28). Package ↔ lane mapping:
 
-```
-src/contracts/      Zod schemas + Repository interface + fixtures      (frozen at kickoff)
-src/ui/             design tokens + shared components (see 18)         (frozen at kickoff, then Lane A)
-public/brand/       logo, mascot and mascot GIFs (copied from assets/) (Lane A; assets/ belongs to the founder)
-assets/             brand source files, do not import from code        (founder)
-src/board/          DOM board, action queue, renderers                 (Lane A)
-src/app/(student)/  student pages                                      (Lane A)
-src/tutor/          turn handler, LLM loop, tool validation, drawing   (Lane B)
-src/db/             schema, repository implementation, seed            (Lane C)
-src/sources/        ingestion, chunks, citation validation             (Lane C)
-src/analysis/       post-session analysis                              (Lane C)
-src/voice/          STT hook, TTS proxy/player                         (Lane C)
-src/app/(teacher)/  teacher pages                                      (Lane C)
-src/app/api/        route handlers (each file owned by the lane of its feature)
-prompts/            base, subjects, personas                           (Lane B)
-scripts/            ingest, pregenerate-images, turn-cli               (see ownership)
-fixtures/           example scripts/event logs                         (A and B add files; never edit others')
-materials/          PDFs (git-ignored)
-```
+| Lane | Packages and paths |
+|---|---|
+| A | `packages/board`, `packages/ui` (after kickoff), `apps/web/src/app/(student)`, `apps/web/public/brand` |
+| B | `packages/tutor`, `prompts/`, the `turn` route, `scripts/turn-cli.ts`, `scripts/pregenerate-images.ts` |
+| C | `packages/db`, `packages/sources`, `packages/analysis`, `packages/voice`, `apps/web/src/app/(teacher)`, other API routes, `scripts/seed.ts`, `scripts/ingest.ts` |
+| Shared | `packages/contracts` (frozen), `apps/web/src/server/container.ts`, root configs; `fixtures/` (A and B add files); `assets/` (founder) |
 
-Repository: https://github.com/ericlbarreto/mento (`main`). Everyone clones it before the kickoff; the Next.js skeleton (K1) is committed by one person and the others pull.
+Repository: https://github.com/ericlbarreto/mento (`main`). Everyone clones it before the kickoff; the workspace skeleton (K1) is committed by one person and the others pull.
 
 ## 3. Kickoff: first 90 minutes, all three together
 
@@ -55,14 +42,14 @@ Nothing else starts before this is done. One person types; all three agree.
 | # | Deliverable | Where |
 |---|---|---|
 | K1 | Repo skeleton (Next.js + TS + Tailwind + Zod + SQLite), `npm run dev` works for everyone, `.env.example` | root |
-| K2 | **Action/tool schemas** (Zod) for every tool in `16` §4 | `src/contracts/actions.ts` |
-| K3 | **SSE message schema** (`order`, `action`, `stream`, `done`) and **event log shape** | `src/contracts/stream.ts`, `events.ts` |
-| K4 | **Citation format** `{source_id, page, quote}` | `src/contracts/citation.ts` |
-| K5 | **`Repository` interface** (create session, append event, list events, insert evidence, get lesson pages, list subjects/students/analysis) + an **in-memory implementation** everyone can use as a stub | `src/contracts/repository.ts`, `src/db/memory.ts` |
-| K6 | **`SpeechPlayer` interface** (`speak(text, opts) → Promise`, `stop()`, optional word callbacks) + a text-only default (captions) | `src/contracts/speech.ts` |
+| K2 | **Action/tool schemas** (Zod) for every tool in `16` §4 | `packages/contracts/src/actions.ts` |
+| K3 | **SSE message schema** (`order`, `action`, `stream`, `done`) and **event log shape** | `packages/contracts/src/stream.ts`, `events.ts` |
+| K4 | **Citation format** `{source_id, page, quote}` | `packages/contracts/src/citation.ts` |
+| K5 | **`Repository` interface** (create session, append event, list events, insert evidence, get class context, get/search material pages, list materials/students/insights, update insight status) + an **in-memory implementation** everyone can use as a stub | `packages/contracts/src/repository.ts`, `packages/db/src/memory.ts` |
+| K6 | **`SpeechPlayer` interface** (`speak(text, opts) → Promise`, `stop()`, optional word callbacks) + a text-only default (captions) | `packages/contracts/src/speech.ts` |
 | K7 | **Fixtures:** 3 scripts (happy path with timeline + draw + citation; click-and-ask; verification with a wrong answer) and 1 event log | `fixtures/` |
 | K8 | Day-0 bake-off assignments (below) | — |
-| K9 | **Design tokens + base UI components** (`Button`, `Card`, `Chip`, `Avatar/Mascot`, theme CSS variables from the brand colors) so both interfaces share one look (`18-ui-references.md`), **and copy the brand files** `assets/brand/*` and the 4 mascot GIFs into `public/brand/` (`19-brand-assets.md` §5) | `src/ui/`, `public/brand/` |
+| K9 | **Design tokens + base UI components** (`Button`, `Card`, `Chip`, `Avatar/Mascot`, theme CSS variables from the brand colors) so both interfaces share one look (`18-ui-references.md`), **and copy the brand files** `assets/brand/*` and the 4 mascot GIFs into `apps/web/public/brand/` (`19-brand-assets.md` §5) | `packages/ui/`, `apps/web/public/brand/` |
 
 After kickoff the contracts are **frozen**. Changes are additive only and need a short message to the other two plus a PR.
 
@@ -77,7 +64,7 @@ After kickoff the contracts are **frozen**. Changes are additive only and need a
 ## 4. Lanes
 
 ### Lane A — Board + student UI
-**Owns:** `src/board/`, `src/app/(student)/`, `fixtures/` (own files), the dev fixture route.
+**Owns:** `packages/board/`, `apps/web/src/app/(student)/`, `fixtures/` (own files), the dev fixture route.
 **Builds against:** a **fixture replay endpoint** (`/api/dev/fixture-turn?name=...`) that streams a fixture through the real SSE format. Does not need the LLM, DB or voice.
 
 | Tier | Task | Est. |
@@ -89,9 +76,9 @@ After kickoff the contracts are **frozen**. Changes are additive only and need a
 | Must 2 | Chat panel, text input, captions (default text-only `SpeechPlayer`) | 2 h |
 | Must 2 | **Click-and-ask** UI (select element/text → `board_select` event) | 2 h |
 | Must 5 | Source chips + **pdf.js viewer** at page with quote highlight in the text layer | 4 h |
-| Must | Start screen: choose subject/lesson/persona; session create call | 1.5 h |
+| Must 8 | Start screen: **pick your name → pick a material (+ optional topic)** → start; session create call | 1.5 h |
 | Must 2 | **Orb at bottom center**: the **Mento mascot** (stacked GIFs, opacity toggle; static PNG for reduced motion) + a Canvas/SVG **ring** for states idle/listening/thinking/speaking/waiting (amplitude from `SpeechPlayer`/mic, stub = caption progress); mapping in `19-brand-assets.md` §4 | 2.5 h |
-| Nice 12 | "My progress" (student view) | 2 h |
+| Nice 13 | "My progress" (student view) | 2 h |
 | Nice 15 | Resume session from the event log | 1.5 h |
 | Nice 14 | Replay of a board moment (for the teacher) | 3 h |
 
@@ -99,56 +86,60 @@ After kickoff the contracts are **frozen**. Changes are additive only and need a
 **Exposes:** the student app; a `SpeechPlayer` consumer slot. **Consumes:** SSE `/turn`, `GET /events`, `/files/:id`.
 
 ### Lane B — Tutor core
-**Owns:** `src/tutor/`, `prompts/`, `src/app/api/sessions/[id]/turn`, `scripts/turn-cli.ts`, `scripts/pregenerate-images.ts`, image/SVG generation code.
+**Owns:** `packages/tutor/`, `prompts/`, `apps/web/src/app/api/sessions/[id]/turn`, `scripts/turn-cli.ts`, `scripts/pregenerate-images.ts`, image/SVG generation code.
 **Builds against:** the in-memory `Repository` (K5) and a CLI (`scripts/turn-cli.ts`) that prints the SSE script, so it needs **no UI**.
 
 | Tier | Task | Est. |
 |---|---|---|
-| Must 3 | `prompts/base.md`, `prompts/subjects/history.md`, persona file; iterate on the Rome script | 3 h (continuous) |
-| Must 1–2 | **Turn handler:** assemble prompt (3 layers + lesson pages + learner summary + **board snapshot** + recent events), streaming LLM with tools, schema validation, SSE emit, abort handling | 5 h |
+| Must 3 | `prompts/base.md`, `prompts/subjects/history.md`, `generic.md`, persona file; **class-context layer** (grade-level register for 7º–9º ano) and **learner summary** (open gaps); iterate on the Rome script | 4 h (continuous) |
+| Must 1–2 | **Turn handler:** assemble prompt (3 layers: base + subject profile + course context = class context + retrieved material pages + learner summary + topic; plus **board snapshot** + recent events), streaming LLM with tools, schema validation, SSE emit, abort handling | 5 h |
 | Must 1 | `draw` artistic pipeline: placeholder → image model → store → `draw_result`; cache by prompt hash; pregeneration script | 3 h |
-| Must 4 | Grounding in the turn: pages in context, `sources` on actions, `outside_material`, uses the citation validator from Lane C | 2 h |
+| Must 4 | Grounding in the turn: **FTS retrieval scoped to the chosen material** (+ `search_materials`), `sources` on actions, `outside_material`, uses the citation validator from Lane C | 3 h |
 | Must 6 | `ask_verification` + **judge call** + `record_evidence` through the Repository | 3 h |
-| Should 9 | Structured SVG pipeline (streamed chunks) | 3 h |
-| Nice 11 | `prompts/subjects/math.md` | 1.5 h |
+| Should | Structured SVG pipeline (streamed chunks) | 3 h |
+| Nice 12 | `prompts/subjects/math.md` | 1.5 h |
 | Nice 18 | Exam/question generation (future) | — |
 
-**Must total ≈ 19 h.**
-**Exposes:** `POST /api/sessions/:id/turn` (SSE). **Consumes:** `Repository`, `src/sources` (lesson pages, citation validator), `contracts`.
+**Must total ≈ 21 h.**
+**Exposes:** `POST /api/sessions/:id/turn` (SSE). **Consumes:** `Repository`, `packages/sources` (material pages/search, citation validator), `contracts`.
 
 ### Lane C — Data, sources, teacher, voice
-**Owns:** `src/db/`, `src/sources/`, `src/analysis/`, `src/voice/`, `src/app/(teacher)/`, `scripts/ingest.ts`, session/events/teacher API routes, DB seed.
+**Owns:** `packages/db/`, `packages/sources/`, `packages/analysis/`, `packages/voice/`, `apps/web/src/app/(teacher)/`, `scripts/ingest.ts`, session/events/teacher API routes, DB seed.
 **Builds against:** seeded data and fixture event logs. Needs neither the board nor the LLM (analysis can run on fixture logs).
 
 | Tier | Task | Est. |
 |---|---|---|
-| Must 7 | **Schema + repository implementation + seed** (9 tables, `memory.ts` parity). **Deliver first (≤ H3)**: Lane B switches from the stub to it | 3 h |
-| Must 7 | Session and events API (`POST /api/sessions`, `GET /events`), `/files/:id` | 2 h |
-| Must 4 | **Ingestion script** (PDF → per-page Markdown → chunks) and **citation validator** (`quote` must occur in the chunk) | 5 h |
-| Should 8 | Teacher page (Flint-inspired layout from `18`): sidebar, materials per subject/lesson, insight card, student table, student card (concepts, misconceptions with evidence, what seems to work with `n`, next action); "simulated data" badge; uses `src/ui/**` | 6 h |
-| Should 9 | Post-session analysis job (counters + structured LLM call) and simulated students | 4 h |
-| Should 10 | Voice: ephemeral token endpoint, Deepgram STT hook, TTS proxy + `SpeechPlayer` implementation with word captions and an **audio level** value for the orb, mic auto-open (`useAudioLevel`) | 6.5 h |
-| Nice 13 | Upload PDF via UI | 2 h |
-| Nice 16 | Pre-ingested book library | 1 h |
+| Must 7–8 | **Schema (9 tables: `class_context`, `materials`, `chunks`, `students`, `sessions`, `events`, `evidence`, `analyses`, `insights`) + repository implementation + seed** (students real/simulated, class context "8º ano", demo insights). `memory.ts` parity. **Deliver first (≤ H3)**: Lane B switches from the stub to it | 3.5 h |
+| Must 7 | Session and events API (`POST /api/sessions`, `GET /events`), student list for the picker, `/api/files/:id` | 2 h |
+| Must 4 | **Ingestion pipeline** (PDF → text layer + vision for pages that need it → chunks → FTS index → outline; status; script entry point) and **citation validator** (`quote` must occur in the chunk) | 6 h |
+| Should 9a | **Students tab** (Flint-inspired layout from `18`): overview metrics (`/api/overview`), student list, **create student**, **student detail** (evolution, gaps with evidence, suggestions, accept/dismiss); "simulated data" badge; uses `packages/ui/**` | 8 h |
+| Should 9b | **Class context** card + `GET/PUT /api/class-context` | 1.5 h |
+| Should 9c | **Materials tab**: upload (`POST /api/materials`), background ingestion job with status polling, list | 5 h |
+| Should 10 | **Post-session analysis → insights** (automatic after each conversation: counters + structured LLM call → `analyses` + `insights` rows), evolution aggregates, simulated students | 5 h |
+| Should 11 | Voice: ephemeral token endpoint, Deepgram STT hook, TTS proxy + `SpeechPlayer` implementation with word captions and an **audio level** value for the orb, mic auto-open (`useAudioLevel`) | 6.5 h |
+| Nice 16 | Delete/rename/re-process materials; progress per page | 2 h |
 
-**Must total ≈ 10 h** (lightest in Must), so Lane C starts **Should items early** (STT and the teacher page) and **supports integration** at H8 and H14.
-**Exposes:** `Repository` implementation, `src/sources` API, teacher pages, `SpeechPlayer`. **Consumes:** `contracts`.
+**Must total ≈ 11.5 h**; **Should total ≈ 27 h** (the heaviest Should load). Rebalancing options: after its Must, **Lane A takes the presentational teacher components** (tables, cards, charts on `packages/ui`) while C keeps the APIs, analysis and voice; and follow the **cut order in `01-hackathon-scope.md`**. Lane C **supports integration** at H8 and H14.
+**Exposes:** `Repository` implementation, `packages/sources` API, teacher pages, `SpeechPlayer`. **Consumes:** `contracts`.
 
 ## 5. Tier-by-lane map (nothing falls between the lanes)
 
-| Scope item | Lane |
+| Scope item (`01-hackathon-scope.md`) | Lane |
 |---|---|
 | Must 1 Board with live writing/drawing | A (render), B (script, drawing) |
 | Must 2 Two-way text conversation + click-and-ask | A (UI), B (turn loop) |
-| Must 3 Three-layer prompt + History profile | B |
-| Must 4 Ingestion, retrieval by lesson, citations, outside-material | C (ingest, validator), B (use in turn) |
+| Must 3 Layered prompt (base + subject profile + class context + material excerpts + learner summary) | B |
+| Must 4 Material ingestion, retrieval scoped to the chosen material, citations, outside-material | C (ingestion, validator), B (retrieval in the turn) |
 | Must 5 Source chips + PDF at the excerpt | A |
 | Must 6 Evidence recording | B (judge), C (storage) |
-| Must 7 Event log persisted | C |
-| Should 8 Teacher screen | C |
-| Should 9 Post-session analysis | C (job), B (structured SVG shares the Should slot) |
-| Should 10 Voice | C |
-| Nice 11–18 | per the lane tables |
+| Must 7 Conversations and event log persisted per student | C |
+| Must 8 Students + class context exist (seed) and the start screen (name → material → topic) | C (seed), A (screen) |
+| Should 9a Students tab (metrics, list, create, detail) | C (APIs, page), optionally A (components) |
+| Should 9b Class context card | C |
+| Should 9c Materials tab (upload, status) | C |
+| Should 10 Post-session analysis → insights | C |
+| Should 11 Voice | C |
+| Nice 12–18 | per the lane tables |
 
 ## 6. Integration checkpoints
 
@@ -166,17 +157,17 @@ If Must is not green at H18, **nobody starts Should**; everyone helps close Must
 
 ## 7. Avoiding merge conflicts
 
-**Ownership table**
+**Ownership table** (the full path-by-path version with `apps/web` routes is in `21-repo-structure.md` §9)
 
 | Path | Owner | Others may |
 |---|---|---|
-| `src/contracts/**` | Shared (frozen) | Additive PR only, with a message to the other two |
-| `src/ui/**`, `public/brand/**` | Shared at kickoff, then Lane A | Additive PR; Lane C consumes them for the teacher UI |
+| `packages/contracts/**` | Shared (frozen) | Additive PR only, with a message to the other two |
+| `packages/ui/**`, `apps/web/public/brand/**` | Shared at kickoff, then Lane A | Additive PR; Lane C consumes them for the teacher UI |
 | `assets/**` | Founder | Read only; never edit or import from code |
-| `src/board/**`, `src/app/(student)/**` | A | Read only |
-| `src/tutor/**`, `prompts/**` | B | Read only |
-| `src/db/**`, `src/sources/**`, `src/analysis/**`, `src/voice/**`, `src/app/(teacher)/**` | C | Read only |
-| `package.json` / lockfile | Shared | Small PRs; after a merge, others `git pull --rebase` and `npm install` |
+| `packages/board/**`, `apps/web/src/app/(student)/**` | A | Read only |
+| `packages/tutor/**`, `prompts/**` | B | Read only |
+| `packages/db/**`, `packages/sources/**`, `packages/analysis/**`, `packages/voice/**`, `apps/web/src/app/(teacher)/**` | C | Read only |
+| `package.json` / lockfile / root configs | Shared | Small PRs; after a merge, others `git pull --rebase` and `pnpm install` |
 | `.env.example` | Shared | Append only |
 | `fixtures/` | A and B | Add **new files**; never edit another lane's fixture |
 | DB migrations/schema | **C only** | Request changes to C (they are small) |
@@ -193,7 +184,7 @@ If Must is not green at H18, **nobody starts Should**; everyone helps close Must
 
 **Why these seams are safe**
 
-- A never imports from `src/tutor` or `src/db`; it only calls HTTP endpoints and uses `contracts`.
+- A never imports from `packages/tutor` or `packages/db`; it only calls HTTP endpoints and uses `contracts`.
 - B never imports UI code; it imports `contracts` and the `Repository` interface (stub first, real later).
 - C implements the `Repository` and owns the schema; changes to the interface go through the additive-PR rule.
 
@@ -201,12 +192,12 @@ If Must is not green at H18, **nobody starts Should**; everyone helps close Must
 
 - Start each session with *"Study the repository"*, then tell the agent: *"I am Lane X; only edit these paths: …"*.
 - Ask agents to run `npm run typecheck` and the fixture tests before opening a PR.
-- Do not let two agents edit `src/contracts/**` at the same time.
+- Do not let two agents edit `packages/contracts/**` at the same time.
 
 ## 9. Definition of done
 
 **Lane A Must:** fixture scripts play correctly (write, highlight, circle, draw placeholder → image, timeline); interruption works; click-and-ask sends `board_select`; chips open the PDF at the highlighted quote.
-**Lane B Must:** `turn-cli` with the Rome lesson returns valid scripts for the happy path, a wrong answer and an out-of-material question; images are cached; evidence is recorded.
+**Lane B Must:** `turn-cli` with the Rome material returns valid scripts (adapted to the class context) for the happy path, a wrong answer and an out-of-material question; images are cached; evidence is recorded.
 **Lane C Must:** ingest script produces chunks for the Rome PDFs; citation validator rejects fake quotes; sessions and events persist and reload; seed script runs on a clean checkout.
 **Demo ready (H18):** the 7-step script in `01-hackathon-scope.md` runs live, twice in a row, from a clean start.
 

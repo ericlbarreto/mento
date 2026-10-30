@@ -5,7 +5,7 @@
 ## Principles
 
 1. **Scope first.** `01-hackathon-scope.md` decides what gets built. Propose changes there before building something new.
-2. **Contracts before code.** Lanes talk through the shared contracts in `src/contracts` (action/tool schema, SSE message and event log shapes, citation format, `Repository` and `SpeechPlayer` interfaces). They are frozen after kickoff; change them only additively, with a message to the team and an update to the docs.
+2. **Contracts before code.** Lanes talk through the shared contracts in `packages/contracts` (action/tool schema, SSE message and event log shapes, citation format, `Repository` and `SpeechPlayer` interfaces). They are frozen after kickoff; change them only additively, with a message to the team and an update to the docs.
 3. **Small and shippable.** Prefer a thin end-to-end slice over a perfect part. The cut line at ~hour 18 is real.
 4. **No over-engineering.** No new abstractions, services or dependencies without a concrete need in the demo.
 
@@ -41,7 +41,7 @@ The three lanes, directory ownership, frozen contracts and integration checkpoin
 
 ## Testing and demo discipline
 
-- Keep a small set of fixed Rome-lesson test conversations (wrong answer, click-and-ask, out-of-material question) and rerun after prompt changes.
+- Keep a small set of fixed Rome-material test conversations (wrong answer, click-and-ask, out-of-material question) and rerun after prompt changes.
 - Test PDFs for selectable text early.
 - Pre-generate and cache demo illustrations.
 - Rehearse the demo end to end at least twice before the freeze; keep text mode as fallback.

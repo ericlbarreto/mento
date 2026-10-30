@@ -14,8 +14,28 @@ The prompt for each turn is assembled from three layers by plain string concaten
 | Layer | Content | Changes by |
 |---|---|---|
 | **Tutor base** | Pedagogy (explain, probe, hint, verify), citation rules, honesty when no source exists, style per modality (voice vs text), always answer in pt-BR | Never |
-| **Subject profile** | How the subject is taught, typical misconceptions, kinds of verification questions, allowed board operations | Subject |
-| **Course context** | Lesson objective, excerpts retrieved from the teacher's PDFs, learner summary | Lesson and student |
+| **Subject profile** | How the subject is taught, typical misconceptions, kinds of verification questions, allowed board operations | Material (its subject) |
+| **Course context** | **Class context** (grade level and class description from the teacher), excerpts retrieved from the chosen material, the student's learner summary (open gaps, recent progress) and the topic | Class (global), material, student, session |
+
+## Class context and grade level
+
+The teacher writes **one global class context** (`06-teacher-interface.md`): a **grade level** (7º, 8º or 9º ano of Ensino Fundamental II) and a free-text **description** of the class. It goes into the course-context layer of **every** conversation.
+
+How the tutor uses it:
+- **Register:** vocabulary, sentence length and examples suited to the grade level (roughly 12 to 15 years old); short explanation steps; frequent checks for understanding; warm, encouraging tone; no sarcasm.
+- **Examples** that match the class interests and difficulties mentioned in the description.
+- **Pacing:** shorter reveals on the board when the description says the class struggles with reading or attention to long text (educational adaptation only, never psychological inference).
+- **Safety for minors:** age-appropriate content; refuse and redirect off-topic or unsafe requests.
+- The description is **teacher guidance, not a fact source**: facts come from the material; if they conflict, the material wins. The tutor never repeats the description to the student.
+
+Prompt shape (illustrative, English instructions, pt-BR answers):
+
+```
+Class context (written by the teacher; applies to all students in this class):
+- Grade level: 8º ano (Ensino Fundamental II, Brazil)
+- Description: "<teacher text>"
+Adapt your language to this level. Answer the student in Brazilian Portuguese.
+```
 
 ## Prompts are files
 
@@ -27,10 +47,11 @@ prompts/
   subjects/
     history.md             History profile (required for the demo)
     math.md                Math profile (nice-to-have sketch)
+    generic.md             Fallback profile for materials with subject "Outro" or unknown
 ```
 
-- `subjects.profile_key` in the database points to the file (e.g., `history`).
-- `subjects.prompt_notes` is a free-text field for quick per-subject tweaks without editing files.
+- `materials.profile_key` (set from the subject chosen at upload) points to the file (e.g., `history`); unknown or "Outro" falls back to `generic`.
+- The teacher's **class context** (`class_context.description`) is free text that tweaks every conversation without editing files; subject-specific tweaks go in the profile files.
 - Instructions are written in **English**; the model is told to answer the student in **pt-BR**.
 
 ## Subject profile contents (what makes it real)
@@ -69,7 +90,7 @@ A profile should state, in concrete terms:
 
 ## Grounding and citation rules
 
-- Use only the retrieved excerpts from the current subject and lesson for claims derived from the material.
+- Use only the retrieved excerpts from the chosen material for claims derived from the material.
 - When using an excerpt, emit a citation: `source_id`, `page`, `quote`.
 - If the material does not support the answer: say so, answer with general knowledge, and **mark the answer as "outside the teacher's material"**.
 - If two sources conflict, say so; do not silently merge them.
@@ -83,7 +104,7 @@ Each turn includes `modality: voice | text`.
 
 ## Tools the tutor can call (conceptual)
 
-`speak`, `write_text`, `write_timeline`, `write_latex`, `highlight`, `circle_annotate`, `draw`, `update_element`, `remove_element`, `ask_verification`, `record_evidence` (server-side), `search_materials` (only if the lesson does not fit in context). Citations travel in `sources` on `speak`/`write_text`. Exact schemas: `16-technical-roadmap.md` §4 (Zod in `src/contracts`).
+`speak`, `write_text`, `write_timeline`, `write_latex`, `highlight`, `circle_annotate`, `draw`, `update_element`, `remove_element`, `ask_verification`, `record_evidence` (server-side), `search_materials` (the normal retrieval path for books; the first likely pages are preloaded). Citations travel in `sources` on `speak`/`write_text`. Exact schemas: `16-technical-roadmap.md` §4 (Zod in `packages/contracts`).
 
 ## Single orchestrator
 
@@ -91,4 +112,4 @@ One orchestrator with well-defined tools is enough. **No multi-agent systems** f
 
 ## Evaluating prompt quality
 
-Keep a small set of fixed test conversations for the Rome lesson (including a wrong answer, a click-and-ask, and an out-of-material question) and rerun them after each prompt change.
+Keep a small set of fixed test conversations for the Rome material (including a wrong answer, a click-and-ask, and an out-of-material question) and rerun them after each prompt change.

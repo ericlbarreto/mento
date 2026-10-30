@@ -71,8 +71,25 @@ The analysis call runs against a provider with a zero-data-retention option; the
 
 1. The tutor calls `ask_verification` (a **new** question, not a repeat); the board shows it and the tutor waits.
 2. The student answers by chat or voice.
-3. A **judge call** (small LLM call with the lesson excerpts and a rubric) returns `correct` / `partial` and whether the answer was `independent` (no hint used), with a short `rationale`.
+3. A **judge call** (small LLM call with the material excerpts and a rubric) returns `correct` / `partial` and whether the answer was `independent` (no hint used), with a short `rationale`.
 4. The server writes the `evidence` row and emits `evidence_recorded`.
 5. The teacher card shows the `rationale` and the student's own words as **examples of reasoning** (the Flint-style insight).
 
 A diagnostic opener ("how much do you remember, 1–10?") may give a first data point per concept; it is never shown as a score. Details: `16-technical-roadmap.md` §8.
+
+## Insights, gaps, evolution and teacher metrics (current model)
+
+The whiteboard produces the data; the teacher never enters learning data.
+
+1. **After every conversation** the system automatically runs the analysis (counters + a structured LLM call over the event log and evidence) and writes `analyses.result`.
+2. From the result it creates **`insights`** rows, each with `kind`:
+   - **`gap`**: a concept the student seems to be missing, with a short description, `confidence`, and **evidence** (the student's own words/answers and the conversation moment). Never concluded from a single error; hypotheses carry uncertainty.
+   - **`progress`**: a positive change (e.g., answered a new question without hints).
+   - **`suggestion`**: a proactive next step for the teacher (e.g., "revisit Republic vs Empire with a timeline activity").
+3. **Evolution** per concept is computed from `evidence` across conversations (correct/independent over time with `n`); with too little evidence the state is "insufficient evidence", not "does not master".
+4. **Teacher metrics** are SQL aggregates: students; conversations; gaps identified (`gap` insights not dismissed); insights generated (all kinds).
+5. The teacher can **accept or dismiss** an insight (`status`). **Dismissed insights are excluded** from the next learner summary and from the gap count.
+6. **Closed loop:** the student's open gaps (top few) and recent progress go into the **learner summary** of the next conversation, so the tutor can address them. This must not turn into labeling the student: the summary lists concepts and evidence, never traits.
+7. Insights are written for the **teacher**, in pt-BR, plain language. A student-facing view ("My progress") is a nice-to-have.
+
+Data model: `07-architecture-and-data.md`. Teacher screens: `06-teacher-interface.md`.

@@ -68,10 +68,10 @@ The student interface's bottom-center **orb** (see `18` §3) uses the **mascot a
 
 | Need | File | In app |
 |---|---|---|
-| Logo in headers/start screen | `assets/brand/logo.png` | `public/brand/logo.png` |
-| Orb face and static state | `assets/brand/mascot.png` | `public/brand/mascot.png` |
-| Orb animations | `assets/brand-concepts/mascot-gifs/*.gif` | `public/brand/mascot/{spin,float,thinking,speaking}.gif` (renamed, lowercase) |
-| Favicon / app icons | `assets/brand/favicon-32.png`, `apple-touch-icon.png`, `logo-symbol-512.png` | `src/app/icon.png` (use the 512), `src/app/apple-icon.png` (use the 180), `public/favicon-32.png` |
+| Logo in headers/start screen | `assets/brand/logo.png` | `apps/web/public/brand/logo.png` |
+| Orb face and static state | `assets/brand/mascot.png` | `apps/web/public/brand/mascot.png` |
+| Orb animations | `assets/brand-concepts/mascot-gifs/*.gif` | `apps/web/public/brand/mascot/{spin,float,thinking,speaking}.gif` (renamed, lowercase) |
+| Favicon / app icons | `assets/brand/favicon-32.png`, `apple-touch-icon.png`, `logo-symbol-512.png` | `apps/web/src/app/icon.png` (use the 512), `apps/web/src/app/apple-icon.png` (use the 180), `public/favicon-32.png` |
 | Teacher header | `logo.png` | via `next/image` |
 
 Copying and renaming is part of **kickoff K9** (`17-work-split.md`), done once by Lane A; nobody edits `assets/brand/`.

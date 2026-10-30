@@ -4,13 +4,13 @@
 
 ## What it is
 
-**Mento** is a B2B2C intelligent tutoring platform for schools. The school and teachers define the pedagogical context (subject, lessons, materials). Each student gets an **AI tutor** that teaches live on an **interactive whiteboard**, converses with them, and grounds itself in **the materials the teacher actually uses**. Sessions produce **learning evidence**, which becomes a picture of how each student thinks and learns, and actionable information for the teacher.
+**Mento** is a B2B2C intelligent tutoring platform for schools. The teacher defines the pedagogical context with two simple inputs: the **class context** (grade level and class characteristics) and the **materials** (PDFs such as books). Each student gets an **AI tutor** that teaches live on an **interactive whiteboard**, converses with them, and grounds itself in **the materials the teacher actually uses**. Sessions produce **learning evidence**, which becomes a picture of how each student thinks and learns, and actionable information for the teacher.
 
 **Thesis in one sentence:** the school defines what must be learned; Mento teaches each student individually and turns the evidence from those tutoring sessions into pedagogical intelligence.
 
 ## The problem
 
-1. Students already use general-purpose AI to study, but it does not know the course material or lesson context, and the student must re-upload PDFs and re-explain everything in each conversation.
+1. Students already use general-purpose AI to study, but it does not know the course material or the class, and the student must re-upload PDFs and re-explain everything in each conversation.
 2. The AI may answer correctly without finding out whether the student understood.
 3. The conversation ends without updating any reliable record of what the student knows.
 4. Teachers and schools cannot see what happened during individual study; they find gaps only in tests and grades.
@@ -20,7 +20,7 @@
 | Capability | Meaning |
 |---|---|
 | **Live board** | The AI writes and draws step by step; the student interrupts, clicks an object and asks about it |
-| **Grounded in the teacher** | The tutor answers from the subject's PDFs/slides/books and **cites page and excerpt** |
+| **Grounded in the teacher** | The tutor answers from the teacher's uploaded materials (PDFs, books) and **cites page and excerpt**; it speaks at the level of the teacher's class |
 | **Two-way conversation** | Real dialogue: probing, hinting, changing the explanation based on the answer |
 | **Learning evidence** | Verification questions produce structured records per concept |
 | **Student picture** | Session analysis shows concepts, possible misconceptions and what seems to help each student, with evidence and uncertainty |
@@ -29,9 +29,19 @@
 ## Who it is for
 
 - **Student (primary user):** an on-demand personal tutor aligned with what the teacher taught.
-- **Teacher (operational user):** sees materials per subject and the picture of each student; keeps pedagogical authority.
+- **Teacher (operational user):** manages **students** and **materials**, describes the class, and sees per student how they are evolving, their **gaps** and **suggested next steps**; keeps pedagogical authority.
 - **Coordination/principal (buyer):** track learning evidence beyond grades. *(Future; outside the hackathon.)*
 - **Families:** future module, out of scope.
+
+## Product model (current, 2026-10-30)
+
+- **One teacher, one workspace** (quick win): no authentication, no multi-teacher support; every teacher tab shows the same server-side data.
+- **Two teacher entities, two tabs:** **Students** (create in the UI or directly in the database) and **Materials** (upload PDFs such as books).
+- **Class context:** a single global description (grade level + characteristics, e.g., "8º ano, ...") applied to **every** student chat on every whiteboard.
+- **Segment focus for the MVP:** Ensino Fundamental II (**7º, 8º and 9º ano**). Ensino Médio and college are future.
+- **The whiteboard generates the data:** each conversation is stored and automatically analyzed into **insights** (gaps, progress, suggestions). The Students tab shows overview metrics (students, conversations, gaps identified, insights generated) and, per student, evolution, gaps and proactive suggestions.
+- **Closed loop:** a student's open gaps feed the tutor's learner summary in the next conversation.
+- Details: `01-hackathon-scope.md`, `06-teacher-interface.md`, `07-architecture-and-data.md`.
 
 ## What Mento is NOT
 
@@ -56,4 +66,4 @@ A personal tutor that follows the student through school life, knows the curricu
 
 ## Business model (hypothesis, not validated)
 
-Institutional SaaS: per-student annual license or paid pilot per class. Price undefined. Initial segment to validate: private schools in Recife, later public. See the brief (sections 10 and 11). **There are no customers, revenue or partnership.**
+Institutional SaaS: per-student annual license or paid pilot per class. Price undefined. Initial segment to validate: private schools in Recife, later public; **MVP focus on Ensino Fundamental II (7º–9º ano)**. See the brief (sections 10 and 11). **There are no customers, revenue or partnership.**

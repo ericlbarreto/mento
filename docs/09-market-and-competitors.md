@@ -45,3 +45,7 @@ Private schools in Recife first (one school, one subject, one class, 6–8 weeks
 - **Flint** (public visuals, not the app): has a whiteboard, speech in/out, numbered citations, live session monitoring, class-level insights with examples of student reasoning, and a "create follow-up activity" action. **It overlaps more than expected** with Mento's student + teacher story.
 - **Studdy** (explored live): voice-first whiteboard tutor built as a script of tool calls (`15-studdy-teardown.md`); no teacher side seen.
 - **Where Mento must differentiate** (to be verified against the live products): the **tutor drawing live with click-and-ask on any board object**, **citations tied to the teacher's own PDFs with the excerpt highlighted**, and the **per-student picture built from recorded evidence**. Do not claim these are absent from competitors without testing their live apps.
+
+## MVP segment focus (2026-10-30)
+
+Ensino Fundamental II (**7º, 8º and 9º ano**) in Brazil, taught from the teacher's own books/PDFs, with a **simple teacher workspace** (students + materials + class context). Ensino Médio and college are future segments.

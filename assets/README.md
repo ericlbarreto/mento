@@ -1,6 +1,6 @@
 # assets/
 
-Brand and design source files. **Source of truth for the brand**; the app uses copies in `public/brand/` (see `docs/19-brand-assets.md`).
+Brand and design source files. **Source of truth for the brand**; the app uses copies in `apps/web/public/brand/` (see `docs/19-brand-assets.md`).
 
 ```
 assets/
@@ -21,5 +21,5 @@ assets/
 
 Rules:
 - Do not edit or rename files in `brand/` without the founder's approval.
-- Do not import from `assets/` in code; copy what is needed into `public/brand/` (Lane A, kickoff K9).
+- Do not import from `assets/` in code; copy what is needed into `apps/web/public/brand/` (Lane A, kickoff K9).
 - Keep the repo light: new large binaries go in `brand-concepts/` only if they are real brand assets.

@@ -15,3 +15,8 @@ build/
 # PDFs de material (podem ter direitos autorais); a pasta e o README ficam
 materials/*
 !materials/README.md
+
+# monorepo / app data
+data/
+coverage/
+*.tsbuildinfo

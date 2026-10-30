@@ -15,7 +15,7 @@ AI tutor for schools with a whiteboard that writes and draws live, grounded in t
 
 ## Hackathon demo
 
-A student opens the lesson **History — Ancient Rome**, talks to the tutor, watches the whiteboard being drawn step by step, clicks an object and asks about it, sees which page of the teacher's PDF each explanation came from, and the teacher sees what the AI identified about that student.
+A teacher uploads a history book and describes the class (8º ano); a student picks their name and the book and talks to the tutor about **Ancient Rome**, watches the whiteboard being drawn step by step, clicks an object and asks about it, sees which page of the teacher's PDF each explanation came from, and the teacher sees, per student, how they are evolving, their gaps and suggested next steps.
 
 ## Language
 

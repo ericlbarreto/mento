@@ -9,9 +9,10 @@ prompts/
   subjects/
     history.md         (to create) History profile; required for the demo
     math.md            (to create) Math profile; nice-to-have sketch
+    generic.md         (to create) fallback profile for materials with subject "Outro" or unknown
 ```
 
 - Write instructions in **English**; the model answers the student in **pt-BR**.
-- A subject's `profile_key` in the database selects the file in `subjects/`.
-- Final prompt = base + subject profile + `subjects.prompt_notes` + retrieved excerpts + learner summary.
+- A material's `profile_key` (from the subject chosen at upload) selects the file in `subjects/`; `generic.md` is the fallback.
+- Final prompt = base + subject profile + **class context** (grade level + teacher description) + retrieved excerpts of the chosen material + learner summary + topic.
 - After any change, rerun the fixed Rome test conversations (see `docs/14-working-rules.md`).

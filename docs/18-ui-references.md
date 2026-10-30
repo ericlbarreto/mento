@@ -42,9 +42,13 @@ One set of tokens and components used by both interfaces. Frozen at kickoff, add
 
 ## 3. Student interface
 
-### 3.1 Start screen (simple, lesson-based)
+### 3.1 Start screen (simple: name → material → topic)
 
-"O que vamos aprender hoje, {nome}?" → **subject cards** → **lesson list** (Roma Antiga) → short summary of the lesson's materials ("Material desta aula") → **Começar**. No free topic box (the teacher's materials are the lesson plan). Persona choice is optional (one default for the demo).
+1. **"Quem é você?"**: the student picks their name from the teacher's list (no password in the prototype).
+2. **"O que vamos estudar?"**: a card per **material** (title, subject, pages; only `ready` materials) and an optional **topic** field ("Ex.: República e Império").
+3. **Começar**.
+
+No subjects or lessons: the teacher's materials are the knowledge base. Persona choice is optional (one default for the demo).
 
 ### 3.2 Tutor session layout
 
@@ -67,7 +71,7 @@ One set of tokens and components used by both interfaces. Frozen at kickoff, add
 - Left: pause, volume, captions toggle. Right: keyboard toggle (opens a text input above the orb) and mic button.
 - Captions sit above the orb, **word-highlighted** when the TTS provides word timestamps (Studdy does this).
 - Source chips appear under the captions and on board elements; **click opens the PDF drawer** at the page.
-- "Material" button (top right) opens the lesson materials drawer.
+- "Material" button (top right) opens the drawer with the chosen material (PDF viewer).
 
 ### 3.3 Orb states
 
@@ -91,50 +95,55 @@ One set of tokens and components used by both interfaces. Frozen at kickoff, add
 - Show **where an answer comes from** (chips) and when it is **outside the material**.
 - Large touch targets and keyboard navigation for the orb controls; high-contrast captions.
 
-## 4. Teacher interface (Flint-inspired, read-only for the hackathon)
+## 4. Teacher interface (Flint-inspired; two tabs)
 
-### 4.1 Layout
+One teacher, one workspace, no login. Two sidebar items: **Alunos** and **Materiais** (`06-teacher-interface.md`).
+
+### 4.1 Layout (Students tab)
 
 ```
 ┌───────────┬──────────────────────────────────────────────────────────────┐
-│ [logo]    │  História · 8º ano                                            │
-│ Mento     │  ┌ Insight ──────────────────────────────────────────────┐   │
-│           │  │ 6 alunos confundem República e Império   [Ver evidências] [Criar atividade de reforço]│
-│ ▣ Início  │  └────────────────────────────────────────────────────────┘   │
-│ ▤ Disciplinas │  Alunos                           Dados simulados ⓘ      │
-│ ◎ Alunos  │  ┌────────────────────────────────────────────────────────┐   │
-│ ▥ Materiais│ │ ● Maya P.   Concluiu   Conceitos: ▮▮▯  Equívoco: 1     │   │
-│           │  │ ● Jordan L. Trabalhando  ...                           │   │
-│           │  └────────────────────────────────────────────────────────┘   │
-│           │  Cartão do aluno → Conceitos · Possíveis equívocos (com        │
-│           │  trecho) · O que parece funcionar (n) · Próxima ação           │
+│ [logo]    │  Alunos                                                      │
+│           │  ┌────────┐ ┌──────────┐ ┌────────────┐ ┌──────────────┐    │
+│ ▣ Alunos  │  │Alunos  │ │Conversas │ │Lacunas     │ │Insights      │    │
+│ ▤ Materiais│ │   12   │ │   37     │ │identificadas│ │gerados  58   │    │
+│           │  └────────┘ └──────────┘ │   9        │ └──────────────┘    │
+│           │                           └────────────┘                     │
+│           │  Turma: 8º ano · "Leitura mediana, gostam de jogos…" [Editar]│
+│           │  ┌────────────────────────────────────────────────────────┐  │
+│           │  │ Maya P.   3 conversas   1 lacuna aberta   Dados simulados│ │
+│           │  │ Jordan L. 5 conversas   2 lacunas abertas              │  │
+│           │  └────────────────────────────────────────────────────────┘  │
+│           │  [+ Criar aluno]                                            │
 └───────────┴──────────────────────────────────────────────────────────────┘
 ```
 
-### 4.2 Patterns to borrow from Flint
+### 4.2 Patterns borrowed from Flint
 
 | Flint pattern (marketing visuals) | Mento version |
 |---|---|
-| Left sidebar with class list and Home/Analytics | Sidebar: Início, Disciplinas, Alunos, Materiais |
-| Sessions table with **LIVE** badge and status chips | "Sessões" table; for the demo the real student's session updates from the event log (Nice) |
-| **Alert card** ("Jordan needs help with light reactions") | Insight card from the analysis: "possível equívoco" with the quote |
-| **"Create follow-up activity"** CTA | "Criar atividade de reforço" button that only **registers the approval** in the hackathon |
+| Left sidebar with class list and Home/Analytics | Sidebar with two items: Alunos, Materiais |
+| Sessions table with **LIVE** badge and status chips | Student table; status chips (e.g., "nova lacuna") |
+| **Alert card** ("Jordan needs help with light reactions") | Insight cards in the student detail: gap with the student's own words |
+| **"Create follow-up activity"** CTA | **Suggestion** card with Accept / Dismiss (only registers the decision) |
 | Numbered citations with excerpt and source | Same source chip and drawer used on the student side |
-| Feature cards (icon + title + line) | Empty states and "Materiais" cards per subject |
-| Examples of student reasoning in insights | The quote/excerpt from the student's answer in each misconception |
+| Examples of student reasoning in insights | The quote/excerpt from the student's answer in each gap |
 
-### 4.3 Student card contents (from `06-teacher-interface.md`)
+### 4.3 Student detail
 
-Concepts (color by mastery, with confidence) · Possible misconceptions (hypothesis + quote + link to the session moment) · What seems to work (with `n`) · Suggested next action. Always with "Baseado em N sessões" and uncertainty labels; **no rankings, no permanent labels**.
+Header (name, conversations, last activity) · **Evolução** (per concept, with `n`; "evidência insuficiente" is its own state) · **Lacunas** (concept, description, evidence, confidence) · **Sugestões** (accept/dismiss) · **Progresso** · **Conversas** (read-only replay is nice-to-have). Always with uncertainty labels; **no rankings, no permanent labels**.
 
-### 4.4 Teacher UI rules
+### 4.4 Materials tab
 
-- Read-only; the only "action" is registering an approval.
-- Simulated data always badged.
-- A teacher can open a student's session as a **read-only board replay** (Nice 14).
-- Khanmigo-style grouping by task (Plan / Create / Support) is **not** needed now; keep navigation to four items.
+Upload button (PDF), title and subject fields, status chips (*Na fila → Processando n/N → Pronto / Falhou*), list with page count and an "Abrir PDF" action.
 
-## 5. Components to build once (shared, `src/ui/`)
+### 4.5 Teacher UI rules
+
+- The only "actions" are creating students, editing the class context, uploading materials and accepting/dismissing insights.
+- Simulated data always badged **"Dados simulados"**.
+- Keep navigation to two items.
+
+## 5. Components to build once (shared, `packages/ui/`)
 
 `Button`, `Card`, `Chip` (variants: source, status, badge, tag), `Avatar/Mascot`, `Orb`, `CaptionLine`, `Drawer` (PDF/material), `Table`, `InsightCard`, `EmptyState`, theme tokens (CSS variables). Use **Tailwind + shadcn/ui (Radix)** for the base primitives; charts, if any, as simple SVG/CSS bars (no heavy chart library).
 
@@ -142,11 +151,11 @@ Concepts (color by mastery, with confidence) · Possible misconceptions (hypothe
 
 | Piece | Lane |
 |---|---|
-| Tokens + base components (`src/ui/**`) | **Kickoff (all three)**, then Lane A owns; others add via PR |
+| Tokens + base components (`packages/ui/**`) | **Kickoff (all three)**, then Lane A owns; others add via PR |
 | Orb (mascot + ring), student screens, captions | A |
-| Teacher layout, tables, cards, insight card | C (uses `src/ui/**`) |
+| Teacher layout, tables, cards, insight card | C (uses `packages/ui/**`) |
 | Mic/TTS amplitude values for the orb | C exposes `useAudioLevel()` (mic) and a TTS level in `SpeechPlayer`; A consumes (stub: caption progress) |
-| Mascot/logo assets | Founder (files in `assets/`); Lane A copies them into `public/brand/` at kickoff (K9) |
+| Mascot/logo assets | Founder (files in `assets/`); Lane A copies them into `apps/web/public/brand/` at kickoff (K9) |
 
 ## 7. Open questions
 

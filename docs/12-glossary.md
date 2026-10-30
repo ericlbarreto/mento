@@ -9,14 +9,19 @@
 | **Board / whiteboard** | The shared, structured canvas where the tutor and student write and draw |
 | **Tool action** | A typed instruction the tutor emits (`speak`, `write_text`, `draw`, ...); earlier docs called board instructions `board_op` |
 | **Click-and-ask** | The student selects a board object and asks about it; the tutor gets the object and board state |
-| **Subject** | A course/discipline (e.g., History); has a `profile_key` |
-| **Lesson** | A unit within a subject (e.g., Ancient Rome) with an objective |
-| **Source** | A material attached to a lesson (PDF, slides, book, future: transcript) |
+| **Material** | A PDF uploaded by the teacher (e.g., a book); has a subject, status, pages and outline. Replaces the earlier subject → lesson → source hierarchy |
+| **Subject** | A label on a material (História, Matemática, ...) that selects the subject profile |
+| **Class context (turma)** | The single global description written by the teacher: grade level (7º–9º ano) and class characteristics; applied to every chat |
+| **Teacher workspace** | The single-teacher, no-login area with two tabs: Students and Materials |
+| **Student** | A person created by the teacher; picks their own name to start a conversation |
+| **Conversation / session** | One tutoring dialogue of one student with one material; stored with its event log |
+| **Gap** | A concept the student seems to be missing, with evidence and confidence (`insights.kind = gap`) |
+| **Insight** | A generated, teacher-facing item: `gap`, `progress` or `suggestion` |
 | **Chunk** | A page/section of a source stored as text with its page number |
 | **Citation** | `source_id` + `page` + `quote`, shown as a chip; opens the PDF at the excerpt |
 | **Outside the material** | Marker for tutor answers not supported by the teacher's sources |
-| **Subject profile** | File describing how a subject is taught (method, misconceptions, verification types, board ops) |
-| **Three-layer prompt** | Base + subject profile + course context |
+| **Subject profile** | File describing how a subject is taught (method, misconceptions, verification types, board ops); chosen from the material's subject |
+| **Three-layer prompt** | Base + subject profile + course context (class context + material excerpts + learner summary + topic) |
 | **Evidence** | A structured record (concept, correct, independent, source, time) from a verification or reasoning moment |
 | **Verification question** | A new question (not a repeat of the example) used to check understanding |
 | **Transfer** | Applying a concept to a new situation |
@@ -45,7 +50,7 @@
 | **Judge** | Small LLM call that decides whether a verification answer is correct and independent |
 | **Ephemeral token** | Short-lived credential minted by our server so the browser can talk directly to the STT provider |
 | **Fixture** | A prerecorded script/event log replayed through the real SSE path for development and demo fallback |
-| **Contracts** | Frozen shared schemas and interfaces in `src/contracts` |
+| **Contracts** | Frozen shared schemas and interfaces in `packages/contracts` |
 | **Lane (A/B/C)** | One of three parallel work areas with directory ownership (`17-work-split.md`) |
 | **Kickoff** | First 90 minutes, all three together: skeleton, contracts, fixtures, tokens |
 | **Orb** | Bottom-center voice indicator: mascot + animated ring (idle/listening/thinking/speaking) |

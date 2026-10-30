@@ -26,8 +26,8 @@ Machine: laptop with Node, stable network, headphones/speaker tested, **micropho
 | When | Task | Owner lane |
 |---|---|---|
 | Day 0 | Bake-offs: pt-BR handwriting font, image model, TTS, LLM tool reliability | A / B / C (`17` §3) |
-| Before H12 | Choose the Rome PDFs (text-based, rights OK), put them in `materials/history/lesson-01-ancient-rome/` | C |
-| Before H15 | Run ingestion; check chunks and page numbers | C |
+| Before H12 | Choose the **history book PDF** (text-based, rights OK; a manageable size) | C |
+| Before H15 | Ingest it (script or Materials tab) and check chunks, page numbers and the outline; set the **class context** ("8º ano", short description); create the demo students | C |
 | Before H15 | **Pre-generate and review** 4–6 Rome images (Colosseum, aqueduct, legionary, Forum, map, ship); cache by prompt hash | B |
 | Before H18 | Seed simulated students with the "Dados simulados" badge | C |
 | Before H18 | Record **fixtures** for the demo script (happy path, click-and-ask, wrong answer, out-of-material question) | A + B |
@@ -40,13 +40,13 @@ Planned run order on a clean checkout (names may change): install → seed → i
 
 | Step | Show | Say (idea) | Success check |
 |---|---|---|---|
-| 1 | Student opens "Roma Antiga"; material panel lists the PDFs | "O professor definiu a aula e subiu o material." | Materials visible |
+| 1 | Student picks their name and the history book, types the topic "República e Império" | "O professor subiu o livro e descreveu a turma." | Material and topic accepted |
 | 2 | Ask: "Como Roma passou de República a Império?" | "Pergunta de um aluno de verdade." | Tutor starts writing in ≤ ~3 s |
 | 3 | Board fills step by step: title, timeline, Colosseum image, chips | "O tutor escreve e desenha ao vivo, sempre citando o material." | Chips visible, image replaces placeholder |
 | 4 | Click a date, ask "por que essa data?" | "O aluno pergunta sobre um ponto específico do quadro." | Answer mentions that element |
 | 5 | Click a chip | "De onde veio? Direto do slide do professor." | PDF opens at the highlighted quote |
 | 6 | Verification question; answer wrong; tutor adapts | "Ele verifica com uma pergunta nova e muda a explicação." | Evidence recorded |
-| 7 | Teacher screen | "O professor vê o que a IA identificou, com evidências e incerteza." | Student card with evidence; simulated students badged |
+| 7 | Teacher **Alunos** tab: metrics (students, conversations, gaps, insights); open the student | "A IA identificou a lacuna a partir da conversa, com a fala do aluno como evidência, e sugere o próximo passo." | Gap + evidence + suggestion visible; other students badged "Dados simulados" |
 
 Close with the one-liner: *"A escola define o que se aprende; a Mento ensina cada aluno e mostra ao professor como ele está aprendendo."*
 
@@ -60,7 +60,7 @@ Close with the one-liner: *"A escola define o que se aprende; a Mento ensina cad
 | LLM slow or errors | `DEMO_MODE=fixture` replays the recorded script through the same SSE path |
 | PDF viewer or highlight fails | Open the page without highlight; show the chip text with the quote |
 | Network down | Fixture mode + cached images; teacher page reads the local database |
-| Browser crash | Reopen; the session resumes from the event log (nice) or restart the lesson |
+| Browser crash | Reopen; the session resumes from the event log (nice) or restart the conversation |
 
 ## 6. Honesty rules for the pitch
 

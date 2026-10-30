@@ -27,31 +27,45 @@ Client (web)
 
 1. **Tutor Core:** builds the 3-layer prompt, runs the LLM loop, executes tools, emits events.
 2. **Whiteboard engine:** validates tool actions (see `16`), keeps board state, renders with deterministic DOM components (see `16-technical-roadmap.md`).
-3. **Sources service:** ingestion script + retrieval by lesson + citation data.
+3. **Sources service:** material ingestion (UI upload + script), FTS retrieval scoped to the chosen material, citation data (`04-knowledge-and-sources.md`).
 4. **Event log:** append-only; the single source for replay, evidence and analysis.
 5. **Analysis job:** post-session; counters + LLM structured output.
-6. **Read API for the teacher screen.**
+6. **Teacher API** (students, materials, class context, insights, overview metrics; single workspace, no auth).
 7. **Voice adapter (Should):** STT in / TTS out around the Tutor Core.
 
 ## Minimal data model (9 tables)
 
 ```
-subjects   (id, name, profile_key, prompt_notes)
-lessons    (id, subject_id, title, objective)
-sources    (id, lesson_id, title, type, file_path)
-chunks     (id, source_id, page, text)
-students   (id, name, is_simulated)
-sessions   (id, student_id, lesson_id, started_at)
-events     (id, session_id, ts, type, payload JSON)
-evidence   (id, session_id, student_id, concept, correct, independent, chunk_id, ts)
-analyses   (id, student_id, session_id, result JSON)
+class_context (id = 1, grade_level, description, updated_at)
+materials     (id, title, subject, profile_key, type, file_path, status, page_count, outline JSON, created_at)
+chunks        (id, material_id, page, text)                  + FTS index
+students      (id, name, is_simulated, created_at)
+sessions      (id, student_id, material_id, topic, persona, modality, started_at, ended_at)
+events        (id, session_id, ts, type, payload JSON)
+evidence      (id, session_id, student_id, concept, correct, independent, chunk_id, rationale, ts)
+analyses      (id, session_id, student_id, result JSON, created_at)
+insights      (id, student_id, session_id, kind, concept, title, body, confidence, evidence JSON, status, created_at)
 ```
 
-- `concept` is **free text** in `evidence`: no concept table, prerequisite graph or mastery table.
-- `events` is **append-only** with JSON `payload`. No elaborate event sourcing.
-- `analyses.result` is free JSON in whatever shape the LLM returns; the frontend reads what it needs.
-- No organizations, roles, classes or permissions: one teacher and a few students for the demo.
+- **Single teacher:** no `teachers` table, no authentication, no organizations or roles. `class_context` is a **single row** (global class).
+- `materials.status` ∈ `queued | processing | ready | failed`; `type` ∈ `pdf | transcript`; `profile_key` selects the subject profile (`generic` by default).
+- `insights.kind` ∈ `gap | progress | suggestion`; `insights.status` ∈ `new | accepted | dismissed`.
+- `concept` is **free text** in `evidence` and `insights`: no concept table or prerequisite graph.
+- `events` is **append-only** with JSON `payload`. `analyses.result` is free JSON; `insights` are the denormalized, teacher-facing rows derived from it.
 - `students.is_simulated` drives the "simulated data" badge.
+- Teacher metrics are **SQL aggregates** (counts of students, sessions, gap insights, insights); no extra tables.
+
+### Data flow for the teacher's insights
+
+```
+Whiteboard conversation ─► events + evidence ─► analysis (after each session)
+        ▲                                              │
+        │                                              ▼
+ learner summary (open gaps) ◄──────────── insights (gap / progress / suggestion)
+                                                       │
+                                                       ▼
+                                  Teacher: Students tab (metrics, student detail)
+```
 
 ## Event contract (single typed schema for all channels)
 

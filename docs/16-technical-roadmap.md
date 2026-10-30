@@ -19,7 +19,7 @@ The tutor is an LLM that emits a **script of tool calls**. The server streams th
                           ┌────────────────────── Server ─────────────────┴───────────────┐
                           │ Turn handler                                                    │
                           │  1. append user event to log                                    │
-                          │  2. assemble prompt: base + subject profile + lesson pages      │
+                          │  2. assemble prompt: base + subject profile + class context     │
                           │     + learner summary + board snapshot + recent events         │
                           │  3. LLM with tools (streaming) ─► validate ─► emit SSE actions  │
                           │  4. server-side tools: record_evidence, ask_verification judge  │
@@ -108,7 +108,7 @@ All args are validated by the server before streaming (types, ids, allowed colum
 | `remove_element` / `update_element` | `id` (+ `html`) | Change or remove an element |
 | `ask_verification` | `concept`, `question`, `kind` (`explain`, `transfer`, `place_on_timeline`) | Puts a question on the board and **waits** for the student's answer |
 | `record_evidence` | `concept`, `correct`, `independent`, `rationale`, `source_ref?` | **Server-side only** (not rendered): writes an evidence row |
-| `search_materials` | `query` | Only if the lesson does not fit in context (see 6) |
+| `search_materials` | `query` | Main retrieval path for books (FTS over the chosen material); see §6 |
 
 `sources` format: `[{ "source_id": 3, "page": 12, "quote": "…exact excerpt…" }]`. Source of truth for citations: `04-knowledge-and-sources.md`.
 
@@ -131,7 +131,7 @@ All args are validated by the server before streaming (types, ids, allowed colum
 
 ### 5.1 Structure
 
-- DOM only. The board has **spaces** (one per lesson topic) and **columns** (e.g., `main`, `visuals`, `side`). The model chooses a column, **never x/y coordinates**: this avoids overlaps and makes layout deterministic. The board scrolls horizontally as columns fill.
+- DOM only. The board has **spaces** (one per topic of the conversation) and **columns** (e.g., `main`, `visuals`, `side`). The model chooses a column, **never x/y coordinates**: this avoids overlaps and makes layout deterministic. The board scrolls horizontally as columns fill.
 - Every element has a **stable `id`**, `type` (`text`, `timeline`, `image`, `svg`, `latex`, `question`), `author` (`tutor` | `student`), `column`, `created_at`, optional `sources` / `outside_material`.
 - **Board state = replay of the event log**, so resuming a session and replay come for free (Must #7).
 
@@ -144,18 +144,18 @@ Handwriting font; pencil icon trailing the text being "written"; yellow blob **m
 1. Each element and each **text span** the tutor may reference is clickable/selectable.
 2. The client sends `user_message` with `type: "board_select"`, `selected: {element_id, text}` and the question (typed or spoken).
 3. The prompt includes a **board snapshot** each turn: a compact list `id | type | column | text (truncated)` of everything on the board, plus the selected element in full. That is how the model can target `circle_annotate`/`highlight` and answer about *that* element.
-4. The tutor answers about the element and may add an annotation, without restarting the lesson.
+4. The tutor answers about the element and may add an annotation, without restarting the conversation.
 
 ### 5.4 Safety
 
 - HTML from the model passes through an **allowlist sanitizer** (no scripts, no event handlers, no external resources).
 - Student-authored text is escaped.
 
-## 6. Grounding and citations
+## 6. Grounding and citations (materials)
 
-- **Ingestion script** (before the demo): PDFs under `materials/<subject>/<lesson>/` → per-page Markdown (model reads the PDF) → rows in `chunks` with `page`.
-- **Context per turn** = base prompt + subject profile + `prompt_notes` + **all lesson pages** (prompt-cached) + learner summary + board snapshot + last N events. If the lesson is too large, use FTS via `search_materials`.
-- **Citation chips:** `sources` on `speak`/`write_text` render as chips (`Slides, p.12`). Clicking opens pdf.js at `page` and highlights `quote` by searching the text layer.
+- **Ingestion** (UI upload in the Materials tab, or `scripts/ingest.ts` as the fallback): PDF → per-page text (text layer first, vision only for pages that need it) → rows in `chunks` with `page` + FTS index + chapter outline; runs as a background job with status (`queued → processing → ready/failed`). Details: `04-knowledge-and-sources.md`.
+- **Context per turn** = base prompt + subject profile (from the chosen material) + **class context** (grade level + description) + **retrieved pages of the chosen material** (FTS top-k + outline chapter; all pages only if the material is small; prompt-cached) + learner summary (open gaps, recent progress) + topic + board snapshot + last N events. Mid-turn lookups use `search_materials`.
+- **Citation chips:** `sources` on `speak`/`write_text` render as chips (`Livro, p.12`). Clicking opens pdf.js at `page` and highlights `quote` by searching the text layer.
 - **Outside the material:** the model sets `outside_material: true`; the UI marks the element/caption visibly.
 - Validate citations server-side: the `quote` must actually occur in that chunk; otherwise drop the chip (avoids fabricated citations).
 
@@ -180,14 +180,14 @@ Handwriting font; pencil icon trailing the text being "written"; yellow blob **m
 ### 7.3 Demo guardrails
 
 - Ship 4–6 pre-generated, reviewed images for Rome (Colosseum, aqueduct, legionary, Forum, map of the Empire, ship) as the **cache seed**; live generation is the stretch path.
-- Fallback if generation fails or is slow: show a soft placeholder card with the caption; the lesson continues.
+- Fallback if generation fails or is slow: show a soft placeholder card with the caption; the conversation continues.
 
 ## 8. Evidence and analysis
 
 1. `ask_verification` puts a question on the board and the tutor waits (`tutor_state: waiting`).
-2. The student answers (chat or speech). A **judge call** (separate, small LLM call with the lesson excerpts and a rubric) decides `correct` / `partial`, and `independent` (no hint used).
+2. The student answers (chat or speech). A **judge call** (separate, small LLM call with the material excerpts and a rubric) decides `correct` / `partial`, and `independent` (no hint used).
 3. Server writes `evidence` (`concept`, `correct`, `independent`, `chunk_id`, `session_id`, ts) and emits `evidence_recorded`.
-4. **Post-session analysis** reads the event log + evidence and produces the JSON for the teacher screen (`05-learner-model-and-analysis.md`).
+4. **Post-session analysis** (automatic after each conversation) reads the event log + evidence, writes `analyses.result` and creates **`insights`** (gap / progress / suggestion) for the teacher's Students tab and for the learner summary of the next conversation (`05-learner-model-and-analysis.md`).
 5. A **diagnostic opener** (like Studdy's "how much do you remember, 1–10?") is cheap and gives a first evidence data point; we use it per concept, never as a score.
 
 ## 9. Voice (Should)
@@ -210,24 +210,34 @@ Handwriting font; pencil icon trailing the text being "written"; yellow blob **m
 
 ## 10. Data model
 
-Keep the 9 tables of `07-architecture-and-data.md`. Additions inside existing tables (no new tables):
+The data model is defined in `07-architecture-and-data.md` (9 tables: `class_context`, `materials`, `chunks`, `students`, `sessions`, `events`, `evidence`, `analyses`, `insights`). Notes for the build:
 
-- `sessions`: + `persona`, + `modality`.
+- `sessions` carries `student_id`, `material_id`, `topic`, `persona`, `modality`.
 - `events.payload` stores tool args and results (`url` of generated assets); assets live on disk, referenced by path.
-- `evidence`: + `rationale` (short text from the judge) for the teacher's "examples of reasoning".
+- `evidence.rationale` (short text from the judge) feeds the teacher's "examples of reasoning".
+- `insights` (`gap | progress | suggestion`) are written by the post-session analysis and read by the Students tab and by the learner summary of the next conversation.
 
 ## 11. API surface
 
+Single teacher workspace: **no authentication** (prototype only).
+
 | Endpoint | Purpose |
 |---|---|
-| `POST /api/sessions` | Create session (`student_id`, `lesson_id`, `persona`) |
+| `GET /api/students` | Student list (names for the picker; with counts for the teacher) |
+| `POST /api/sessions` | Create a conversation (`student_id`, `material_id`, `topic?`, `persona?`) |
 | `POST /api/sessions/:id/turn` | Turn request → SSE script |
 | `GET /api/sessions/:id/events` | Event log (replay, resume, teacher view) |
 | `POST /api/voice/token` | Ephemeral Deepgram token |
 | `POST /api/tts` | Streaming TTS proxy |
-| `GET /files/:id` | PDFs and generated images |
-| `GET /api/subjects`, `GET /api/students`, `GET /api/students/:id/analysis` | Teacher screen (read-only) |
-| CLI `ingest <folder>` | Ingestion script (not an endpoint) |
+| `GET /api/files/:id` | Material PDFs and generated images |
+| `GET /api/overview` | Teacher metrics: students, conversations, gaps identified, insights generated |
+| `GET/PUT /api/class-context` | Read/update the global class context |
+| `POST /api/students` | Create a student |
+| `GET /api/students/:id` | Student detail: sessions, evolution (from evidence), insights |
+| `PATCH /api/insights/:id` | Accept or dismiss an insight |
+| `GET /api/materials`, `POST /api/materials` (multipart) | List / upload a PDF (starts background ingestion) |
+| `GET /api/materials/:id` | Material status and metadata |
+| CLI `ingest <pdf>` | Ingestion script fallback (not an endpoint) |
 
 ## 12. Build order (maps to the schedule in `01-hackathon-scope.md`)
 
@@ -237,10 +247,10 @@ Keep the 9 tables of `07-architecture-and-data.md`. Additions inside existing ta
 | 2–4 | **Hello-world turn:** `POST /turn` → SSE with a *fixture* script → client plays `write_text` + `speak` (captions) → events stored |
 | 4–8 | Real LLM loop with the 3-layer prompt, board snapshot, all rendering tools; **fixture replay mode** so front and back develop in parallel |
 | 8–12 | Click-and-ask; `draw` artistic (placeholder + cache) and `write_timeline`; interruption in text mode |
-| 12–15 | Ingestion script, citations, pdf.js highlight, outside-material flag |
+| 12–15 | Material ingestion (script; FTS + outline), retrieval in the turn, citations, pdf.js highlight, outside-material flag |
 | 15–18 | `ask_verification` + judge + evidence; event-log persistence verified end to end |
 | **18** | **Cut line** |
-| 18–22 | Teacher screen + post-session analysis; then voice (STT Deepgram → TTS) if time remains |
+| 18–22 | Teacher **Students tab** (metrics, student detail, insights) + analysis → insights; then Materials upload and class-context form; voice last (see the cut order in `01`) |
 | 22–24 | Rehearsal, pre-generation, bug fixing, text-mode fallback ready |
 
 **Fixture mode** is the most useful parallelization tool: a JSON script (like the example above) replayed through the same SSE path lets the frontend team build the board without waiting for the LLM, and lets the prompt team iterate without a UI.
@@ -250,14 +260,14 @@ Keep the 9 tables of `07-architecture-and-data.md`. Additions inside existing ta
 | Lane | Scope | Depends on |
 |---|---|---|
 | **A. Board + student UI** | DOM board, action queue, animations, click-and-ask UI, source chips, pdf.js viewer, captions | Action schema, event schema |
-| **B. Tutor core + sources** | Prompts, turn handler, tool validation, draw pipelines, ingestion, citations, judge/evidence | Action schema, DB schema |
-| **C. Data + teacher + voice** | Schema, event log, read API, analysis job, teacher page, simulated data; voice adapter later | Event schema, DB schema |
+| **B. Tutor core** | Prompts (incl. class-context layer), turn handler, tool validation, draw pipelines, retrieval in the turn, judge/evidence | Action schema, Repository |
+| **C. Data + sources + teacher + voice** | Schema, event log, material ingestion + citation validator, teacher interface (Students, Materials, class context), analysis → insights, simulated data; voice adapter later | Event schema, Repository |
 
-**Contracts to freeze in the first 2 hours:** (1) action/tool schema (§4), (2) SSE message format (§3.2), (3) event log shape (§3.4), (4) citation format (§6). Put them in a shared `contracts/` folder as JSON Schema + examples.
+**Contracts to freeze in the first 2 hours:** (1) action/tool schema (§4), (2) SSE message format (§3.2), (3) event log shape (§3.4), (4) citation format (§6). Put them in `packages/contracts` as JSON Schema + examples.
 
 ## 14. Testing
 
-- **Fixture scripts** for the Rome lesson (happy path, wrong answer, click-and-ask, out-of-material question, interruption).
+- **Fixture scripts** for the Rome material (happy path, wrong answer, click-and-ask, out-of-material question, interruption).
 - **Prompt regression:** rerun fixed conversations after every prompt change and compare tool sequences (not exact text).
 - **Contract tests:** schema validation of every model-emitted action (reject unknown tools/columns/ids).
 - **Latency log:** record per-turn timings (first action, last action, TTS first audio, image ready) from day 1.

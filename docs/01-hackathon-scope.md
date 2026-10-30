@@ -1,84 +1,101 @@
 # 01 — Hackathon scope
 
-> Status: **agreed in brainstorming** (pending founder's final answer on item 12, see `10-decisions.md`). Last updated: 2026-10-30.
+> Status: **updated 2026-10-30 for the simplified product model** (single teacher workspace, Students and Materials entities, class context). Tiers below are a **proposal** to be confirmed by the founder (see `10-decisions.md`, D29–D35 and Q12–Q16).
 > **This is the source of truth for what we build.** If an item is not in Must or Should, do not build it without approval.
 
 ## Context
 
 - 2-day hackathon backed by **Teachy**. ~**24h of build time**, then code freeze.
-- 3 people, in parallel.
-- **Demo: History, Ancient Rome** (content in Portuguese). One subject, one lesson, 2 to 3 PDFs. No math in the demo.
+- 3 people, in parallel (`17-work-split.md`).
+- **Demo: History, Ancient Rome** (content in Portuguese), taught from a **book/PDF uploaded by the teacher**, to a class described as **8º ano (Ensino Fundamental II)**. No math in the demo.
+- **Segment focus for the MVP:** Ensino Fundamental II (7º, 8º and 9º ano). Ensino Médio and college are future.
 - Low budget and lots of testing: prefer cheap and simple.
+
+## Product model in one page
+
+- **One teacher, one workspace.** No authentication and no multi-teacher support (quick win). Every teacher tab shows the same data because state lives on the server.
+- **Two teacher entities, two tabs:** **Students** and **Materials**. Students can be created in the UI or directly in the database; materials are PDFs (e.g., a book) uploaded in the UI.
+- **Class context:** one global description of the class (grade level and characteristics) written by the teacher. It is applied to **every** student chat.
+- **The whiteboard generates the data:** every conversation is stored (events, evidence) and analyzed into **insights** (gaps, progress, suggestions).
+- **The Students tab** shows overview metrics (students, conversations, gaps, insights) and, per student, how they are evolving, their gaps and proactive suggestions.
+- Details: `00-product-vision.md`, `06-teacher-interface.md`, `07-architecture-and-data.md`.
 
 ## Must-have (without these the demo does not exist)
 
 1. **AI whiteboard that writes and draws live:** text, labels, arrows, highlights, timeline and illustrations (e.g., the Colosseum), revealed step by step.
 2. **Two-way conversation, in text**, with **click-and-ask**: the student selects a board object and asks about it.
-3. **Three-layer prompt** (base + subject profile + lesson context) with the **History profile**.
-4. **Script-based ingestion** of 1 subject and 1 lesson (2 to 3 PDFs), with **retrieval filtered by subject and lesson**, citation (`source`, `page`, `quote`) and a warning when an answer is **outside the material**.
-5. **Sources visible to the student:** a "Lesson material" panel and chips on each tutor message (`Slides, p.12`) that open the PDF at the cited excerpt.
-6. **Recorded evidence:** verification questions with correct/incorrect, concept and source.
-7. **Event log** of board and conversation persisted in the database.
+3. **Layered prompt:** base + **subject profile** (from the material's subject) + **course context** = **class context** (grade level and characteristics) + excerpts from the chosen material + the student's learner summary + topic. Language register adapted to Ensino Fundamental II (7º–9º ano).
+4. **Material ingestion** (PDF/book → pages, chunks, search index, outline) **by script at minimum**, with **retrieval scoped to the material the student chose**, citation (`material`, `page`, `quote`) and a warning when an answer is **outside the material**.
+5. **Sources visible to the student:** chips on each tutor message (`Livro, p.12`) that open the PDF at the cited excerpt.
+6. **Recorded evidence:** verification questions judged as correct/incorrect with concept, source and rationale.
+7. **Persisted conversations:** every session and its event log stored **per student** (the data foundation for insights).
+8. **Students and class context exist:** created by seed/database at minimum (UI forms are Should); the student start screen is **pick your name → pick a material (+ optional topic)**.
 
 ## Should-have (in priority order; starts only when Must is stable)
 
-8. **Teacher screen, single read-only page:**
-   - Materials per subject and lesson.
-   - Per-student card: concepts (with confidence), possible misconceptions (with evidence), what seems to work (with `n`), suggested next action.
-   - 1 real student (from the demo) + 2 to 3 simulated ones with a **"simulated data"** badge.
-9. **Post-session analysis** (deterministic counters + an LLM call with structured output) feeding item 8.
-10. **Voice** (cascade STT → LLM → TTS over the same tutor core) with a voice/text toggle. Text remains the guaranteed baseline.
+9. **Teacher interface, two tabs (single-teacher workspace)**, in this build order:
+   - **9a. Students tab:** overview metrics (students, conversations, gaps identified, insights generated), student list, **student detail** (evolution, gaps with evidence, suggestions), **create student** form. Simulated students carry a **"simulated data"** badge.
+   - **9b. Class context card** (grade level + description; one global setting) editable in the UI. Until then it is seeded.
+   - **9c. Materials tab:** upload a PDF, processing status, list of materials. Until then ingestion is by script.
+10. **Post-session analysis → insights:** automatic after each conversation (counters + a structured LLM call), producing **gap / progress / suggestion** insights that feed the teacher view **and** the learner summary used in the student's next conversation.
+11. **Voice** (cascade STT → LLM → TTS over the same tutor core) with a voice/text toggle. Text remains the guaranteed baseline.
 
 ## Nice-to-have
 
-11. **Math** subject profile (sketch, to show the platform scales).
-12. **"My progress"** on the student side (concepts to review and what usually helps them; *open learner model*). *Still awaiting founder confirmation (option A or B, see `10-decisions.md`).*
-13. PDF upload through the teacher interface.
-14. Replay of the board moment where the error occurred.
-15. "Resume session" button (cheap if the log is in the database).
-16. Pre-ingested book library per subject.
-17. **Classroom transcription for teachers** (Wispr Flow-style): a phone listens to the class and speech becomes a searchable source and evidence input. Fits the schema as `Source.type = transcript`.
+12. **Math** subject profile (sketch, to show the platform scales).
+13. **"My progress"** on the student side (concepts to review; *open learner model*). *Still awaiting founder confirmation (see `10-decisions.md`, Q3).*
+14. Read-only **replay of a conversation** (board moment where a gap appeared) for the teacher.
+15. "Resume session" button (cheap because the event log is in the database).
+16. Delete/rename materials; re-process a material; progress per page.
+17. **Classroom transcription for teachers** (Wispr Flow-style) as a new material type (`transcript`).
 18. Exam and question generation.
 
 ## Out of scope
 
-Real authentication, multiple classes, grades and gradebook, full lesson configuration, family portal, Teachy integration, other subjects, 3D or multi-user collaborative whiteboard, custom-trained models, complex multi-agent systems, LMS.
+Authentication and multi-teacher support, multiple classes (turmas) and per-class settings, other grade levels (Ensino Médio, college), grades/gradebook, family portal, Teachy integration, other subjects beyond History in the demo, complex multi-agent systems, custom-trained models, LMS.
 
 ## Schedule (adjust to the real code-freeze time)
 
 | Hours | Milestone |
 |---|---|
-| 0–4 | Skeleton: board on screen, chat, database with schema, 1 PDF ingested |
-| 4–12 | **Main loop:** tutor writes and draws, conversation, click-and-ask |
-| 12–18 | Sources and highlight, evidence, persisted log, stable end-to-end session |
+| 0–4 | Skeleton: board on screen, chat, database with schema, seed (students, class context), 1 book PDF ingested by script |
+| 4–12 | **Main loop:** tutor writes and draws, conversation, click-and-ask, conversations persisted |
+| 12–18 | Citations and PDF highlight, evidence, stable end-to-end session; **Must complete** |
 | **18** | **Cut line.** If Must does not run end to end, Should does not start |
-| 18–22 | Teacher screen (first). Voice only if the teacher screen is already done |
+| 18–22 | Teacher **Students tab** first (metrics, student detail, insights), then analysis → insights; Materials upload and class-context form only if time allows; voice last |
 | 22–24 | Demo rehearsal, drawing cache, bug fixing |
+
+### Cut order if time runs short (first to cut → last)
+
+1. Voice. 2. Materials upload UI (use the ingestion script). 3. Class context form (use the seeded value). 4. Create-student form (use seed/DB). 5. Evolution chart in the student detail (keep the list of gaps and suggestions). **Never cut:** persisted conversations, evidence, the analysis → insights path and the student detail with gaps.
 
 ## Demo script (3 to 4 min) = definition of done
 
-1. Student opens "Ancient Rome" and sees the lesson material listed.
-2. Asks: "how did Rome go from Republic to Empire?".
+0. *Setup (pre-done, shown briefly):* the teacher's **Materials** tab has the history book; the **class context** says "8º ano"; students exist.
+1. Student picks their name and the book; types a topic ("República e Império").
+2. Tutor starts writing within ~3 s, in a register suited to an 8º ano class.
 3. Tutor draws the timeline and the Colosseum while explaining, with source chips.
-4. Student clicks a date and asks "why that date?".
-5. Tutor answers; when citing the slide, the PDF opens at the highlighted excerpt.
-6. Tutor asks a verification question; the student gets it wrong; the tutor changes the explanation; the result is recorded.
-7. Teacher screen shows materials and what the AI identified about the student.
+4. Student clicks a date and asks "why that date?"; the tutor answers about that element.
+5. Student clicks a chip; the PDF opens at the highlighted excerpt.
+6. Tutor asks a verification question; the student answers wrong; the tutor changes the explanation; evidence is recorded.
+7. **Teacher Students tab:** metrics (students, conversations, gaps, insights); open the student: **evolution, the gap found in this conversation with the student's own words, and a suggested next step**; other students are badged "simulated data".
 
 ### Demo success criteria
 
 - The AI does not just answer: it teaches in steps.
 - The board is interactive and does not look like a static image.
-- The explanation matches the teacher's source and cites the page.
-- The student's question changes the course of the lesson.
+- The explanation matches the teacher's material and cites the page.
+- The student's question changes the course of the conversation.
 - The verification is about something actually different from what was explained.
-- Evidence is recorded and shown to the teacher.
+- A conversation turns into a **gap and a suggestion** visible to the teacher, without the teacher doing anything.
 - Everything works live end to end, no pre-recorded video.
 
 ## Known risks
 
-- **LLM drawing quality** → pre-generate and cache 4 to 6 reviewed Rome images (Colosseum, aqueduct, legionary, map); use deterministic components for timelines; generate live only as a stretch.
-- **Voice latency** → hence text first, voice later.
-- **Scanned PDFs** → break highlighting; test the PDFs early.
-- **Image/TTS/LLM choices** → day-0 bake-offs (see `16-technical-roadmap.md` §12); the board is plain DOM, so no whiteboard-library license risk.
+- **Scope grew with the new teacher interface** (students, class context, uploads, insights). Mitigation: the cut order above; Must is unchanged in size except the data foundation (items 7–8).
+- **Books are large:** ingestion time/cost and retrieval quality (pages cannot all fit in context). Mitigation: text-layer extraction first, search index (FTS), outline by chapters, page cap for the demo, pre-ingested book (`04-knowledge-and-sources.md`).
+- **LLM drawing quality** → pre-generate and cache 4 to 6 reviewed Rome images; deterministic timelines; live generation as a stretch.
+- **Voice latency** → text first, voice later.
+- **Scanned PDFs** → break text extraction and highlighting; test the book early.
+- **Single teacher without auth** → prototype shortcut only; fictional data only (`08`).
 - **Hackathon IP** → read the rules before submitting code.

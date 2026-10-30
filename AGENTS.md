@@ -12,7 +12,7 @@
 
 ## What Mento is (in 5 lines)
 
-**Mento** is an AI tutoring platform for schools. The teacher defines a subject and uploads materials (PDFs, slides, books). Each student talks to an AI tutor that **writes and draws live on a whiteboard**, converses by text (and by voice if time allows), and **answers grounded in the teacher's materials, citing the source**. Each session produces learning evidence; an analysis turns that evidence into a picture of how the student thinks and learns, visible to the teacher.
+**Mento** is an AI tutoring platform for schools. The teacher uploads **materials** (PDFs such as books) and describes the **class** (grade level and characteristics) in a simple single-teacher workspace (no login), and manages **students**. Each student talks to an AI tutor that **writes and draws live on a whiteboard**, converses by text (and by voice if time allows), and **answers grounded in the teacher's materials, citing the source**. Each conversation is stored; an automatic analysis turns it into **insights** (gaps, progress, suggestions) so the teacher sees, per student, how they are evolving.
 
 Thesis: *the school defines what must be learned; Mento teaches each student individually and turns the evidence from those tutoring sessions into pedagogical intelligence for the teacher.*
 
@@ -20,8 +20,9 @@ Thesis: *the school defines what must be learned; Mento teaches each student ind
 
 - **Stage:** ideation/prototype for a **2-day hackathon backed by Teachy**. ~24h of build time, then code freeze.
 - **Team:** 3 people working in parallel in this repo (https://github.com/ericlbarreto/mento).
-- **Demo:** one subject, one lesson: **History — Ancient Rome** (in Portuguese). No math in the demo.
-- **Stack (decided):** TypeScript, one Next.js project, Zod contracts, SQLite. See `docs/16-technical-roadmap.md` and `docs/17-work-split.md`.
+- **Demo:** **History — Ancient Rome**, taught from a book PDF uploaded by the teacher to a class described as **8º ano (Ensino Fundamental II)**; content in Portuguese; no math in the demo. **MVP segment focus: 7º, 8º and 9º ano.**
+- **Product model:** one teacher workspace (no auth); entities **Students** and **Materials**; one global **class context**; see `docs/01-hackathon-scope.md` and `docs/06-teacher-interface.md`.
+- **Stack (decided):** TypeScript, a light pnpm-workspace **monorepo** (`apps/web` Next.js + `packages/*`), Zod contracts, SQLite. Layout: `docs/21-repo-structure.md`. See `docs/16-technical-roadmap.md` and `docs/17-work-split.md`.
 - There are **no** paying customers, proven efficacy or closed partnerships. Never present these as facts.
 
 ## How to study this repository
@@ -37,7 +38,7 @@ Read in this order. Stop when you have enough context for the task, but **always
    - Tutor and prompts → `docs/03-tutor-and-prompts.md`
    - PDFs, retrieval, citations → `docs/04-knowledge-and-sources.md`
    - Student model, evidence, analysis → `docs/05-learner-model-and-analysis.md`
-   - Teacher screen → `docs/06-teacher-interface.md`
+   - Teacher interface (students, materials, class context, insights) → `docs/06-teacher-interface.md`
    - Architecture, database, events, voice → `docs/07-architecture-and-data.md`
    - Privacy, ZDR, minors → `docs/08-privacy-zdr-security.md`
    - Market, Teachy, competitors → `docs/09-market-and-competitors.md`
@@ -49,6 +50,7 @@ Read in this order. Stop when you have enough context for the task, but **always
    - **UI references, shared design language, orb and teacher layout** → `docs/18-ui-references.md`
    - **Logo, mascot, brand colors and how the orb uses them** → `docs/19-brand-assets.md`
    - **Demo preparation, script and fallbacks** → `docs/20-demo-runbook.md`
+   - **Monorepo layout, packages, dependency rules, K1 checklist** → `docs/21-repo-structure.md`
 6. Original raw material: `docs/reference/Mento_Company_Brief.md` (long brief, **in Portuguese**; also contains long-term vision and out-of-scope items).
 
 When done studying, answer the user with: (a) product summary, (b) hackathon scope, (c) open decisions, (d) what you understand still needs to be done.
@@ -63,12 +65,15 @@ docs/                      ← all product and technical documentation (numbered
   reference/               ← original raw material (Portuguese brief)
 prompts/                   ← tutor prompts as editable text files
   base.md                  ← (to create) base tutor prompt
-  subjects/                ← (to create) one profile per subject (history.md, math.md)
-materials/                 ← sample PDFs per subject/lesson (git-ignored)
+  subjects/                ← (to create) one profile per subject (history.md, generic.md, math.md)
+materials/                 ← sample PDFs for the ingestion script (git-ignored)
+apps/web/                  ← (planned) Next.js app: pages + thin API routes; composition root
+packages/                  ← (planned) contracts, ui, board, tutor, db, sources, analysis, voice (see docs/21-repo-structure.md)
+scripts/ fixtures/         ← (planned) tsx scripts; JSON fixtures validated against the contracts
 assets/                    ← brand source files: brand/ (logo.png, mascot.png) and brand-concepts/ (founder-owned; see assets/README.md)
 ```
 
-No source code exists yet. The planned code layout (`src/contracts`, `src/board`, `src/tutor`, `src/db`, `src/sources`, `src/analysis`, `src/voice`, `src/app`) and the **directory ownership per lane** are in `docs/17-work-split.md`. When the code exists, keep this map in sync.
+No source code exists yet. The planned monorepo layout is in `docs/21-repo-structure.md` and the **directory ownership per lane** in `docs/17-work-split.md` (§7) and `docs/21-repo-structure.md` (§9). When the code exists, keep this map in sync.
 
 **If you are an agent working for one person:** ask which lane (A, B or C) they own and only edit that lane's paths (see the ownership table in `docs/17-work-split.md`).
 

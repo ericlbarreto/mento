@@ -18,10 +18,12 @@ Turn the conceptual design (`07-architecture-and-data.md`) into concrete choices
 - [ ] Whiteboard: DOM board in columns (decided, D18); check handwriting font with pt-BR accents
 - [ ] PDF viewer: pdf.js and how to highlight a quote by text search
 - [ ] Ingestion approach: model reads PDF → Markdown per page
-- [ ] Whether the whole lesson fits in context (cached) or needs FTS
+- [ ] Retrieval for **books**: FTS over page chunks + outline (default) vs embeddings; ingestion cost and time of a real book (text layer first, vision only where needed)
+- [ ] Background ingestion job inside the Next process (status polling) and page cap for the demo
+- [ ] Handwriting font and tutor register tests at 7º–9º ano level
 - [ ] Board operation schema (JSON types, validation)
 - [ ] Event schema (client ↔ server) and transport (WebSocket vs SSE)
-- [ ] Repo layout (monorepo or separate folders) and how to run locally
+- [x] Repo layout: **monorepo** (pnpm workspaces; `apps/web` + `packages/*`), see `21-repo-structure.md`; kickoff K1 checklist there
 
 ## Proposed lanes (to confirm; not assigned to anyone yet)
 
@@ -29,14 +31,14 @@ Three natural parallel lanes with clear interfaces between them:
 
 1. **Board + student UI:** whiteboard, chat panel, source chips, PDF viewer, click-and-ask.
 2. **Tutor Core + sources:** prompts, LLM loop, tools, ingestion script, retrieval, citations, evidence recording.
-3. **Data + analysis + teacher screen:** schema, event log, read API, post-session analysis, teacher page, simulated data; voice later.
+3. **Data + sources + analysis + teacher interface:** schema, event log, material ingestion, post-session analysis → insights, teacher tabs (Students, Materials, class context), simulated data; voice later.
 
 Contracts between lanes: the **board operation schema** and the **event schema**. Define them first and mock them so lanes do not block each other.
 
 ## Suggested first hour (all three together)
 
 1. Pick stack (above).
-2. Write the action/tool schema and the event schema as shared Zod files (`src/contracts`).
+2. Write the action/tool schema and the event schema as shared Zod files (`packages/contracts`).
 3. Create the repo skeleton and a "hello world" end to end: student sends text → Tutor Core replies with one `write_text` action → board renders it → event stored.
 4. Split into lanes.
 

@@ -7,11 +7,11 @@
 
 > UI layout (orb at bottom center, captions, chips) and the shared design language with the teacher UI are specified in `18-ui-references.md`.
 
-The student chooses a **subject** and a **lesson** and talks to the tutor. The screen has three regions:
+The student picks **who they are** (from the teacher's list of students), **which material to study** and, optionally, a **topic**, and then talks to the tutor. The tutor adapts its language to the teacher's **class context** (grade level and characteristics). The screen has three regions:
 
 1. **Board** (center): where the tutor writes and draws, and where the student can annotate and click.
 2. **Conversation** (side): text messages, source chips, tutor states ("thinking", "waiting for you").
-3. **Lesson material** (collapsible panel): list of PDFs and a viewer that opens at the cited page.
+3. **Material** (collapsible panel): list of PDFs and a viewer that opens at the cited page.
 
 All user-facing text is in pt-BR.
 
@@ -54,7 +54,7 @@ The system distinguishes **exploratory annotation** from **final answer**; a dra
 
 ## Click-and-ask
 
-Flow: the student selects an object (e.g., the date "27 BC" on the timeline) and asks "why that date?". The client sends `board_select` with `object_id`, object content and the question. The tutor receives the current board state, the selected object, the lesson concept and the relevant material excerpts; it answers specifically about that element and may **add an annotation** without restarting the lesson.
+Flow: the student selects an object (e.g., the date "27 BC" on the timeline) and asks "why that date?". The client sends `board_select` with `object_id`, object content and the question. The tutor receives the current board state, the selected object, the current concept and the relevant excerpts from the chosen material; it answers specifically about that element and may **add an annotation** without restarting the conversation.
 
 ## Drawings (illustrations)
 

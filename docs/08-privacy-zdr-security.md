@@ -50,11 +50,18 @@ Legal basis per processing activity; controller/operator roles between school an
 
 | Flow | Data sent | Rules |
 |---|---|---|
-| **LLM (tutor, judge, analysis)** | Lesson excerpts, learner summary, recent events, board snapshot | Pseudonymized student id (no names); provider with a ZDR option; no training on our data (verify terms) |
+| **LLM (tutor, judge, analysis)** | Class context, material excerpts, learner summary, recent events, board snapshot | Pseudonymized student id (no names); provider with a ZDR option; no training on our data (verify terms) |
 | **STT (Deepgram, browser → provider)** | Student's voice audio | Direct WebSocket with a **short-lived token** minted by our server; keys never reach the browser; check retention terms; fictional/team voices only in the hackathon |
 | **TTS** | Tutor text | Text only; no student personal data in `speak` text; check retention terms |
-| **Image generation** | The `draw` prompt | Prompts describe the lesson subject only, **never student data**; cache by prompt hash so the same prompt is not re-sent |
+| **Image generation** | The `draw` prompt | Prompts describe the topic only, **never student data**; cache by prompt hash so the same prompt is not re-sent |
 | **Analytics/telemetry** | None planned for the hackathon | If added later, no student content in events |
 
 - Verify each provider's retention/ZDR terms before real use; **free tiers may use content to improve products** (reported for one voice provider, unverified).
 - Model-emitted HTML/SVG is sanitized (allowlist); citations are validated against the chunk text (`16` §5.4, §6).
+
+## Prototype shortcuts of the simplified product model
+
+- **Single teacher, no authentication:** anyone with the URL can open the teacher interface and see all students. Acceptable only with **fictional data**; real use requires login, roles and school-level isolation.
+- **Students pick their name** (no password): no identity verification in the prototype.
+- **Class context is free text:** the UI warns the teacher not to include student names or personal data; it is sent to the LLM provider as part of the prompt.
+- **Insights are about concepts and evidence**, never traits (`05`); dismissed insights are excluded from future prompts.

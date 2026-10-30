@@ -5,12 +5,12 @@ Index. Documents are numbered in suggested reading order. **00, 01, 10 and 14 ar
 | # | Document | Purpose |
 |---|---|---|
 | 00 | [Product vision](00-product-vision.md) | What it is, for whom, problem, thesis, what it is not |
-| 01 | [Hackathon scope](01-hackathon-scope.md) | **Source of truth for scope**: Must/Should/Nice/Out, schedule, demo script |
+| 01 | [Hackathon scope](01-hackathon-scope.md) | **Source of truth for scope**: product model, Must/Should/Nice/Out, cut order, schedule, demo script |
 | 02 | [Student experience and whiteboard](02-student-experience-whiteboard.md) | Board, click-and-ask, text/voice modes, operations protocol |
 | 03 | [Tutor and prompts](03-tutor-and-prompts.md) | 3-layer prompt, subject profiles, pedagogical rules |
-| 04 | [Knowledge and sources](04-knowledge-and-sources.md) | PDF ingestion, retrieval by subject/lesson, citation and highlight |
+| 04 | [Knowledge and sources](04-knowledge-and-sources.md) | Materials (PDF books): upload/ingestion, retrieval for books, citation and highlight |
 | 05 | [Learner model and analysis](05-learner-model-and-analysis.md) | Evidence, post-session analysis, what the AI identifies about a student |
-| 06 | [Teacher interface](06-teacher-interface.md) | Read-only screen: materials and per-student picture |
+| 06 | [Teacher interface](06-teacher-interface.md) | Single-teacher workspace: Students and Materials tabs, class context, metrics, insights |
 | 07 | [Architecture and data](07-architecture-and-data.md) | Components, minimal schema, event contract, voice |
 | 08 | [Privacy, ZDR and security](08-privacy-zdr-security.md) | LGPD, minors, ZDR, limits on what the AI may infer |
 | 09 | [Market and competitors](09-market-and-competitors.md) | Teachy, competitors, positioning (with verification warnings) |
@@ -25,6 +25,7 @@ Index. Documents are numbered in suggested reading order. **00, 01, 10 and 14 ar
 | 18 | [UI references](18-ui-references.md) | Shared design language, student orb UI, Flint-inspired teacher UI, shared components |
 | 19 | [Brand assets](19-brand-assets.md) | Chosen logo, mascot and GIFs, sampled brand colors, orb state mapping, where files go |
 | 20 | [Demo runbook](20-demo-runbook.md) | Preparation checklist, demo script with checks, fallbacks, honesty rules |
+| 21 | [Repository structure](21-repo-structure.md) | **Monorepo layout**, packages, dependency rules, root config, scripts, CI, ownership by path, kickoff K1 checklist |
 | — | [reference/Mento_Company_Brief.md](reference/Mento_Company_Brief.md) | Original full brief (Portuguese; includes long-term vision) |
 
 ## Document conventions
