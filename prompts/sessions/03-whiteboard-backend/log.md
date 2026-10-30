@@ -1,7 +1,12 @@
 # Prompt log — Person 3 · Whiteboard back-end
 
-> Add one row per entry. Entry files live in this folder (`YYYY-MM-DD-hhmm-<topic>.md`, from `_template.md`).
+> Add one row per entry. Entry files live in this folder (`YYYY-MM-DD-hhmm-<topic>.md`, from `_template.md`). Entries of 2026-10-30 are numbered `NN` because the exact time was not recorded.
 
 | Date (UTC) | Title | Task id | Entry file | Commit |
 |---|---|---|---|---|
-| | | | | |
+| 2026-10-30 | API and web scaffold (K1) and MongoDB decision | K1 | [2026-10-30-01-api-scaffold.md](2026-10-30-01-api-scaffold.md) | bb6248e |
+| 2026-10-30 | Voice architecture decision, provider keys, Mongo string | T9 decision | [2026-10-30-02-voice-architecture-and-keys.md](2026-10-30-02-voice-architecture-and-keys.md) | none |
+| 2026-10-30 | Controllers, services and MongoDB structure | K1 follow-up | [2026-10-30-03-api-controllers-services-mongo.md](2026-10-30-03-api-controllers-services-mongo.md) | 6747e7c |
+| 2026-10-30 | Brainstorming and approved back-end design | T1–T11 design | [2026-10-30-04-backend-brainstorming-and-design.md](2026-10-30-04-backend-brainstorming-and-design.md) | 95c9de1 |
+| 2026-10-30 | Images, retrieval without material choice, costs, plans | T5/T6 design, plans | [2026-10-30-05-images-retrieval-costs-and-plans.md](2026-10-30-05-images-retrieval-costs-and-plans.md) | f81e721, f32fcef |
+| 2026-10-30 | Branch, commit style and prompt log | process | [2026-10-30-06-branch-commit-style-and-prompt-log.md](2026-10-30-06-branch-commit-style-and-prompt-log.md) | see git log |
