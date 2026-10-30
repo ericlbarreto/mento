@@ -1,0 +1,171 @@
+[
+  {
+    "turn_id": "turn_intro"
+  },
+  {
+    "order": 0,
+    "action": {
+      "id": "act_intro_1",
+      "name": "write_text",
+      "args": {
+        "id": "title",
+        "column": "main",
+        "html": "<h1>Da República ao Império</h1>"
+      }
+    }
+  },
+  {
+    "order": 1,
+    "action": {
+      "id": "act_intro_2",
+      "name": "highlight",
+      "args": {
+        "target_id": "title",
+        "color": "yellow"
+      }
+    }
+  },
+  {
+    "order": 2,
+    "action": {
+      "id": "act_intro_3",
+      "name": "speak",
+      "args": {
+        "text": "Oi! Hoje vamos descobrir como Roma deixou de ser uma República e virou um Império.",
+        "style": "warm",
+        "purpose": "explain"
+      }
+    }
+  },
+  {
+    "order": 3,
+    "action": {
+      "id": "act_intro_4",
+      "name": "draw",
+      "args": {
+        "id": "colosseum",
+        "column": "visuals",
+        "is_structured": false,
+        "prompt": "Esboço artístico do Coliseu romano, lápis de cor, fundo branco, sem texto",
+        "max_dimensions": {
+          "w": 500,
+          "h": 400
+        }
+      }
+    }
+  },
+  {
+    "order": 4,
+    "action": {
+      "id": "act_intro_5",
+      "name": "write_timeline",
+      "args": {
+        "id": "timeline_rome",
+        "column": "main",
+        "events": [
+          {
+            "date": "509 a.C.",
+            "label": "Início da República"
+          },
+          {
+            "date": "44 a.C.",
+            "label": "Morte de Júlio César"
+          },
+          {
+            "date": "27 a.C.",
+            "label": "Otávio vira Augusto"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "order": 5,
+    "action": {
+      "id": "act_intro_6",
+      "name": "speak",
+      "args": {
+        "text": "Repare nessa data: em 27 a.C., o Senado deu a Otávio o título de Augusto.",
+        "purpose": "explain",
+        "sources": [
+          {
+            "material_id": "665f1a2b3c4d5e6f7a8b9c01",
+            "page": 12,
+            "quote": "Em 27 a.C., o Senado concedeu a Otávio o título de Augusto"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "order": 6,
+    "action": {
+      "id": "act_intro_7",
+      "name": "circle_annotate",
+      "args": {
+        "target_id": "timeline_rome",
+        "text_to_match": "27 a.C.",
+        "color": "red"
+      }
+    }
+  },
+  {
+    "order": 7,
+    "action": {
+      "id": "act_intro_8",
+      "name": "write_text",
+      "args": {
+        "id": "el_republic_end",
+        "column": "main",
+        "html": "<p>Durante a República, Roma era governada por <b>cônsules</b> eleitos e pelo <b>Senado</b>. Depois de muitas guerras civis e da morte de Júlio César, Otávio concentrou o poder em suas mãos e, mesmo mantendo o Senado funcionando, passou a governar sozinho como <i>imperador</i>.</p>",
+        "purpose": "explain",
+        "sources": [
+          {
+            "material_id": "665f1a2b3c4d5e6f7a8b9c01",
+            "page": 12,
+            "quote": "Em 27 a.C., o Senado concedeu a Otávio o título de Augusto"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "order": 8,
+    "action": {
+      "id": "act_intro_9",
+      "name": "speak",
+      "args": {
+        "text": "Agora me conta com suas palavras: por que dizemos que a República acabou, se o Senado continuou existindo?",
+        "purpose": "question"
+      }
+    }
+  },
+  {
+    "order": 9,
+    "action": {
+      "id": "act_intro_10",
+      "name": "ask_verification",
+      "args": {
+        "id": "el_q_republic_end",
+        "verification_id": "ver_1",
+        "concept": "Fim da República",
+        "question": "Por que dizemos que a República romana acabou, mesmo com o Senado ainda funcionando?",
+        "kind": "explain"
+      }
+    }
+  },
+  {
+    "order": 10,
+    "action": {
+      "id": "act_intro_11",
+      "name": "draw_result",
+      "args": {
+        "element_id": "colosseum",
+        "url": "/brand/mascot.png"
+      }
+    }
+  },
+  {
+    "done": true
+  }
+]

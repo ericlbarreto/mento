@@ -1,0 +1,52 @@
+[
+  {
+    "turn_id": "turn_click"
+  },
+  {
+    "order": 0,
+    "action": {
+      "id": "act_click_1",
+      "name": "speak",
+      "args": {
+        "text": "Boa pergunta! Vamos olhar com calma para 27 a.C.",
+        "style": "warm",
+        "purpose": "explain"
+      }
+    }
+  },
+  {
+    "order": 1,
+    "action": {
+      "id": "act_click_2",
+      "name": "circle_annotate",
+      "args": {
+        "target_id": "timeline_rome",
+        "text_to_match": "27 a.C.",
+        "color": "orange"
+      }
+    }
+  },
+  {
+    "order": 2,
+    "action": {
+      "id": "act_click_3",
+      "name": "write_text",
+      "args": {
+        "id": "el_side_27bc",
+        "column": "side",
+        "html": "<h3>27 a.C.</h3><p>Otávio recebe do Senado o título de <b>Augusto</b>. Para muitos historiadores, é o começo do Império Romano.</p>",
+        "purpose": "explain",
+        "sources": [
+          {
+            "material_id": "665f1a2b3c4d5e6f7a8b9c01",
+            "page": 12,
+            "quote": "Em 27 a.C., o Senado concedeu a Otávio o título de Augusto"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "done": true
+  }
+]
