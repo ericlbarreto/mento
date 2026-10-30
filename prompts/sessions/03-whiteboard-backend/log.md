@@ -10,3 +10,4 @@
 | 2026-10-30 | Brainstorming and approved back-end design | T1–T11 design | [2026-10-30-04-backend-brainstorming-and-design.md](2026-10-30-04-backend-brainstorming-and-design.md) | 95c9de1 |
 | 2026-10-30 | Images, retrieval without material choice, costs, plans | T5/T6 design, plans | [2026-10-30-05-images-retrieval-costs-and-plans.md](2026-10-30-05-images-retrieval-costs-and-plans.md) | f81e721, f32fcef |
 | 2026-10-30 | Branch, commit style and prompt log | process | [2026-10-30-06-branch-commit-style-and-prompt-log.md](2026-10-30-06-branch-commit-style-and-prompt-log.md) | see git log |
+| 2026-10-30 | Implementation plans 3 to 5 written and verified | plans 1–5 | [2026-10-30-07-plans-3-to-5.md](2026-10-30-07-plans-3-to-5.md) | e8fc375, ccffa15, see git log |
