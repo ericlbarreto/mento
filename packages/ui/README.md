@@ -35,3 +35,23 @@ No hooks inside, so they render in Server and Client Components (pass event hand
 | `Card` | Raised card; `interactive` renders a `<button>` with hover lift, `selected` adds the blue outline (`aria-pressed`) |
 | `Badge`, `SimulatedDataBadge` | neutral / info / warning; "Dados simulados" is required wherever invented data is shown (AGENTS.md rule 4) |
 | `Spinner`, `VisuallyHidden`, `cx` | Helpers |
+
+## Orb (client component)
+
+`Orb` is the student's voice orb: the mascot as the face and a ring drawn in SVG (no Three.js, D26). It is a `"use client"` component (hooks, rAF); import it only from Client Components. Playground: `/dev/orb`.
+
+```tsx
+<Orb state="speaking" getLevel={() => analyserLevel()} perkKey={selectionId} burstKey={correctCount} />
+```
+
+| Prop | Notes |
+|---|---|
+| `state` | `idle` / `listening` / `thinking` / `speaking` / `waiting` / `paused` / `loading` (`OrbState`) |
+| `size` | Diameter in px, default 176 (design range 160–200) |
+| `getLevel` | `() => number` 0..1, read every animation frame in `listening` and `speaking` (mic or TTS level); never triggers a render, so keep it cheap and stable |
+| `perkKey` | Change it to "perk up" (scale 1.06, 180 ms), e.g. on click-and-ask |
+| `burstKey` | Change it for the correct-answer burst (ring pulse + `--mascot-light` sparkles, ~700 ms) |
+| `label` | Optional visible caption (visual only; the state is announced by a hidden pt-BR `role="status"` label) |
+| `basePath` | Brand folder, default `/brand` (faces: `mascot/{float,thinking,speaking,spin}.gif`, `mascot.png`) |
+
+Faces per state follow docs/19-brand-assets.md §4 (`orbFace()`); all faces are stacked and preloaded and switch by a 200 ms opacity crossfade (never a `src` swap). Under `prefers-reduced-motion` every state shows the static `mascot.png`, the ring is static and perk/burst do nothing. The loop pauses while the tab is hidden and stops on unmount. Pure helpers (`orbFace`, `orbFaceSrc`, `orbStateLabels`, `ORB_STATES`) are exported for callers and tests.
