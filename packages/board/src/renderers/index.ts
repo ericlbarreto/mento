@@ -6,7 +6,7 @@ import { TimelineRenderer } from "./basic/TimelineRenderer";
 import type { RendererMap } from "./types";
 
 export * from "./types";
-export { resolveImageUrl } from "./basic/DrawRenderer";
+export { clampDimensions, resolveImageUrl } from "./basic/imageUrl";
 
 /** Default renderer per element type. To replace one: `{ ...basicRenderers, text: TypewriterText }`. */
 export const basicRenderers: RendererMap = {

@@ -3,7 +3,7 @@ import { FIXTURE_TURNS } from "../mock";
 import type { TurnStreamMessage } from "../protocol";
 import { TextSpeechPlayer, readingTimeMs } from "../speech";
 import { createBoardStore } from "../store";
-import { createActionQueue } from "./queue";
+import { MAX_SVG_CHARS, createActionQueue } from "./queue";
 import type { QueueState } from "./types";
 
 const intro = FIXTURE_TURNS["rome-intro"];
@@ -137,6 +137,20 @@ describe("action queue", () => {
     t.queue.push({ done: true });
     await vi.runAllTimersAsync();
     expect(t.store.getElement("diag")).toMatchObject({ type: "svg", status: "ready", data: { svg: '<svg viewBox="0 0 1 1"><rect></rect></svg>' } });
+  });
+
+  it("caps streamed svg per element and warns once", async () => {
+    const t = setup();
+    t.queue.beginTurn();
+    t.queue.push({ turn_id: "turn_big" });
+    t.queue.push({ order: 0, action: { id: "d", name: "draw", args: { id: "big", column: "visuals", prompt: "p", is_structured: true, max_dimensions: { w: 100, h: 100 } } } });
+    const chunk = "x".repeat(60_000);
+    for (let i = 0; i < 5; i++) t.queue.push({ stream: "svg", element_id: "big", chunk });
+    t.queue.push({ done: true });
+    await vi.runAllTimersAsync();
+    const el = t.store.getElement("big");
+    expect(el?.type === "svg" && el.data.svg?.length).toBe(MAX_SVG_CHARS - (MAX_SVG_CHARS % 60_000));
+    expect(t.warnings.filter((w) => w.includes("rest dropped"))).toHaveLength(1);
   });
 
   it("surfaces stream errors through onError", async () => {

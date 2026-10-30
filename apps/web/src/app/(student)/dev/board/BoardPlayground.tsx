@@ -11,7 +11,7 @@ import {
   useTurnPlayer,
 } from "@mento/board";
 import { Badge, Button } from "@mento/ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const fixtureNames = Object.keys(FIXTURE_TURNS) as FixtureName[];
 
@@ -34,6 +34,9 @@ const stateLabel: Record<QueueState, string> = {
 export function BoardPlayground() {
   const player = useTurnPlayer({ sessionId: "dev", streamTurn: replayStream });
   const [lastInterrupted, setLastInterrupted] = useState<string | null>(null);
+  // Fixtures reference this app's /brand files.
+  const [assetBaseUrl, setAssetBaseUrl] = useState("");
+  useEffect(() => setAssetBaseUrl(window.location.origin), []);
 
   const play = (name: FixtureName) =>
     void player.sendTurn({ appended: [{ name: "user_message", kind: "chat", text: name }], modality: "text" });
@@ -82,7 +85,7 @@ export function BoardPlayground() {
         </Badge>
       </header>
 
-      <Board store={player.store} className="min-h-0 flex-1" />
+      <Board store={player.store} assetBaseUrl={assetBaseUrl} onWarning={player.warn} className="min-h-0 flex-1" />
 
       <footer className="grid gap-2 border-t border-(--line) px-6 py-3 text-sm md:grid-cols-2">
         <div>

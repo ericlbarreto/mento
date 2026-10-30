@@ -4,9 +4,26 @@ import { describe, expect, it } from "vitest";
 import { sanitizeHtml, sanitizeSvg } from "./index";
 
 describe("sanitizeHtml", () => {
-  it("keeps the allowlisted tags and class", () => {
-    const html = '<h1>Roma</h1><h2>a</h2><h3>b</h3><p class="x">Texto <b>forte</b> <i>itálico</i><br><span class="y">s</span></p><ul><li>1</li></ul><ol><li>2</li></ol>';
+  it("keeps the allowlisted tags", () => {
+    const html = "<h1>Roma</h1><h2>a</h2><h3>b</h3><p>Texto <b>forte</b> <i>itálico</i><br><span>s</span></p><ul><li>1</li></ul><ol><li>2</li></ol>";
     expect(sanitizeHtml(html)).toBe(html);
+  });
+
+  it("strips every attribute, class included", () => {
+    expect(sanitizeHtml('<p class="x" title="t">a <span class="y">b</span></p>')).toBe("<p>a <span>b</span></p>");
+  });
+
+  // Reviewer probes (regression).
+  it.each([
+    ["mglyph/style mXSS", '<math><mglyph><style><img src=x onerror=alert(1)></style></mglyph></math>'],
+    ["form/math mXSS", '<form><math><mtext></form><form><mglyph><style></math><img src onerror=alert(1)>'],
+    ["svg inside HTML", '<p>a<svg onload="alert(1)"><script>alert(1)</script></svg></p>'],
+    ["svg animate", '<svg><animate attributeName="href" to="javascript:alert(1)"/></svg>'],
+  ])("neutralizes %s", (_name, dirty) => {
+    const out = sanitizeHtml(dirty).toLowerCase();
+    for (const bad of ["<img", "onerror", "onload", "<script", "<svg", "<math", "<style", "<animate", "javascript:"]) {
+      expect(out).not.toContain(bad);
+    }
   });
 
   it.each([
@@ -48,6 +65,14 @@ describe("sanitizeSvg", () => {
     ['<svg><rect style="fill:red"></rect></svg>', "style"],
     ['<svg><rect onclick="x()"></rect></svg>', "onclick"],
     ['<svg><img src="x" onerror="alert(1)"></svg>', "onerror"],
+    ['<svg><animate attributeName="fill" to="red"></animate><rect></rect></svg>', "animate"],
+    ['<svg><set attributeName="onclick" to="alert(1)"></set></svg>', "<set"],
+    ['<svg><rect fill="&#117;rl(#x)"></rect></svg>', "url("],
+    ['<svg><rect fill="u&#x72;l(https://evil.example/x)"></rect></svg>', "evil"],
+    ['<svg><a href="https://evil.example"><text>x</text></a></svg>', "href"],
+    ['<svg><style>@import url(https://evil.example/x.css);</style></svg>', "@import"],
+    ['<svg><text><b>x</b><img src=x onerror=alert(1)></text></svg>', "<img"],
+    ['<svg><text><p>x</p></text></svg>', "<p"],
   ])("strips %s", (dirty, forbidden) => {
     expect(sanitizeSvg(dirty).toLowerCase()).not.toContain(forbidden);
   });

@@ -31,6 +31,8 @@ export interface TurnPlayer {
   /** Stream failure or server `{error}` for the last turn; cleared by the next sendTurn. */
   error: string | null;
   warnings: string[];
+  /** Adds a line to `warnings` (e.g. for the board's onWarning). Stable identity. */
+  warn(message: string): void;
   /** Cuts any running turn first, then streams this one (with `interrupted` when a turn was cut). */
   sendTurn(req: Omit<TurnRequest, "interrupted">): Promise<void>;
   /** Stops the tutor now; the payload is also kept for the next request. */
@@ -61,9 +63,9 @@ export function useTurnPlayer({ sessionId, streamTurn, speechPlayer, handlers, r
       onWarning: warn,
       onStateChange: setQueueState,
     });
-    return { store, queue };
+    return { store, queue, warn };
   });
-  const { store, queue } = core;
+  const { store, queue, warn } = core;
 
   const controller = useRef<AbortController | null>(null);
   const pendingInterrupted = useRef<Interrupted | null>(null);
@@ -134,6 +136,7 @@ export function useTurnPlayer({ sessionId, streamTurn, speechPlayer, handlers, r
     caption,
     error,
     warnings,
+    warn,
     sendTurn,
     interrupt: cut,
     pause: queue.pause,

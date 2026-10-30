@@ -4,7 +4,8 @@
 import createDOMPurify, { type Config, type DOMPurify } from "dompurify";
 
 export const HTML_TAGS = ["h1", "h2", "h3", "p", "b", "i", "br", "ul", "ol", "li", "span"];
-export const HTML_ATTRS = ["class"];
+/** No attributes at all on model HTML. */
+export const HTML_ATTRS: string[] = [];
 
 export const SVG_TAGS = ["svg", "g", "path", "circle", "ellipse", "rect", "line", "polyline", "polygon", "text", "tspan"];
 export const SVG_ATTRS = [

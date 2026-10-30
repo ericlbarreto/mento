@@ -7,6 +7,9 @@ import type { BoardStore } from "../store";
 import { defaultHandlers } from "./handlers";
 import type { ActionHandler, Caption, HandlerContext, HandlerMap, QueueState, RevealMap } from "./types";
 
+/** Cap on streamed SVG per element (~200 KB); later chunks are dropped with a warning. */
+export const MAX_SVG_CHARS = 200_000;
+
 export interface ActionQueueOptions {
   store: BoardStore;
   speech?: SpeechPlayer;
@@ -51,6 +54,7 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
   let nextOrder = 0;
   const pending = new Map<number, TutorAction>();
   const svgChunks = new Map<string, string[]>();
+  const oversized = new Set<string>();
 
   let lastState: QueueState = "idle";
   const derive = (): QueueState => {
@@ -73,6 +77,7 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
     speech.stop();
     pending.clear();
     svgChunks.clear();
+    oversized.clear();
     running = false;
     current = null;
     nextOrder = 0;
@@ -203,6 +208,14 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
       }
       if ("stream" in msg) {
         const chunks = svgChunks.get(msg.element_id) ?? [];
+        const size = chunks.reduce((n, c) => n + c.length, 0);
+        if (size + msg.chunk.length > MAX_SVG_CHARS) {
+          if (size <= MAX_SVG_CHARS && !oversized.has(msg.element_id)) {
+            oversized.add(msg.element_id);
+            warn(`svg stream for "${msg.element_id}" over ${MAX_SVG_CHARS} chars; rest dropped`);
+          }
+          return;
+        }
         chunks.push(msg.chunk);
         svgChunks.set(msg.element_id, chunks);
         return;

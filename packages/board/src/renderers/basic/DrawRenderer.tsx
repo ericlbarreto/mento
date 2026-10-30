@@ -1,32 +1,34 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useBoardEnv } from "../../board/context";
 import { sanitizeSvg } from "../../sanitize";
+import { clampDimensions, resolveImageUrl } from "./imageUrl";
 import type { RendererProps } from "../types";
-
-/** Only http(s) images; relative URLs resolve against the page origin. */
-export function resolveImageUrl(url: string): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const u = new URL(url, window.location.origin);
-    return u.protocol === "http:" || u.protocol === "https:" ? u.href : null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * `draw` element (image or svg). The box is sized by max_dimensions from the first frame, so the
  * placeholder → drawing swap never shifts the layout; the drawing fades in over the placeholder.
  */
 export function DrawRenderer({ element }: RendererProps<"image" | "svg">) {
-  const { max_dimensions: dim, prompt, url, svg } = element.data;
+  const { prompt, url, svg } = element.data;
+  const dim = clampDimensions(element.data.max_dimensions);
   const ready = element.status === "ready";
+  const { assetBaseUrl, onWarning } = useBoardEnv();
   const [loaded, setLoaded] = useState(false);
-  const src = useMemo(() => (ready && element.type === "image" && url ? resolveImageUrl(url) : null), [ready, element.type, url]);
+  const wantsImage = ready && element.type === "image" && !!url;
+  const src = useMemo(
+    () => (wantsImage && url && assetBaseUrl ? resolveImageUrl(url, assetBaseUrl) : null),
+    [wantsImage, url, assetBaseUrl],
+  );
+  const rejected = wantsImage && !!assetBaseUrl && src === null;
+  useEffect(() => {
+    if (rejected) onWarning?.(`draw_result for "${element.id}": image URL rejected (not on the asset origin)`);
+  }, [rejected, element.id, onWarning]);
   const cleanSvg = useMemo(() => (ready && element.type === "svg" && svg ? sanitizeSvg(svg) : ""), [ready, element.type, svg]);
   const shown = (src !== null && loaded) || cleanSvg !== "";
-  const failed = ready && src === null && cleanSvg === "";
+  // A rejected or missing drawing keeps the placeholder card.
+  const failed = rejected || (ready && !wantsImage && cleanSvg === "");
 
   return (
     <figure
@@ -46,6 +48,7 @@ export function DrawRenderer({ element }: RendererProps<"image" | "svg">) {
         <img
           src={src}
           alt={prompt}
+          referrerPolicy="no-referrer"
           onLoad={() => setLoaded(true)}
           className={`absolute inset-0 size-full object-contain transition-opacity duration-(--dur-slow) ease-(--ease-out) ${loaded ? "opacity-100" : "opacity-0"}`}
         />
