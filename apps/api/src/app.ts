@@ -41,7 +41,6 @@ export async function buildApp(config: Config) {
   });
 
   app.decorate("container", createContainer(config));
-  app.get("/health", async () => ({ ok: true }));
   app.get("/api/openapi.json", async () => app.swagger());
 
   // Every file in routes/ is registered under /api (adding a route never touches a shared file).

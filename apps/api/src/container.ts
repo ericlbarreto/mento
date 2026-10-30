@@ -1,20 +1,17 @@
 import type { Config } from "./config";
+import { MongoService } from "./services/mongo.service";
 
 /**
- * Composition root wiring (docs/21 §4 rule 3). Build the repository, tutor, sources, analysis, voice,
- * and the scale-ready seams (EventBus, JobQueue, FileStore: in-memory implementations for now).
- * TODO (K5/K1 follow-up, shared): add the in-memory implementations, then each person wires their part.
+ * Composition root wiring (docs/21 §4 rule 3): builds the services that routes and controllers use.
+ * Add yours here (e.g. `students: new StudentService()`); scale-ready seams (EventBus, JobQueue, FileStore)
+ * from @mento/contracts are added in the same place, in-memory for now.
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface Container {
-  // repository: Repository;      // Person 1 (packages/db)
-  // tutor: Tutor;                // Person 3 (packages/tutor)
-  // sources: Sources;            // Person 1 (packages/sources)
-  // analysis: Analysis;          // Person 1 (packages/analysis)
-  // voice: Voice;                // Person 3 (packages/voice/server)
-  // bus: EventBus; jobs: JobQueue; files: FileStore;   // packages/contracts interfaces
+  mongo: MongoService;
 }
 
-export function createContainer(_config: Config): Container {
-  return {};
+export function createContainer(config: Config): Container {
+  return {
+    mongo: new MongoService(config.MONGODB_URI),
+  };
 }

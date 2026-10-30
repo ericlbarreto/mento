@@ -10,6 +10,7 @@ try {
 const schema = z.object({
   API_PORT: z.coerce.number().int().default(4000),
   API_HOST: z.string().default("0.0.0.0"),
+  MONGODB_URI: z.string().default("mongodb://localhost:27017/mento"),
   WEB_ORIGIN: z.string().default("http://localhost:3000"),
   LOG_LEVEL: z.string().default("info"),
   DEMO_MODE: z.enum(["live", "fixture"]).default("live"),

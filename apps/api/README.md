@@ -3,12 +3,13 @@
 The **only composition root**: it wires the packages (`container.ts`) and exposes the HTTP/SSE API under `/api`. Business logic lives in `packages/*`; routes are thin (parse with Zod → call a package → respond). See `docs/21-repo-structure.md` §5.
 
 ```bash
-pnpm dev:api      # http://localhost:4000  (GET /health, GET /api/ping, GET /api/ping/stream, GET /api/openapi.json)
+pnpm dev:api      # http://localhost:4000  (GET /api/health, GET /api/ping, GET /api/ping/stream, GET /api/openapi.json)
 pnpm --filter @mento/api test
 ```
 
 | File | Endpoints | Owner |
 |---|---|---|
+| `routes/health.ts` + `controllers/health.controller.ts` | `GET /api/health` (API + MongoDB status; the reference for route → controller → service) | shared (K1) |
 | `routes/ping.ts` | `GET /api/ping`, `GET /api/ping/stream` (proves Zod + SSE wiring) | shared (K1) |
 | `routes/students.ts` | `GET/POST /students`, `GET /students/:id` | Person 1 |
 | `routes/sessions.ts` | `POST /sessions`, `GET /sessions/:id/events` | Person 1 |
@@ -23,4 +24,4 @@ pnpm --filter @mento/api test
 | `routes/dev-fixtures.ts` | `GET /dev/fixture-turn?name=` | Person 3 |
 | `routes/dev-analyze.ts` | `POST /dev/analyze/:sessionId` | Person 1 |
 
-Every file in `routes/` is **autoloaded** under the `/api` prefix: adding a route never touches a shared file. Shared files (`server.ts`, `app.ts`, `container.ts`, `plugins/`, `config.ts`): small additive edits, announce them.
+Layout: `routes/` (HTTP + schema) → `controllers/` → `services/` → models in `@mento/db` (`packages/db/src/models/`). Every file in `routes/` is **autoloaded** under the `/api` prefix: adding a route never touches a shared file. Shared files (`server.ts`, `app.ts`, `container.ts`, `plugins/`, `config.ts`): small additive edits, announce them.

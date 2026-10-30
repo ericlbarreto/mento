@@ -5,10 +5,11 @@ import { loadConfig } from "./config";
 const config = loadConfig({ LOG_LEVEL: "silent" } as NodeJS.ProcessEnv);
 
 describe("api wiring (K1)", () => {
-  it("GET /health", async () => {
+  it("GET /api/health reports the mongo state without needing a database", async () => {
     const app = await buildApp(config);
-    const res = await app.inject({ url: "/health" });
+    const res = await app.inject({ url: "/api/health" });
     expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ service: "mento-api", mongo: "disconnected" });
     await app.close();
   });
 

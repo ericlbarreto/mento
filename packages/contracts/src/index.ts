@@ -1,4 +1,5 @@
 export * from "./ping";
+export * from "./health";
 export * from "./concept";
 export * from "./actions";
 export * from "./stream";
