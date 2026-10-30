@@ -20,7 +20,7 @@ One set of tokens and components used by both interfaces. Frozen at kickoff, add
 
 | Element | Proposal | Reference |
 |---|---|---|
-| Background | App `#F7F9FF`; **board paper** warm `#FFFBF2`; subtle pastel gradient only on start/home screens | Flint cream + Studdy pastel |
+| Background | **Beige-light paper `#FBF7EE`** for the whole app (student and teacher), panels `#F5EEDF`, cards `#FFFDF8`; a subtle gradient only on the start screen | Founder direction 2026-10-30; Flint cream |
 | Ink / text | **Mento navy `#162250`** (logo wordmark) | `19-brand-assets.md` |
 | Brand primary | **Mento blue `#1E59ED`** (from the logo) for the orb ring, buttons and active states | `19-brand-assets.md` |
 | Accent | **Orange `#FC724A`** (mascot spark marks), small highlights and alerts only | Flint orange, mascot sheet |
@@ -172,3 +172,61 @@ Upload button (PDF), title and subject fields, status chips (*Na fila → Proces
 - ElevenLabs UI: https://ui.elevenlabs.io/docs/components/orb ; https://elevenlabs.io/blog/elevenlabs-ui ; https://github.com/elevenlabs/ui/wiki
 - Khanmigo for Teachers: https://www.microsoft.com/en-us/education/blog/?p=6378
 - LearnLens (teacher dashboard research): mentioned in a search summary only; the exact paper link was **not verified**
+
+## 6. Whiteboard test: visual direction (beige-light + Mento blue + mascot animations)
+
+Founder's direction (2026-10-30): the whiteboard test interface is **light beige** with the **blue of the Mento logo**, uses the **logos, the icon and the mascot GIFs** from the repository, and feels **beautiful and alive**. The teacher interface uses the same look so both read as one product. Colors below are **proposals** derived from the files (`19-brand-assets.md`); the designer can adjust.
+
+### 6.1 Tokens (CSS variables in `packages/ui`)
+
+| Token | Value | Use |
+|---|---|---|
+| `--paper` | `#FBF7EE` | App and board background (beige-light) |
+| `--paper-2` | `#F5EEDF` | Panels, drawers |
+| `--card` | `#FFFDF8` | Raised cards with a soft shadow |
+| `--line` | `#E7DECB` | Borders, dividers |
+| `--ink` | `#162250` | Text, headings (logo navy) |
+| `--blue` | `#1E59ED` | Primary: ring, buttons, links, selection (logo blue) |
+| `--blue-soft` | `#E6EDFD` | Tints behind chips and selected elements |
+| `--mascot-light` | `#B1D8FA` | Sparkles, soft accents |
+| `--accent` | `#FC724A` | Small highlights and alerts only |
+| Marker | soft yellow `#FFE58A` and soft blue `#CFE0FF` | `highlight` colors |
+
+Typography: UI in a rounded sans (proposal **Nunito**); board in a handwriting font (**Caveat/Kalam**, verify pt-BR accents on day 0). Cards 16–20 px radius; generous spacing; AA contrast on the beige.
+
+### 6.2 Assets used (see `19-brand-assets.md`)
+
+| Asset | Where |
+|---|---|
+| `logo.png` | Header of the student session, start screen, teacher sidebar |
+| Symbol icons (`favicon-32`, `apple-touch-icon`, `logo-symbol-512`) | Favicon and app icons, compact header |
+| `mascot.png` | Static states, reduced motion, empty states, avatar |
+| `mascot-gifs/02-float-orbit.gif` | Orb idle/listening/waiting; start-screen greeting |
+| `mascot-gifs/03-thinking-wobble.gif` | Orb while the LLM is thinking |
+| `mascot-gifs/04-speaking-pulse.gif` | Orb while the tutor speaks |
+| `mascot-gifs/01-spin.gif` | Loading/splash |
+| `mascot-concept.png` | Reference for expressions (surprised/listening, thinking, happy) |
+
+### 6.3 Animation moments
+
+| Moment | Animation | Spec |
+|---|---|---|
+| App/lesson loading | `01-spin` with the logo fading in | ≤ 1.5 s, then crossfade out |
+| Start screen | Mascot (`02-float-orbit`, ~220 px) beside "Oi, {nome}!"; cards fade-up with a stagger | 240 ms ease-out, 40 ms stagger |
+| Conversation starts | The mascot **glides** from the start screen to the orb at the bottom (shared-element transition) | ~350 ms |
+| Tutor thinking | Swap to `03-thinking-wobble`; ring shows a rotating arc | until the first action |
+| Tutor speaking | `04-speaking-pulse`; ring waveform from TTS level; caption words highlight | in sync with audio |
+| Listening | `02-float-orbit`; ring from mic level | live |
+| Board writing | Typewriter + pencil; images fade/scale 0.98 → 1; circle draws with stroke-dash; marker reveals with a clip-path | 400–600 ms |
+| Click-and-ask | Blue outline pulse on the element; orb "perks up" (scale 1.06) | 150–200 ms |
+| Correct answer | Blue ring burst + a few `--mascot-light` sparkles; `04` pulses once | ~700 ms |
+| Wrong answer / hint | Gentle: ring dims and returns; encouraging copy; **no red alarm** | 300 ms |
+| Teacher empty/loading | Static mascot (120 px) with short copy; small `01-spin` for loading | |
+| Reduced motion | Static `mascot.png`, no ring motion, instant board reveals | `prefers-reduced-motion` |
+
+Performance: preload the four GIFs and **stack them with opacity toggles** (never swap `src`); show one animated GIF at a time except during crossfades; animate only `transform`/`opacity`.
+
+### 6.4 Craft process: the `impeccable` skill
+
+Use the **`impeccable` skill** for every screen (design system, student session, start screen, teacher tabs): invoke it per screen, apply its guidance on typography, spacing, hierarchy, color and motion, then run a short checklist (AA contrast on beige, focus states, empty/loading/error states, 1280–1920 px laptops, reduced motion, pt-BR copy).
+> **Availability:** the skill was **not found** in the plugin and skill catalogs available to the assistant on 2026-10-30. Install it from its source (founder to provide the link). Until then use Anthropic's **`frontend-design`** skill (found in the Anthropic plugin directory, not installed) and tell the founder. Open question Q17.

@@ -18,6 +18,7 @@ Keys live in `.env` (git-ignored; names go in `.env.example`). Planned:
 | `TTS_API_KEY`, `TTS_VOICE` | Voice (Should) |
 | `DATABASE_FILE` | SQLite path |
 | `DEMO_MODE` (`live` \| `fixture`) | Switch the turn handler between the real LLM and fixture replay |
+| `API_PORT`, `WEB_ORIGIN`, `NEXT_PUBLIC_API_URL` | API port (default 4000), allowed web origin (CORS), and the API base URL used by the browser |
 
 Machine: laptop with Node, stable network, headphones/speaker tested, **microphone permission granted** in the browser used for the demo, volume on, notifications off.
 
@@ -34,7 +35,7 @@ Machine: laptop with Node, stable network, headphones/speaker tested, **micropho
 | H22 | Freeze features; only bug fixes | All |
 | H22–24 | Two full rehearsals; test fallbacks once each | All |
 
-Planned run order on a clean checkout (names may change): install → seed → ingest → pregenerate images → start app → open student and teacher pages.
+Planned run order on a clean checkout (names may change): install → seed → ingest → pregenerate images → start the API and the web app (`pnpm dev` starts both; API on 4000, web on 3000) → open student and teacher pages.
 
 ## 4. The script (what to say and show)
 

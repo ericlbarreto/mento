@@ -18,7 +18,7 @@
 | **Gap** | A concept the student seems to be missing, with evidence and confidence (`insights.kind = gap`) |
 | **Insight** | A generated, teacher-facing item: `gap`, `progress` or `suggestion` |
 | **Chunk** | A page/section of a source stored as text with its page number |
-| **Citation** | `source_id` + `page` + `quote`, shown as a chip; opens the PDF at the excerpt |
+| **Citation** | `material_id` + `page` + `quote`, shown as a chip; opens the PDF at the excerpt |
 | **Outside the material** | Marker for tutor answers not supported by the teacher's sources |
 | **Subject profile** | File describing how a subject is taught (method, misconceptions, verification types, board ops); chosen from the material's subject |
 | **Three-layer prompt** | Base + subject profile + course context (class context + material excerpts + learner summary + topic) |

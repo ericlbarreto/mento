@@ -2,6 +2,7 @@
 
 > Status: **proposed**; names are not assigned yet (Lane A/B/C ↔ person 1/2/3). Hour estimates are rough and unverified. Last updated: 2026-10-30.
 > Inputs: `01-hackathon-scope.md` (Must/Should/Nice), `16-technical-roadmap.md` (architecture), `10-decisions.md` (D24, D25).
+> **Update 2026-10-30:** the final split among the three people is in **`../workstreams/`** (start with `workstreams/README.md`). Mapping: **Lane A → Person 2** (whiteboard front-end), **Lane B → Person 3** (whiteboard back-end, **plus `packages/voice`**), **Lane C → Person 1** (teacher interface, data, sources, analysis). Where this document and `workstreams/` differ, `workstreams/` wins.
 
 ## 1. Principles
 
@@ -16,7 +17,7 @@
 | Layer | Choice |
 |---|---|
 | Language | **TypeScript** everywhere (frontend, backend, scripts) |
-| App | **Next.js** (App Router) in `apps/web`: React UI + thin route handlers; internal packages in `packages/*` (`21-repo-structure.md`) |
+| Apps | **Next.js** frontend only (`apps/web`) + **Fastify API** (`apps/api`, SSE/real-time, D43); internal packages in `packages/*` (`21-repo-structure.md`) |
 | Contracts | **Zod** schemas shared by client and server |
 | Styling | Tailwind; handwriting fonts from Google Fonts |
 | DB | **SQLite** file (Drizzle or `better-sqlite3`) |
@@ -29,9 +30,9 @@ Repository layout: a **light pnpm-workspace monorepo** (`apps/web` + `packages/*
 | Lane | Packages and paths |
 |---|---|
 | A | `packages/board`, `packages/ui` (after kickoff), `apps/web/src/app/(student)`, `apps/web/public/brand` |
-| B | `packages/tutor`, `prompts/`, the `turn` route, `scripts/turn-cli.ts`, `scripts/pregenerate-images.ts` |
-| C | `packages/db`, `packages/sources`, `packages/analysis`, `packages/voice`, `apps/web/src/app/(teacher)`, other API routes, `scripts/seed.ts`, `scripts/ingest.ts` |
-| Shared | `packages/contracts` (frozen), `apps/web/src/server/container.ts`, root configs; `fixtures/` (A and B add files); `assets/` (founder) |
+| B | `packages/tutor`, `packages/voice`, `prompts/`, the `turn` route, the voice/TTS routes, `scripts/turn-cli.ts`, `scripts/pregenerate-images.ts` |
+| C | `packages/db`, `packages/sources`, `packages/analysis`, `apps/web/src/app/(teacher)`, other API routes, `scripts/seed.ts`, `scripts/ingest.ts` |
+| Shared | `packages/contracts` (frozen), `apps/api/src/container.ts` and `server.ts`, root configs; `fixtures/` (A and B add files); `assets/` (founder) |
 
 Repository: https://github.com/ericlbarreto/mento (`main`). Everyone clones it before the kickoff; the workspace skeleton (K1) is committed by one person and the others pull.
 
@@ -41,10 +42,10 @@ Nothing else starts before this is done. One person types; all three agree.
 
 | # | Deliverable | Where |
 |---|---|---|
-| K1 | Repo skeleton (Next.js + TS + Tailwind + Zod + SQLite), `npm run dev` works for everyone, `.env.example` | root |
+| K1 | Repo skeleton (Next.js web + **Fastify API** + TS + Tailwind + Zod + SQLite), `pnpm dev` starts both for everyone, `.env.example` | root |
 | K2 | **Action/tool schemas** (Zod) for every tool in `16` §4 | `packages/contracts/src/actions.ts` |
 | K3 | **SSE message schema** (`order`, `action`, `stream`, `done`) and **event log shape** | `packages/contracts/src/stream.ts`, `events.ts` |
-| K4 | **Citation format** `{source_id, page, quote}` | `packages/contracts/src/citation.ts` |
+| K4 | **Citation format** `{material_id, page, quote}` (canonical: `workstreams/contracts-spec.md`) | `packages/contracts/src/citation.ts` |
 | K5 | **`Repository` interface** (create session, append event, list events, insert evidence, get class context, get/search material pages, list materials/students/insights, update insight status) + an **in-memory implementation** everyone can use as a stub | `packages/contracts/src/repository.ts`, `packages/db/src/memory.ts` |
 | K6 | **`SpeechPlayer` interface** (`speak(text, opts) → Promise`, `stop()`, optional word callbacks) + a text-only default (captions) | `packages/contracts/src/speech.ts` |
 | K7 | **Fixtures:** 3 scripts (happy path with timeline + draw + citation; click-and-ask; verification with a wrong answer) and 1 event log | `fixtures/` |
@@ -59,11 +60,11 @@ After kickoff the contracts are **frozen**. Changes are additive only and need a
 |---|---|
 | Handwriting font renders pt-BR accents (ã ç é õ) | Lane A |
 | Image-model bake-off (3 Rome prompts: style, latency, cost, background removal) and LLM tool-call reliability on a fixture script | Lane B |
-| STT (Deepgram token + WebSocket) and TTS (Cartesia / ElevenLabs / Azure) in pt-BR | Lane C |
+| STT (Deepgram token + WebSocket) and TTS (ElevenLabs / Azure / Cartesia) in pt-BR | Lane B |
 
 ## 4. Lanes
 
-### Lane A — Board + student UI
+### Lane A — Board + student UI **(Person 2)**
 **Owns:** `packages/board/`, `apps/web/src/app/(student)/`, `fixtures/` (own files), the dev fixture route.
 **Builds against:** a **fixture replay endpoint** (`/api/dev/fixture-turn?name=...`) that streams a fixture through the real SSE format. Does not need the LLM, DB or voice.
 
@@ -85,8 +86,8 @@ After kickoff the contracts are **frozen**. Changes are additive only and need a
 **Must total ≈ 24 h** (heaviest UI lane; start with the skeleton and the queue; the orb can slip to Should if needed).
 **Exposes:** the student app; a `SpeechPlayer` consumer slot. **Consumes:** SSE `/turn`, `GET /events`, `/files/:id`.
 
-### Lane B — Tutor core
-**Owns:** `packages/tutor/`, `prompts/`, `apps/web/src/app/api/sessions/[id]/turn`, `scripts/turn-cli.ts`, `scripts/pregenerate-images.ts`, image/SVG generation code.
+### Lane B — Tutor core **(Person 3; also owns `packages/voice`)**
+**Owns:** `packages/tutor/`, `packages/voice/`, `prompts/`, `apps/api/src/routes/turn.ts`, `voice.ts`, `dev-fixtures.ts`, `scripts/turn-cli.ts`, `scripts/pregenerate-images.ts`, image/SVG generation code.
 **Builds against:** the in-memory `Repository` (K5) and a CLI (`scripts/turn-cli.ts`) that prints the SSE script, so it needs **no UI**.
 
 | Tier | Task | Est. |
@@ -97,14 +98,15 @@ After kickoff the contracts are **frozen**. Changes are additive only and need a
 | Must 4 | Grounding in the turn: **FTS retrieval scoped to the chosen material** (+ `search_materials`), `sources` on actions, `outside_material`, uses the citation validator from Lane C | 3 h |
 | Must 6 | `ask_verification` + **judge call** + `record_evidence` through the Repository | 3 h |
 | Should | Structured SVG pipeline (streamed chunks) | 3 h |
+| Should 11 | **Voice (Person 3):** ephemeral token endpoint, Deepgram STT hook, TTS proxy + `SpeechPlayer` implementation with word captions and an **audio level** value for the orb, mic auto-open (`useAudioLevel`) | 6.5 h |
 | Nice 12 | `prompts/subjects/math.md` | 1.5 h |
 | Nice 18 | Exam/question generation (future) | — |
 
-**Must total ≈ 21 h.**
+**Must total ≈ 21 h; Should ≈ 10 h** (voice 6.5 h + structured SVG 3 h).
 **Exposes:** `POST /api/sessions/:id/turn` (SSE). **Consumes:** `Repository`, `packages/sources` (material pages/search, citation validator), `contracts`.
 
-### Lane C — Data, sources, teacher, voice
-**Owns:** `packages/db/`, `packages/sources/`, `packages/analysis/`, `packages/voice/`, `apps/web/src/app/(teacher)/`, `scripts/ingest.ts`, session/events/teacher API routes, DB seed.
+### Lane C — Data, sources, teacher **(Person 1; voice moved to Person 3)**
+**Owns:** `packages/db/`, `packages/sources/`, `packages/analysis/`, `apps/web/src/app/(teacher)/`, `scripts/ingest.ts`, session/events/teacher API routes, DB seed.
 **Builds against:** seeded data and fixture event logs. Needs neither the board nor the LLM (analysis can run on fixture logs).
 
 | Tier | Task | Est. |
@@ -114,12 +116,11 @@ After kickoff the contracts are **frozen**. Changes are additive only and need a
 | Must 4 | **Ingestion pipeline** (PDF → text layer + vision for pages that need it → chunks → FTS index → outline; status; script entry point) and **citation validator** (`quote` must occur in the chunk) | 6 h |
 | Should 9a | **Students tab** (Flint-inspired layout from `18`): overview metrics (`/api/overview`), student list, **create student**, **student detail** (evolution, gaps with evidence, suggestions, accept/dismiss); "simulated data" badge; uses `packages/ui/**` | 8 h |
 | Should 9b | **Class context** card + `GET/PUT /api/class-context` | 1.5 h |
-| Should 9c | **Materials tab**: upload (`POST /api/materials`), background ingestion job with status polling, list | 5 h |
+| Should 9c | **Materials tab**: upload (`POST /api/materials`), background ingestion job with status updates (live feed or polling), list | 5 h |
 | Should 10 | **Post-session analysis → insights** (automatic after each conversation: counters + structured LLM call → `analyses` + `insights` rows), evolution aggregates, simulated students | 5 h |
-| Should 11 | Voice: ephemeral token endpoint, Deepgram STT hook, TTS proxy + `SpeechPlayer` implementation with word captions and an **audio level** value for the orb, mic auto-open (`useAudioLevel`) | 6.5 h |
 | Nice 16 | Delete/rename/re-process materials; progress per page | 2 h |
 
-**Must total ≈ 11.5 h**; **Should total ≈ 27 h** (the heaviest Should load). Rebalancing options: after its Must, **Lane A takes the presentational teacher components** (tables, cards, charts on `packages/ui`) while C keeps the APIs, analysis and voice; and follow the **cut order in `01-hackathon-scope.md`**. Lane C **supports integration** at H8 and H14.
+**Must total ≈ 11.5 h**; **Should total ≈ 20.5 h** after voice moved to Person 3 (still the heaviest Should load). Rebalancing options: after its Must, **Lane A takes the presentational teacher components** (tables, cards, charts on `packages/ui`) while C keeps the APIs and the analysis; and follow the **cut order in `01-hackathon-scope.md`**. Lane C **supports integration** at H8 and H14.
 **Exposes:** `Repository` implementation, `packages/sources` API, teacher pages, `SpeechPlayer`. **Consumes:** `contracts`.
 
 ## 5. Tier-by-lane map (nothing falls between the lanes)
@@ -138,7 +139,7 @@ After kickoff the contracts are **frozen**. Changes are additive only and need a
 | Should 9b Class context card | C |
 | Should 9c Materials tab (upload, status) | C |
 | Should 10 Post-session analysis → insights | C |
-| Should 11 Voice | C |
+| Should 11 Voice | B (Person 3: server + client hooks), A (player UI and orb) |
 | Nice 12–18 | per the lane tables |
 
 ## 6. Integration checkpoints
@@ -165,8 +166,8 @@ If Must is not green at H18, **nobody starts Should**; everyone helps close Must
 | `packages/ui/**`, `apps/web/public/brand/**` | Shared at kickoff, then Lane A | Additive PR; Lane C consumes them for the teacher UI |
 | `assets/**` | Founder | Read only; never edit or import from code |
 | `packages/board/**`, `apps/web/src/app/(student)/**` | A | Read only |
-| `packages/tutor/**`, `prompts/**` | B | Read only |
-| `packages/db/**`, `packages/sources/**`, `packages/analysis/**`, `packages/voice/**`, `apps/web/src/app/(teacher)/**` | C | Read only |
+| `packages/tutor/**`, `packages/voice/**`, `prompts/**` | B | Read only |
+| `packages/db/**`, `packages/sources/**`, `packages/analysis/**`, `apps/web/src/app/(teacher)/**` | C | Read only |
 | `package.json` / lockfile / root configs | Shared | Small PRs; after a merge, others `git pull --rebase` and `pnpm install` |
 | `.env.example` | Shared | Append only |
 | `fixtures/` | A and B | Add **new files**; never edit another lane's fixture |
@@ -205,8 +206,8 @@ If Must is not green at H18, **nobody starts Should**; everyone helps close Must
 
 | Lane | Pull next from |
 |---|---|
-| A | Nice 12 "My progress", Nice 15 resume, polish of animations, mobile/laptop layout, accessibility basics |
-| B | Structured SVG, prompt regression suite, Nice 11 Math profile |
-| C | Should voice, Nice 13 upload, help A with the PDF viewer or B with the judge |
+| A | Nice 13 "My progress", Nice 15 resume, polish of animations, mobile/laptop layout, accessibility basics |
+| B | Structured SVG, voice tuning, prompt regression suite, Nice 12 Math profile |
+| C | Nice 16 materials management, read-only conversation replay (Nice 14), help A with the teacher components or B with the judge |
 
 Anyone who finishes early **reviews and tests another lane's output** against the fixtures before starting a new feature.

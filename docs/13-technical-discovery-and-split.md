@@ -9,7 +9,7 @@ Turn the conceptual design (`07-architecture-and-data.md`) into concrete choices
 
 ## Decisions to make (check off and record in `10-decisions.md`)
 
-- [x] Language/framework for backend and frontend: **TypeScript + Next.js** (D24)
+- [x] Language/framework: **TypeScript**; frontend **Next.js**, backend **Fastify** service (D24, D43; confirm Q20)
 - [x] Database: **SQLite** (D24)
 - [x] Repository: https://github.com/ericlbarreto/mento (`main`)
 - [ ] Hosting/deployment for the demo
@@ -19,7 +19,7 @@ Turn the conceptual design (`07-architecture-and-data.md`) into concrete choices
 - [ ] PDF viewer: pdf.js and how to highlight a quote by text search
 - [ ] Ingestion approach: model reads PDF → Markdown per page
 - [ ] Retrieval for **books**: FTS over page chunks + outline (default) vs embeddings; ingestion cost and time of a real book (text layer first, vision only where needed)
-- [ ] Background ingestion job inside the Next process (status polling) and page cap for the demo
+- [ ] Background ingestion job inside the API process (`JobQueue` in-memory; status via live feed/polling) and page cap for the demo
 - [ ] Handwriting font and tutor register tests at 7º–9º ano level
 - [ ] Board operation schema (JSON types, validation)
 - [ ] Event schema (client ↔ server) and transport (WebSocket vs SSE)

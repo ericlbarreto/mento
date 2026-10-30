@@ -26,6 +26,9 @@ Index. Documents are numbered in suggested reading order. **00, 01, 10 and 14 ar
 | 19 | [Brand assets](19-brand-assets.md) | Chosen logo, mascot and GIFs, sampled brand colors, orb state mapping, where files go |
 | 20 | [Demo runbook](20-demo-runbook.md) | Preparation checklist, demo script with checks, fallbacks, honesty rules |
 | 21 | [Repository structure](21-repo-structure.md) | **Monorepo layout**, packages, dependency rules, root config, scripts, CI, ownership by path, kickoff K1 checklist |
+| — | [../workstreams/](../workstreams/README.md) | **Division of work among the 3 people**: teacher interface + insights, whiteboard front-end, whiteboard back-end, handoffs |
+| — | [../prompts/sessions/](../prompts/sessions/README.md) | **Per-person prompt logs and starter prompts** (teacher interface, whiteboard front-end, whiteboard back-end) |
+| — | [../prompts/founder-conversation/](../prompts/founder-conversation/README.md) | **The founder's prompts (verbatim), merged requirements and traceability** to the docs |
 | — | [reference/Mento_Company_Brief.md](reference/Mento_Company_Brief.md) | Original full brief (Portuguese; includes long-term vision) |
 
 ## Document conventions

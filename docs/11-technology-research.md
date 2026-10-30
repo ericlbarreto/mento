@@ -129,6 +129,7 @@ The tutor speaks maybe half of a session, so a 10-minute lesson costs cents with
 3. Measure **time to first audio** from the demo network, **word timing** mapping to our captions, and listen blind.
 4. **Default pick if no time: ElevenLabs Flash v2.5**, because the founder's priority is the most natural pt-BR voice with low latency (cost is negligible). **Azure** is the fallback if ElevenLabs fails on pt-BR pronunciation, word timing or cost; Cartesia only if its `pt-BR` check passes. Note: Flash is the speed-optimized model; Multilingual v2 sounds richer but is slower and twice the price; Eleven v3 has a 5,000-character limit and was not described as real-time (**[Unverified]**).
 5. Keep keys server-side: the browser calls our `/api/tts` proxy (or uses a short-lived token); never ship keys.
+6. **Budget (2026-10-30): the founder pays for all services**, so cost does not decide. Pick on naturalness and latency; if the Multilingual v2 model is acceptable on latency it may sound richer than Flash (**[Unverified]**); log cost per session anyway.
 
 ### Listening test (15 minutes, no code)
 

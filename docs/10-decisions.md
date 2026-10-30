@@ -31,7 +31,7 @@
 | D23 | Day-0 bake-offs before building: pt-BR handwriting font, image model, TTS, LLM tool reliability | Cheap checks that remove the biggest unknowns |
 | D24 | **Stack:** TypeScript everywhere, one **Next.js** project (App Router), **Zod** contracts, Tailwind, **SQLite**, provider SDKs called directly, `tsx` scripts; demo runs on a laptop/VM with Node | Shared types/contracts for 3 people in parallel; SSE and browser libs (pdf.js, KaTeX, Web Audio) are JS anyway; no Python-only need. **Resolves Q1** |
 | D25 | **Work split** in 3 independent lanes (A board+student UI, B tutor core, C data+sources+teacher+voice) with directory ownership, frozen contracts, mocks and checkpoints at H8/H14/H18 (`17`) | Minimal conflicts; Must first |
-| D28 | **Monorepo:** light pnpm-workspace monorepo — `apps/web` (Next.js) + `packages/{contracts,ui,board,tutor,db,sources,analysis,voice}`, root `scripts/`, `fixtures/`, `prompts/`; packages consumed as TS source (no build step), **no Turborepo/Nx**; boundaries enforced by declared dependencies; env read only in `apps/web` and `scripts/`. **Refines D24 and replaces the `src/*` layout of `17`** (`21`) | Founder's request; package ownership maps to lanes and makes boundaries enforceable |
+| D28 | **Monorepo:** light pnpm-workspace monorepo — `apps/web` (Next.js) + `packages/{contracts,ui,board,tutor,db,sources,analysis,voice}`, root `scripts/`, `fixtures/`, `prompts/`; packages consumed as TS source (no build step), **no Turborepo/Nx**; boundaries enforced by declared dependencies; env read only in `apps/web` and `scripts/`. **Refines D24 and replaces the `src/*` layout of `17`** (`21`); the API location was later refined by **D43** | Founder's request; package ownership maps to lanes and makes boundaries enforceable |
 | D26 | **UI direction:** one shared design language for both interfaces; student session is voice-first with an **orb + mascot at bottom center** (idle/listening/thinking/speaking) over a DOM board; teacher UI is Flint-inspired (sidebar, insight card, student table/card); own lightweight orb preferred over a Three.js dependency (`18`) | Looks like one product; cheap to build |
 | D27 | **Brand:** logo = `logo-05-learning-path` (blue wave "m" + navy `mento` wordmark, `assets/brand/logo.png`); mascot = round blue character with 4 transparent GIFs; brand colors sampled from the files (`#1E59ED`, `#162250`, accent `#FC724A`); UI typeface proposal Nunito; the orb uses the mascot as its face (`19`). **Resolves Q11** | Assets exist; consistent look across student and teacher UIs |
 | D29 | **Single teacher workspace, no authentication** (quick win): all teacher tabs show the same server-side data; fictional data only | Founder's simplification; faster to build; not for real use (`08`) |
@@ -42,6 +42,15 @@
 | D34 | **MVP segment: Ensino Fundamental II (7º, 8º, 9º ano).** Ensino Médio and college are future | Founder's focus |
 | D35 | **The whiteboard generates the data:** conversations are persisted; an automatic post-session analysis creates `insights` (`gap | progress | suggestion`); teacher metrics are SQL aggregates (students, conversations, gaps identified, insights generated); open gaps feed the learner summary; teacher accepts/dismisses | Founder's request; closes the loop (`05`, `07`) |
 | D36 | **Data model v2 (still 9 tables):** `class_context`, `materials`, `chunks`, `students`, `sessions`, `events`, `evidence`, `analyses`, `insights` | Replaces `subjects`, `lessons`, `sources` (`07`) |
+| D37 | **Final split among 3 people** (`workstreams/`): **Person 1** teacher interface + data + materials ingestion + analysis → insights; **Person 2** whiteboard front-end (+ design system); **Person 3** whiteboard back-end (tutor core, STT/TTS, orchestration). Refines D25; Lane A = Person 2, B = Person 3, C = Person 1 | Founder's request; independent workstreams |
+| D38 | **Voice moves to Person 3** (`packages/voice`, server and client hooks); Person 2 owns the player UI and the orb | Backend/orchestration person owns latency end to end |
+| D39 | **STT/TTS storage:** store the **final transcript text** and the **spoken TTS text** as events; **no raw audio stored**; TTS audio cached by hash (purgeable); latency stored as `turn_timing` events | Minors, privacy, cost; text is all the insights need |
+| D40 | **Budget:** the founder pays for all services; cost no longer decides provider/model choices (quality and latency first); cost per session is still logged | Founder's statement |
+| D41 | **Visual direction:** whiteboard test interface is **light beige + Mento blue**, with logo, symbol icons and the **mascot GIFs** driving the orb and animations; teacher UI shares the same look (`18` §6, `19`) | Founder's request |
+| D42 | **UI craft uses the `impeccable` skill** (fallback: `frontend-design`); the skill was not found in the available catalogs | Founder's request |
+| D43 | **Separate backend service:** `apps/api` (**Fastify**, TypeScript) serves all routes (prefix `/api`) including SSE; **`apps/web` is Next.js frontend only (no API routes)**; `apps/api` is the only composition root. Supersedes the "API in Next route handlers" plan (`16`, `21`) | Real-time streaming, long jobs, scalability and a stable integration contract; founder's request |
+| D44 | **Scale-ready seams without extra work now:** `EventBus`, `JobQueue`, `FileStore` interfaces in `@mento/contracts` with in-memory implementations; stateless API instances; Postgres/Redis/S3-style stores are the pilot-phase swap (`21` §6) | Scalability path with no hackathon overhead |
+| D45 | **One canonical contracts spec** (`workstreams/contracts-spec.md`): `snake_case` for everything stored or serialized (including its TS types), a single event list, evidence `result` enum + `hints_used` + hint events, shared `concept`/`concept_key` rules, `Citation = {material_id, page, quote}`, and a **round-trip contract test** in CI so the teacher side and the whiteboard back-end provably match | An audit found 7 mismatches between the two sides (`contracts-spec.md` §0) |
 
 ## Open
 
@@ -55,7 +64,7 @@
 | Q6 | Seed images for Rome: who prepares/reviews the 4–6 pre-generated images (image-model bake-off first) | Team | See `16` §7 |
 | Q7 | Hackathon rules: IP ownership, sponsor license, code publication | Founder | Read before submitting |
 | Q8 | ~~tldraw license~~ no longer relevant (D18) | — | — |
-| Q9 | Assign Lane A/B/C to the 3 people (the split itself is in `17-work-split.md`) | Team | Assign before kickoff |
+| Q9 | Assign **Person 1 / 2 / 3** to the three people (the split is in `workstreams/`) | Team | Assign before kickoff |
 | Q10 | Trademark/domain availability for "Mento" | Founder | Not verified |
 | Q11 | ~~Mascot/logo~~ **Resolved by D27.** Remaining: SVG versions, symbol-only/favicon export, confirm colors and typeface | Founder | See `19` §6 |
 | Q12 | Confirm the tiering: teacher tabs, class-context form and uploads in **Should**, with the **cut order** in `01-hackathon-scope.md`; Must adds only the data foundation (items 7–8) | Founder | The new teacher scope is larger than the previous single read-only page |
@@ -63,6 +72,11 @@
 | Q14 | Class context placement (card in the Students tab vs section in Materials) and the example "8º ano do ensino médio": treated as **8º ano of Ensino Fundamental II** (8º ano is Fundamental in Brazil). Confirm | Founder | `06` |
 | Q15 | Student access: **pick your name** (current) vs a link per student | Founder | No auth in the prototype |
 | Q16 | Study scope: **one material per conversation** (current) vs all materials at once | Founder | `04` |
+| Q17 | Where to get the **`impeccable` skill** (not found in the plugin/skill catalogs available to the assistant); until then use `frontend-design` | Founder | `18` §6.4 |
+| Q18 | The note "como responder estudos" is read as **how the student answers/asks and how the tutor's reply is presented** (typed, voice, click-and-ask, verification answers, quick actions). Confirm | Founder | `workstreams/02-whiteboard-frontend.md` |
+| Q19 | Confirm that **analysis → insights belongs to Person 1** (teacher side) while Person 3 only emits events/evidence and `session_ended` | Founder | `workstreams/handoffs-and-insights-pipeline.md` |
+| Q20 | **Fastify (recommended) or NestJS** for `apps/api`; Express/Hono as fallbacks (`21` §2.1) | Founder | NestJS only if the team already knows it |
+| Q21 | **What is "Yash"?** The founder mentioned connecting to "Yash" (unclear: an external system, a teammate's service or a transcription slip). The OpenAPI description and the stable `/api` contract are meant to ease that integration | Founder | `21` §14 |
 
 ## How to use this file
 

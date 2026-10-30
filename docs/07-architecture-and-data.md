@@ -42,15 +42,15 @@ chunks        (id, material_id, page, text)                  + FTS index
 students      (id, name, is_simulated, created_at)
 sessions      (id, student_id, material_id, topic, persona, modality, started_at, ended_at)
 events        (id, session_id, ts, type, payload JSON)
-evidence      (id, session_id, student_id, concept, correct, independent, chunk_id, rationale, ts)
+evidence      (id, session_id, student_id, concept, concept_key, result, independent, hints_used, rationale, citation JSON, ts)
 analyses      (id, session_id, student_id, result JSON, created_at)
-insights      (id, student_id, session_id, kind, concept, title, body, confidence, evidence JSON, status, created_at)
+insights      (id, student_id, session_id, kind, concept, concept_key, title, body, confidence, evidence JSON, status, created_at, updated_at)
 ```
 
 - **Single teacher:** no `teachers` table, no authentication, no organizations or roles. `class_context` is a **single row** (global class).
 - `materials.status` ∈ `queued | processing | ready | failed`; `type` ∈ `pdf | transcript`; `profile_key` selects the subject profile (`generic` by default).
-- `insights.kind` ∈ `gap | progress | suggestion`; `insights.status` ∈ `new | accepted | dismissed`.
-- `concept` is **free text** in `evidence` and `insights`: no concept table or prerequisite graph.
+- `insights.kind` ∈ `gap | progress | suggestion`; `insights.status` ∈ `new | accepted | dismissed | resolved` (a gap becomes `resolved` after repeated independent correct answers); full pipeline in `workstreams/handoffs-and-insights-pipeline.md`.
+- `concept` is a short pt-BR label and `concept_key` its normalized form (shared `normalizeConcept`, `workstreams/contracts-spec.md` §7): no concept table or prerequisite graph. `evidence.result` ∈ `correct | partial | incorrect`.
 - `events` is **append-only** with JSON `payload`. `analyses.result` is free JSON; `insights` are the denormalized, teacher-facing rows derived from it.
 - `students.is_simulated` drives the "simulated data" badge.
 - Teacher metrics are **SQL aggregates** (counts of students, sessions, gap insights, insights); no extra tables.
@@ -69,11 +69,9 @@ Whiteboard conversation ─► events + evidence ─► analysis (after each ses
 
 ## Event contract (single typed schema for all channels)
 
-**Client → server**
-`user_text`, `user_audio_chunk`, `board_select`, `board_stroke`, `answer_submit`, `mode_change`
+**Client → server** (stored as events; full list in `workstreams/contracts-spec.md` §3): user messages (`kind` = chat, speech, board_select, quick_action), answers to verifications, interruptions, end of conversation. Audio chunks go to the STT provider, not to our API.
 
-**Server → client**
-`action` (any tool call), `stream` (SVG chunks), `audio_chunk`, `tutor_state`, `evidence_recorded` (SSE format in `16` §3.2)
+**Server → client** (SSE, `16` §3.2): `action` (any tool call), `stream` (SVG chunks), `tutor_state`, `done`. Evidence and insights reach the teacher side through the database and the teacher live feed, not through this stream.
 
 Benefits: replay for the teacher is just replaying the log; voice always produces a transcript so voice sessions also appear as chat; testing text tests the whole pedagogical loop.
 

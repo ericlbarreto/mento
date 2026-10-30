@@ -13,6 +13,8 @@ prompts/
 ```
 
 - Write instructions in **English**; the model answers the student in **pt-BR**.
+- **`sessions/`** holds one folder per workstream (teacher interface, whiteboard front-end, whiteboard back-end) where each person logs the prompts they send to their agent; it is **not** loaded by the tutor either.
+- **`founder-conversation/`** is **not** a tutor prompt: it holds the founder's own instructions (verbatim prompts, consolidated requirements, traceability). The tutor never loads it.
 - A material's `profile_key` (from the subject chosen at upload) selects the file in `subjects/`; `generic.md` is the fallback.
 - Final prompt = base + subject profile + **class context** (grade level + teacher description) + retrieved excerpts of the chosen material + learner summary + topic.
 - After any change, rerun the fixed Rome test conversations (see `docs/14-working-rules.md`).

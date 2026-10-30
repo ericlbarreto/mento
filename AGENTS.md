@@ -22,7 +22,7 @@ Thesis: *the school defines what must be learned; Mento teaches each student ind
 - **Team:** 3 people working in parallel in this repo (https://github.com/ericlbarreto/mento).
 - **Demo:** **History — Ancient Rome**, taught from a book PDF uploaded by the teacher to a class described as **8º ano (Ensino Fundamental II)**; content in Portuguese; no math in the demo. **MVP segment focus: 7º, 8º and 9º ano.**
 - **Product model:** one teacher workspace (no auth); entities **Students** and **Materials**; one global **class context**; see `docs/01-hackathon-scope.md` and `docs/06-teacher-interface.md`.
-- **Stack (decided):** TypeScript, a light pnpm-workspace **monorepo** (`apps/web` Next.js + `packages/*`), Zod contracts, SQLite. Layout: `docs/21-repo-structure.md`. See `docs/16-technical-roadmap.md` and `docs/17-work-split.md`.
+- **Stack (decided):** TypeScript, a light pnpm-workspace **monorepo**: `apps/web` (Next.js, frontend only), `apps/api` (**Fastify** backend: SSE/real-time), `packages/*`, Zod contracts, SQLite. Layout: `docs/21-repo-structure.md`. See `docs/16-technical-roadmap.md` and `docs/17-work-split.md`.
 - There are **no** paying customers, proven efficacy or closed partnerships. Never present these as facts.
 
 ## How to study this repository
@@ -39,6 +39,8 @@ Read in this order. Stop when you have enough context for the task, but **always
    - PDFs, retrieval, citations → `docs/04-knowledge-and-sources.md`
    - Student model, evidence, analysis → `docs/05-learner-model-and-analysis.md`
    - Teacher interface (students, materials, class context, insights) → `docs/06-teacher-interface.md`
+   - **Per-person prompt logs and ready-to-paste starter prompts** → `prompts/sessions/` (one folder per workstream)
+   - **The founder's original instructions (verbatim prompts, merged requirements, traceability)** → `prompts/founder-conversation/` (start with `consolidated-requirements.md`; check it when intent is unclear)
    - Architecture, database, events, voice → `docs/07-architecture-and-data.md`
    - Privacy, ZDR, minors → `docs/08-privacy-zdr-security.md`
    - Market, Teachy, competitors → `docs/09-market-and-competitors.md`
@@ -51,6 +53,7 @@ Read in this order. Stop when you have enough context for the task, but **always
    - **Logo, mascot, brand colors and how the orb uses them** → `docs/19-brand-assets.md`
    - **Demo preparation, script and fallbacks** → `docs/20-demo-runbook.md`
    - **Monorepo layout, packages, dependency rules, K1 checklist** → `docs/21-repo-structure.md`
+   - **Who does what (3 people), handoffs, the insights pipeline** → `workstreams/README.md` (then your own `workstreams/0N-….md`); **shared data shapes** → `workstreams/contracts-spec.md` (canonical)
 6. Original raw material: `docs/reference/Mento_Company_Brief.md` (long brief, **in Portuguese**; also contains long-term vision and out-of-scope items).
 
 When done studying, answer the user with: (a) product summary, (b) hackathon scope, (c) open decisions, (d) what you understand still needs to be done.
@@ -61,13 +64,15 @@ When done studying, answer the user with: (a) product summary, (b) hackathon sco
 AGENTS.md                  ← you are here (entry point for agents)
 CLAUDE.md                  ← points to this file
 README.md                  ← short intro for humans
+workstreams/               ← division of work among the 3 people (one file per person + handoffs and the insights pipeline)
 docs/                      ← all product and technical documentation (numbered)
   reference/               ← original raw material (Portuguese brief)
-prompts/                   ← tutor prompts as editable text files
+prompts/                   ← tutor prompts as editable text files; founder-conversation/ = the founder's prompts and requirements (not loaded by the tutor)
   base.md                  ← (to create) base tutor prompt
   subjects/                ← (to create) one profile per subject (history.md, generic.md, math.md)
 materials/                 ← sample PDFs for the ingestion script (git-ignored)
-apps/web/                  ← (planned) Next.js app: pages + thin API routes; composition root
+apps/web/                  ← (planned) Next.js frontend only (no API routes)
+apps/api/                  ← (planned) Fastify API service: routes, SSE, jobs; the only composition root
 packages/                  ← (planned) contracts, ui, board, tutor, db, sources, analysis, voice (see docs/21-repo-structure.md)
 scripts/ fixtures/         ← (planned) tsx scripts; JSON fixtures validated against the contracts
 assets/                    ← brand source files: brand/ (logo.png, mascot.png) and brand-concepts/ (founder-owned; see assets/README.md)
@@ -75,7 +80,7 @@ assets/                    ← brand source files: brand/ (logo.png, mascot.png)
 
 No source code exists yet. The planned monorepo layout is in `docs/21-repo-structure.md` and the **directory ownership per lane** in `docs/17-work-split.md` (§7) and `docs/21-repo-structure.md` (§9). When the code exists, keep this map in sync.
 
-**If you are an agent working for one person:** ask which lane (A, B or C) they own and only edit that lane's paths (see the ownership table in `docs/17-work-split.md`).
+**If you are an agent working for one person:** ask which person they are — **1 Teacher interface + data + insights**, **2 Whiteboard front-end**, **3 Whiteboard back-end** — read `workstreams/README.md` and their file `workstreams/0N-….md`, and only edit that person's paths (ownership tables in `workstreams/README.md` and `docs/21-repo-structure.md` §9).
 
 ## Rules that always apply
 

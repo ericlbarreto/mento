@@ -32,7 +32,7 @@
 | `--mascot-light` | `#B1D8FA` | Mascot belly/highlights |
 | `--accent-orange` | `#FC724A` | Spark marks in the pose sheet (approximate) |
 
-Proposed neutrals: app background `#F7F9FF`, **board paper** `#FFFBF2` (warm, for the handwriting board), border `#E3E8F4`. Use the orange only for small highlights/alerts, never as a large surface.
+Neutrals (beige-light direction, 2026-10-30): paper `#FBF7EE`, panels `#F5EEDF`, cards `#FFFDF8`, line `#E7DECB`; full token list and the animation plan in `18-ui-references.md` §6. Use the orange only for small highlights/alerts, never as a large surface.
 
 ## 3. Logo usage
 

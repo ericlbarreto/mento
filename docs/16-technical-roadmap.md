@@ -55,7 +55,7 @@ The tutor is an LLM that emits a **script of tool calls**. The server streams th
 
 ```json
 {
-  "appended": [ { "name": "user_message", "type": "chat|speech|board_select", "text": "...", "selected": {"element_id": "date_27bc", "text": "27 a.C."} } ],
+  "appended": [ { "name": "user_message", "kind": "chat|speech|board_select|quick_action", "text": "...", "selected": {"element_id": "date_27bc", "text": "27 a.C."} } ],
   "modality": "text|voice",
   "interrupted": { "action_id": "...", "spoken_chars": 120 }
 }
@@ -90,7 +90,7 @@ A single **action queue**:
 
 ### 3.4 Events (stored)
 
-Same names as Studdy's pattern, one append-only log: `session_started`, `user_message` (`chat`, `speech`, `board_select`), `tutor_action` (any tool call), `element_added`, `element_edited`, `annotation_added`, `evidence_recorded`, `mic_unmuted`, `mic_muted`.
+One append-only log. The event types and payloads are defined **once** in `workstreams/contracts-spec.md` §3: `session_started`, `user_message`, `tutor_action` (any tool call, including `draw_result`), `verification_asked`, `verification_answered`, `hint_given`, `evidence_recorded`, `interrupted`, `mic_state`, `turn_timing`, `session_ended`. The board state is derived from `tutor_action` events (no separate element events).
 
 ## 4. Tool catalog (Mento v1)
 
@@ -98,8 +98,8 @@ All args are validated by the server before streaming (types, ids, allowed colum
 
 | Tool | Args | Effect |
 |---|---|---|
-| `speak` | `text`, `style?` (e.g., `warm`, `energetic`), `sources?`, `outside_material?` | Tutor speaks (voice) or shows a caption (text). Optional citation chips |
-| `write_text` | `id`, `html`, `column`, `sources?`, `outside_material?` | Handwritten text block (HTML allowlist: `h1–h3`, `p`, `b`, `i`, `br`, `ul/ol/li`, `span`) |
+| `speak` | `text`, `style?` (e.g., `warm`, `energetic`), `purpose?` (`explain`/`hint`/`praise`/`question`/`transition`), `hint_level?` (1–3, required for hints), `sources?`, `outside_material?` | Tutor speaks (voice) or shows a caption (text). Optional citation chips |
+| `write_text` | `id`, `html`, `column`, `purpose?`, `hint_level?`, `sources?`, `outside_material?` | Handwritten text block (HTML allowlist: `h1–h3`, `p`, `b`, `i`, `br`, `ul/ol/li`, `span`) |
 | `write_timeline` | `id`, `column`, `events:[{date, label}]` | **Deterministic** timeline component (exact dates; no model-drawn text) |
 | `write_latex` | `id`, `latex`, `column` | Equation (Math profile only) |
 | `highlight` | `target_id`, `color` | Marker highlight on an element |
@@ -107,10 +107,10 @@ All args are validated by the server before streaming (types, ids, allowed colum
 | `draw` | `id`, `prompt`, `column`, `is_structured`, `max_dimensions` | Illustration (artistic image) or diagram (streamed SVG) |
 | `remove_element` / `update_element` | `id` (+ `html`) | Change or remove an element |
 | `ask_verification` | `concept`, `question`, `kind` (`explain`, `transfer`, `place_on_timeline`) | Puts a question on the board and **waits** for the student's answer |
-| `record_evidence` | `concept`, `correct`, `independent`, `rationale`, `source_ref?` | **Server-side only** (not rendered): writes an evidence row |
+| `record_evidence` | `concept`, `result` (`correct`/`partial`/`incorrect`), `independent`, `hints_used`, `rationale`, `citation?` | **Server-side only** (not rendered): writes an evidence row |
 | `search_materials` | `query` | Main retrieval path for books (FTS over the chosen material); see §6 |
 
-`sources` format: `[{ "source_id": 3, "page": 12, "quote": "…exact excerpt…" }]`. Source of truth for citations: `04-knowledge-and-sources.md`.
+`sources` format: `[{ "material_id": 3, "page": 12, "quote": "…exact excerpt…" }]` (the `Citation` shape in `workstreams/contracts-spec.md` §4). Source of truth for citations: `04-knowledge-and-sources.md`.
 
 ### Example script (Rome, simplified)
 
@@ -122,7 +122,7 @@ All args are validated by the server before streaming (types, ids, allowed colum
  {"name":"draw","args":{"id":"colosseum","column":"visuals","is_structured":false,
    "prompt":"Esboço artístico do Coliseu romano, lápis de cor, fundo branco, sem texto","max_dimensions":{"w":500,"h":400}}},
  {"name":"write_timeline","args":{"id":"tl","column":"main","events":[{"date":"509 a.C.","label":"Início da República"},{"date":"27 a.C.","label":"Otávio vira Augusto"}]}},
- {"name":"speak","args":{"text":"Repare nessa data: 27 a.C.","sources":[{"source_id":1,"page":12,"quote":"Em 27 a.C., o Senado concedeu a Otávio o título de Augusto"}]}},
+ {"name":"speak","args":{"text":"Repare nessa data: 27 a.C.","sources":[{"material_id":1,"page":12,"quote":"Em 27 a.C., o Senado concedeu a Otávio o título de Augusto"}]}},
  {"name":"circle_annotate","args":{"target_id":"tl","text_to_match":"27 a.C.","color":"red"}}
 ]
 ```
@@ -142,7 +142,7 @@ Handwriting font; pencil icon trailing the text being "written"; yellow blob **m
 ### 5.3 Click-and-ask (Mento differentiator)
 
 1. Each element and each **text span** the tutor may reference is clickable/selectable.
-2. The client sends `user_message` with `type: "board_select"`, `selected: {element_id, text}` and the question (typed or spoken).
+2. The client sends `user_message` with `kind: "board_select"`, `selected: {element_id, text}` and the question (typed or spoken).
 3. The prompt includes a **board snapshot** each turn: a compact list `id | type | column | text (truncated)` of everything on the board, plus the selected element in full. That is how the model can target `circle_annotate`/`highlight` and answer about *that* element.
 4. The tutor answers about the element and may add an annotation, without restarting the conversation.
 
@@ -185,8 +185,8 @@ Handwriting font; pencil icon trailing the text being "written"; yellow blob **m
 ## 8. Evidence and analysis
 
 1. `ask_verification` puts a question on the board and the tutor waits (`tutor_state: waiting`).
-2. The student answers (chat or speech). A **judge call** (separate, small LLM call with the material excerpts and a rubric) decides `correct` / `partial`, and `independent` (no hint used).
-3. Server writes `evidence` (`concept`, `correct`, `independent`, `chunk_id`, `session_id`, ts) and emits `evidence_recorded`.
+2. The student answers (chat or speech). A **judge call** (separate, small LLM call with the material excerpts and a rubric) decides `result` (`correct` / `partial` / `incorrect`); `independent` and `hints_used` are computed from the `hint_given` events between the question and the answer.
+3. Server writes `evidence` (`concept`, `concept_key`, `result`, `independent`, `hints_used`, `rationale`, `citation?`, `session_id`, ts; spec §5) and emits `evidence_recorded`. Concept labels follow spec §7 so the teacher-side analysis can match gaps across sessions.
 4. **Post-session analysis** (automatic after each conversation) reads the event log + evidence, writes `analyses.result` and creates **`insights`** (gap / progress / suggestion) for the teacher's Students tab and for the learner summary of the next conversation (`05-learner-model-and-analysis.md`).
 5. A **diagnostic opener** (like Studdy's "how much do you remember, 1–10?") is cheap and gives a first evidence data point; we use it per concept, never as a score.
 
@@ -197,6 +197,7 @@ Handwriting font; pencil icon trailing the text being "written"; yellow blob **m
 - **TTS:** the client requests audio per `speak` through a server proxy `POST /api/tts` (streaming), plays chunks with the Web Audio API, **prefetches the next `speak`** while the current one plays, and stops immediately on interruption. Captions highlight word by word if the provider returns word timestamps; otherwise sentence-level.
 - **Style:** the `style` field maps to provider voices/styles per persona (persona names and tone live in `prompts/personas.md`).
 - **Voice replies are short**; visuals go to the board.
+- **Storage policy (D39):** store the **final STT transcript text** and the **spoken TTS text** as events; do **not** store raw audio; cache TTS audio by hash for reuse and demo fallback (purgeable). Details: `workstreams/03-whiteboard-backend.md` §"How STT and TTS are stored".
 
 ### Latency budget (targets, to be measured)
 
@@ -219,7 +220,7 @@ The data model is defined in `07-architecture-and-data.md` (9 tables: `class_con
 
 ## 11. API surface
 
-Single teacher workspace: **no authentication** (prototype only).
+Served by the **Fastify API** (`apps/api`, prefix `/api`; the browser calls `NEXT_PUBLIC_API_URL`; D43). Single teacher workspace: **no authentication** (prototype only).
 
 | Endpoint | Purpose |
 |---|---|
@@ -231,6 +232,7 @@ Single teacher workspace: **no authentication** (prototype only).
 | `POST /api/tts` | Streaming TTS proxy |
 | `GET /api/files/:id` | Material PDFs and generated images |
 | `GET /api/overview` | Teacher metrics: students, conversations, gaps identified, insights generated |
+| `GET /api/stream/teacher` | **SSE** live feed for the teacher UI (`insight_created`, `session_started`, `session_ended`, `material_status`) |
 | `GET/PUT /api/class-context` | Read/update the global class context |
 | `POST /api/students` | Create a student |
 | `GET /api/students/:id` | Student detail: sessions, evolution (from evidence), insights |
@@ -257,6 +259,8 @@ Single teacher workspace: **no authentication** (prototype only).
 
 ## 13. Lanes and contracts (proposal; not assigned)
 
+> The **final split by person** (Person 1 teacher interface + data + insights, Person 2 whiteboard front-end, Person 3 whiteboard back-end) is in `workstreams/`. The table below is the earlier lane view.
+
 | Lane | Scope | Depends on |
 |---|---|---|
 | **A. Board + student UI** | DOM board, action queue, animations, click-and-ask UI, source chips, pdf.js viewer, captions | Action schema, event schema |
@@ -269,7 +273,7 @@ Single teacher workspace: **no authentication** (prototype only).
 
 - **Fixture scripts** for the Rome material (happy path, wrong answer, click-and-ask, out-of-material question, interruption).
 - **Prompt regression:** rerun fixed conversations after every prompt change and compare tool sequences (not exact text).
-- **Contract tests:** schema validation of every model-emitted action (reject unknown tools/columns/ids).
+- **Contract tests:** schema validation of every model-emitted action (reject unknown tools/columns/ids), and the **round-trip test** that runs a recorded fixture conversation through the repository and the teacher-side analysis input builder (`workstreams/contracts-spec.md` §10).
 - **Latency log:** record per-turn timings (first action, last action, TTS first audio, image ready) from day 1.
 - **Demo rehearsal** twice; text mode ready as fallback.
 

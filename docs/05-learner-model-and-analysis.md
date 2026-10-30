@@ -8,7 +8,7 @@ Turn what happens in a tutoring session into an **evidence-based picture of how 
 
 ## Concepts
 
-- **Evidence:** a structured record created when the student answers a verification question or shows reasoning (`concept`, `correct`, `independent`, `chunk_id`, timestamp).
+- **Evidence:** a structured record created when the student answers a verification question or shows reasoning (`concept`, `concept_key`, `result`, `independent`, `hints_used`, `citation?`, timestamp; `workstreams/contracts-spec.md` §5).
 - **Analysis:** a post-session job that reads the session log and produces structured observations.
 - **Student picture:** the aggregate of analyses across sessions for one student.
 
@@ -71,7 +71,7 @@ The analysis call runs against a provider with a zero-data-retention option; the
 
 1. The tutor calls `ask_verification` (a **new** question, not a repeat); the board shows it and the tutor waits.
 2. The student answers by chat or voice.
-3. A **judge call** (small LLM call with the material excerpts and a rubric) returns `correct` / `partial` and whether the answer was `independent` (no hint used), with a short `rationale`.
+3. A **judge call** (small LLM call with the material excerpts and a rubric) returns `result` (`correct` / `partial` / `incorrect`) and a short `rationale`; `independent` and `hints_used` are computed from the `hint_given` events between the question and the answer.
 4. The server writes the `evidence` row and emits `evidence_recorded`.
 5. The teacher card shows the `rationale` and the student's own words as **examples of reasoning** (the Flint-style insight).
 

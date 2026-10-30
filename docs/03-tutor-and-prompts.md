@@ -91,7 +91,7 @@ A profile should state, in concrete terms:
 ## Grounding and citation rules
 
 - Use only the retrieved excerpts from the chosen material for claims derived from the material.
-- When using an excerpt, emit a citation: `source_id`, `page`, `quote`.
+- When using an excerpt, emit a citation: `material_id`, `page`, `quote`.
 - If the material does not support the answer: say so, answer with general knowledge, and **mark the answer as "outside the teacher's material"**.
 - If two sources conflict, say so; do not silently merge them.
 - Never claim to know "the teacher's style" from a small sample.
