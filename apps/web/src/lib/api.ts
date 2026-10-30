@@ -15,6 +15,7 @@ import {
   TurnRequest,
   TurnStreamMessage,
   pickFixture,
+  replayFixture,
 } from "@mento/board";
 import { z } from "zod";
 
@@ -134,20 +135,11 @@ export async function* streamTurn(
   }
 }
 
-/** Replays a fixture with realistic timing (~1.2 s to the first action, 150–400 ms gaps, ~2.5 s before a draw_result). */
+/** Replays the fixture `pickFixture` chooses for this session's turn (timing: `replayFixture`). */
 async function* mockTurn(session_id: string, req: TurnRequest, signal?: AbortSignal): AsyncGenerator<TurnStreamMessage> {
   const turnIndex = mockTurnCounts.get(session_id) ?? 0;
   mockTurnCounts.set(session_id, turnIndex + 1);
-  let firstAction = true;
-  for (const msg of FIXTURE_TURNS[pickFixture(req, turnIndex)]) {
-    let wait = 150 + Math.random() * 250;
-    if ("turn_id" in msg) wait = 0;
-    else if ("action" in msg && firstAction) wait = 1200;
-    else if ("action" in msg && msg.action.name === "draw_result") wait = 2500;
-    if ("action" in msg) firstAction = false;
-    if (!(await delay(wait, signal))) return;
-    yield msg;
-  }
+  yield* replayFixture(FIXTURE_TURNS[pickFixture(req, turnIndex)], signal);
 }
 
 /** Resolves true after `ms`, or false as soon as `signal` aborts. */

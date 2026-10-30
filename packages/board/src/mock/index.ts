@@ -40,3 +40,39 @@ export function pickFixture(req: TurnRequest, turnIndex: number): FixtureName {
   if (req.appended.some((a) => a.name === "answer_submit")) return "rome-wrong-answer";
   return "rome-outside-material";
 }
+
+/**
+ * Replays a recorded turn with realistic timing (~1.2 s to the first action, 150–400 ms gaps,
+ * ~2.5 s before a draw_result). Stops quietly (no throw) as soon as `signal` aborts.
+ */
+export async function* replayFixture(
+  messages: readonly TurnStreamMessage[],
+  signal?: AbortSignal,
+): AsyncGenerator<TurnStreamMessage> {
+  let firstAction = true;
+  for (const msg of messages) {
+    let wait = 150 + Math.random() * 250;
+    if ("turn_id" in msg) wait = 0;
+    else if ("action" in msg && firstAction) wait = 1200;
+    else if ("action" in msg && msg.action.name === "draw_result") wait = 2500;
+    if ("action" in msg) firstAction = false;
+    if (!(await abortableDelay(wait, signal))) return;
+    yield msg;
+  }
+}
+
+/** Resolves true after `ms`, or false as soon as `signal` aborts. */
+function abortableDelay(ms: number, signal?: AbortSignal): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) return resolve(false);
+    const onAbort = () => {
+      clearTimeout(timer);
+      resolve(false);
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve(true);
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
