@@ -9,7 +9,6 @@ __pycache__/
 .next/
 dist/
 build/
-*.sqlite
 *.db
 
 # PDFs de material (podem ter direitos autorais); a pasta e o README ficam
@@ -20,3 +19,8 @@ materials/*
 data/
 coverage/
 *.tsbuildinfo
+
+# generated
+apps/web/next-env.d.ts
+*.tsbuildinfo
+.eslintcache

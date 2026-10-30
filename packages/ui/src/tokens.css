@@ -1,0 +1,13 @@
+/* Mento design tokens (docs/18-ui-references.md §6). Shared by the whiteboard and the teacher UI. */
+:root {
+  --paper: #fbf7ee;
+  --paper-2: #f4eddc;
+  --ink: #162250;
+  --mento-blue: #1e59ed;
+  --mento-blue-soft: #dce6fd;
+  --accent: #fc724a;
+  --line: #e4dcc8;
+  --radius: 14px;
+  --font-ui: "Nunito", system-ui, sans-serif;
+  --font-board: "Caveat", "Kalam", cursive;
+}

@@ -12,7 +12,7 @@ You own: `apps/web/src/app/(teacher)/**`, API route files `students.ts`, `sessio
 
 ## First steps
 
-day-0 checks (ingest a real book PDF and time it; SQLite FTS with Portuguese queries; analysis dry run on a fixture event log), then T1 (schema + SQLite repository + seed, delivered by hour 3).
+day-0 checks (ingest a real book PDF and time it; MongoDB text index with Portuguese queries; analysis dry run on a fixture event log), then T1 (schema + MongoDB repository + seed, delivered by hour 3).
 
 Use the `impeccable` skill for every screen (fallback: `frontend-design`).
 

@@ -130,7 +130,7 @@ Gaps match first by **`concept_key`** (shared `normalizeConcept`), then by the m
 | Time | Available | Used by |
 |---|---|---|
 | Kickoff | Contracts, in-memory repository, fixtures (turn scripts + one event log with a clear gap) | everyone |
-| ≤ H3 | P1: SQLite repository + seed (students, class context, demo insights) | P3 switches off the stub |
+| ≤ H3 | P1: MongoDB repository + seed (students, class context, demo insights) | P3 switches off the stub |
 | ~H3 | P3: `/api/dev/fixture-turn` and `turn-cli` | P2 builds the board against fixtures |
 | H8 | P3: real `/turn` (text) | P2 integration |
 | H8–H10 | P1: analysis running on the **fixture event log** | validates the pipeline before real sessions exist |

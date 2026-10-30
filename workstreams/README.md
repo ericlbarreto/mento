@@ -62,7 +62,7 @@ Analogy: it is the **plug standard** between three appliances built in different
 | Hour | Checkpoint | What happens |
 |---|---|---|
 | 0–1.5 | **Kickoff together** | Repo skeleton (K1), contracts (K2–K6), fixtures (K7), design tokens + brand copy (K9). Nothing else starts before this |
-| ≤ 3 | **Repository swap** | P1 delivers the SQLite repository; P3 switches from the in-memory stub |
+| ≤ 3 | **Repository swap** | P1 delivers the MongoDB repository; P3 switches from the in-memory stub |
 | **8** | **Integration 1** | P2 switches from fixtures to P3's real `/turn`; a real text turn works end to end |
 | **14** | **Integration 2** | Citations (P1 validator ↔ P3 ↔ P2 chips) and evidence (P3 → P1 → teacher card) work end to end |
 | **18** | **Cut line / Must demo** | Full Rome demo run by all three; if Must is not green, Should does not start |

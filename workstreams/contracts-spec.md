@@ -19,7 +19,7 @@ An audit of the docs found that the teacher side and the whiteboard back-end des
 ## 1. Conventions
 
 - **Field names are `snake_case` everywhere a shape is stored or serialized** (SSE messages, HTTP bodies, `events.payload`, analysis JSON, DB columns) **and in the TypeScript types of those objects**. `camelCase` is only for local variables and function names. (One convention means no mapping code and no mismatches.)
-- **Ids:** DB rows have integer ids; board elements, actions, turns and verifications have string ids (`el_…`, `act_…`, `turn_…`, `ver_…`).
+- **Ids (D46, MongoDB):** DB documents have an `_id` ObjectId, exposed in every contract as `id: string` (24-hex). Wherever the sketches below show `id: number` / `*_id: number`, read `string`; `Event.id` ordering uses the ObjectId (monotonic per process) or a `seq` counter. Board elements, actions, turns and verifications have string ids (`el_…`, `act_…`, `turn_…`, `ver_…`).
 - **Timestamps:** ISO 8601 UTC strings in JSON; `ts` columns store the same string.
 - **Enums are closed lists** (below); unknown values are rejected by Zod, not silently stored.
 - **No student names** in anything sent to an LLM; the id only.

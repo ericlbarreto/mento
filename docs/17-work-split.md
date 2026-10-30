@@ -20,10 +20,10 @@
 | Apps | **Next.js** frontend only (`apps/web`) + **Fastify API** (`apps/api`, SSE/real-time, D43); internal packages in `packages/*` (`21-repo-structure.md`) |
 | Contracts | **Zod** schemas shared by client and server |
 | Styling | Tailwind; handwriting fonts from Google Fonts |
-| DB | **SQLite** file (Drizzle or `better-sqlite3`) |
+| DB | **MongoDB** via **Mongoose** (D46) |
 | LLM / STT / TTS / image | Provider SDKs called directly; choices come from the day-0 bake-offs (`16` §12) |
 | Scripts | `tsx` (`scripts/ingest.ts`, `scripts/pregenerate-images.ts`) |
-| Demo hosting | Run on a laptop or a small VM with Node (serverless limits SSE and breaks file-based SQLite) |
+| Demo hosting | Run on a laptop or a small VM with Node (serverless limits SSE; the database is a MongoDB instance (local or Atlas)) |
 
 Repository layout: a **light pnpm-workspace monorepo** (`apps/web` + `packages/*`), fully described in `21-repo-structure.md` (D28). Package ↔ lane mapping:
 
@@ -42,7 +42,7 @@ Nothing else starts before this is done. One person types; all three agree.
 
 | # | Deliverable | Where |
 |---|---|---|
-| K1 | Repo skeleton (Next.js web + **Fastify API** + TS + Tailwind + Zod + SQLite), `pnpm dev` starts both for everyone, `.env.example` | root |
+| K1 | Repo skeleton (Next.js web + **Fastify API** + TS + Tailwind + Zod + MongoDB/Mongoose), `pnpm dev` starts both for everyone, `.env.example` | root |
 | K2 | **Action/tool schemas** (Zod) for every tool in `16` §4 | `packages/contracts/src/actions.ts` |
 | K3 | **SSE message schema** (`order`, `action`, `stream`, `done`) and **event log shape** | `packages/contracts/src/stream.ts`, `events.ts` |
 | K4 | **Citation format** `{material_id, page, quote}` (canonical: `workstreams/contracts-spec.md`) | `packages/contracts/src/citation.ts` |
@@ -147,7 +147,7 @@ After kickoff the contracts are **frozen**. Changes are additive only and need a
 | Hour | Checkpoint | What gets connected | Who drives |
 |---|---|---|---|
 | 0–1.5 | **Kickoff** | Contracts, fixtures, skeleton | All |
-| ~3 | Repo swap | B moves from in-memory stub to C's SQLite repository | C |
+| ~3 | Repo swap | B moves from in-memory stub to C's MongoDB repository | C |
 | **8** | **Integration 1** | A switches from fixtures to B's real `/turn`; end-to-end text turn with a real LLM | A + B |
 | **14** | **Integration 2** | Citations (C validator ↔ B ↔ A chips) and evidence (B ↔ C ↔ teacher card) | B + C |
 | **18** | **Cut line / Must demo** | Full Rome demo script run end to end by all three | All |
@@ -179,7 +179,7 @@ If Must is not green at H18, **nobody starts Should**; everyone helps close Must
 - Trunk-based with short branches: `feat/a-board-queue`, `feat/b-turn-handler`, `feat/c-ingest`. **No branch lives longer than ~3 hours.**
 - Open small PRs into `main` often; run `git pull --rebase origin main` before opening.
 - One owner per PR review: the owner of the path being changed; shared files need one other person's quick look.
-- Never commit secrets, `.env`, PDFs or `.sqlite` files.
+- Never commit secrets, `.env`, PDFs or database dumps.
 - Don't force-push `main`.
 - If you need something from another lane, **write a one-line request** in the team chat with the exact interface you expect; keep working against the stub meanwhile.
 

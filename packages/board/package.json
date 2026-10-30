@@ -1,0 +1,26 @@
+{
+  "name": "@mento/board",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@mento/contracts": "workspace:*",
+    "@mento/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.5",
+    "react": "^19.3.1",
+    "@types/react": "^19.2.0"
+  },
+  "peerDependencies": {
+    "react": "^19.3.1"
+  }
+}

@@ -1,0 +1,24 @@
+# Fill in the GitHub usernames once Person 1/2/3 are assigned (docs/10-decisions.md Q9), then uncomment.
+# Paths follow workstreams/README.md and docs/21-repo-structure.md §10.
+#
+# Person 2 (whiteboard front-end)
+# /packages/board/                               @person-2
+# /packages/ui/                                  @person-2
+# /apps/web/src/app/(student)/                   @person-2
+# /apps/web/src/lib/                             @person-2
+#
+# Person 3 (whiteboard back-end)
+# /packages/tutor/                               @person-3
+# /packages/voice/                               @person-3
+# /prompts/*.md                                  @person-3
+# /prompts/subjects/                             @person-3
+# /apps/api/src/routes/turn.ts                   @person-3
+# /apps/api/src/routes/voice.ts                  @person-3
+# /apps/api/src/routes/dev-fixtures.ts           @person-3
+#
+# Person 1 (teacher interface, data, insights)
+# /packages/db/                                  @person-1
+# /packages/sources/                             @person-1
+# /packages/analysis/                            @person-1
+# /apps/web/src/app/(teacher)/                   @person-1
+# /apps/api/src/routes/                          @person-1   (the other route files)

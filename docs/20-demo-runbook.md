@@ -16,7 +16,7 @@ Keys live in `.env` (git-ignored; names go in `.env.example`). Planned:
 | `IMAGE_API_KEY`, `IMAGE_MODEL` | `draw` artistic images |
 | `STT_API_KEY` | Minting the short-lived Deepgram token (Should) |
 | `TTS_API_KEY`, `TTS_VOICE` | Voice (Should) |
-| `DATABASE_FILE` | SQLite path |
+| `MONGODB_URI` | MongoDB connection string (local `mongod` or Atlas) |
 | `DEMO_MODE` (`live` \| `fixture`) | Switch the turn handler between the real LLM and fixture replay |
 | `API_PORT`, `WEB_ORIGIN`, `NEXT_PUBLIC_API_URL` | API port (default 4000), allowed web origin (CORS), and the API base URL used by the browser |
 

@@ -13,7 +13,7 @@ Before writing code, reply with: (1) a summary of my scope, (2) the contracts I 
 (3) my day-0 checks and my first three tasks with estimates, (4) what I need from the other two people
 and the mock I will use until it exists, (5) any doubt about the docs.
 
-Then start with: day-0 checks (ingest a real book PDF and time it; SQLite FTS with Portuguese queries; analysis dry run on a fixture event log), then T1 (schema + SQLite repository + seed, delivered by hour 3).
+Then start with: day-0 checks (ingest a real book PDF and time it; MongoDB text index with Portuguese queries; analysis dry run on a fixture event log), then T1 (schema + SQLite repository + seed, delivered by hour 3).
 
 Use the `impeccable` skill for every screen (fallback: `frontend-design`).
 Log each meaningful prompt of this session in prompts/sessions/01-teacher-interface/ (see prompts/sessions/README.md).

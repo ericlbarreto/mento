@@ -1,0 +1,9 @@
+@import "tailwindcss";
+@source "../../../../packages/ui/src";
+@source "../../../../packages/board/src";
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+}

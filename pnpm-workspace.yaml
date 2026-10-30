@@ -1,0 +1,14 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "scripts"
+
+# Dependencies allowed to run install scripts (native binaries / postinstall)
+minimumReleaseAgeExclude:
+  - eslint@10.14.0
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+  "@tailwindcss/oxide": true
+  unrs-resolver: true

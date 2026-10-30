@@ -14,7 +14,7 @@ Give the teacher a **simple, beautiful, single workspace** (no login) with two t
 
 | You produce | Consumed by |
 |---|---|
-| `Repository` (in-memory at kickoff, SQLite by hour ≤ 3) | Person 3 (events, evidence, context, search) |
+| `Repository` (in-memory at kickoff, MongoDB by hour ≤ 3) | Person 3 (events, evidence, context, search) |
 | `getLearnerSummary`, `getClassContext`, `searchChunks`, `getPages`, `getOutline`, `validateCitation` | Person 3 |
 | Student list and material list APIs | Person 2 (start screen) |
 | Insights (rows) | Your own teacher UI and the learner summary |
@@ -25,7 +25,7 @@ Give the teacher a **simple, beautiful, single workspace** (no login) with two t
 ## Day-0 checks (≤ 1.5 h, in parallel after kickoff)
 
 1. **Ingest a real book PDF** (the demo candidate): time and cost of text-layer extraction, and how many pages need the vision path; does the PDF have a text layer?
-2. **SQLite FTS** over page chunks: does a Portuguese query ("fim da República") return the right pages? (accents, stemming, ranking).
+2. **MongoDB text index** (`default_language: portuguese`) over page chunks: does a Portuguese query ("fim da República") return the right pages? (accents, stemming, ranking).
 3. **Analysis dry run:** feed the **fixture event log** to a structured LLM call and check the JSON validates (shapes in `contracts-spec.md` §8; pipeline in `handoffs-and-insights-pipeline.md` §4).
 
 ## Screens (build order)
@@ -70,7 +70,7 @@ You can build and test all of this **without the whiteboard** using the fixture 
 
 | # | Task | Tier | Est. | Done when |
 |---|---|---|---|---|
-| T1 | Schema + SQLite repository + seed (`memory.ts` parity). **Deliver by hour 3** | Must 7–8 | 3.5 h | Person 3 runs against it; seed creates students, class context, demo insights |
+| T1 | Mongoose models + MongoDB repository + seed (`memory.ts` parity). **Deliver by hour 3** | Must 7–8 | 3.5 h | Person 3 runs against it; seed creates students, class context, demo insights |
 | T2 | Session/events/student-list APIs (`POST /api/sessions`, `GET events`, `GET students`), `/api/files/:id` | Must 7 | 2 h | Whiteboard start screen lists students and materials |
 | T3 | Ingestion pipeline + script + FTS + outline + `validateCitation` | Must 4 | 6 h | Demo book ingested; search returns the right pages; fake quote rejected |
 | T4 | Analysis → insights (on the fixture log first) | Should 10 | 5 h | A fixture conversation yields a gap + suggestion with real quotes |

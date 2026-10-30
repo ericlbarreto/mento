@@ -22,7 +22,7 @@ Thesis: *the school defines what must be learned; Mento teaches each student ind
 - **Team:** 3 people working in parallel in this repo (https://github.com/ericlbarreto/mento).
 - **Demo:** **History — Ancient Rome**, taught from a book PDF uploaded by the teacher to a class described as **8º ano (Ensino Fundamental II)**; content in Portuguese; no math in the demo. **MVP segment focus: 7º, 8º and 9º ano.**
 - **Product model:** one teacher workspace (no auth); entities **Students** and **Materials**; one global **class context**; see `docs/01-hackathon-scope.md` and `docs/06-teacher-interface.md`.
-- **Stack (decided):** TypeScript, a light pnpm-workspace **monorepo**: `apps/web` (Next.js, frontend only), `apps/api` (**Fastify** backend: SSE/real-time), `packages/*`, Zod contracts, SQLite. Layout: `docs/21-repo-structure.md`. See `docs/16-technical-roadmap.md` and `docs/17-work-split.md`.
+- **Stack (decided):** TypeScript, a light pnpm-workspace **monorepo**: `apps/web` (Next.js, frontend only), `apps/api` (**Fastify** backend: SSE/real-time), `packages/*`, Zod contracts, MongoDB (Mongoose). Layout: `docs/21-repo-structure.md`. See `docs/16-technical-roadmap.md` and `docs/17-work-split.md`.
 - There are **no** paying customers, proven efficacy or closed partnerships. Never present these as facts.
 
 ## How to study this repository
@@ -71,14 +71,14 @@ prompts/                   ← tutor prompts as editable text files; founder-con
   base.md                  ← (to create) base tutor prompt
   subjects/                ← (to create) one profile per subject (history.md, generic.md, math.md)
 materials/                 ← sample PDFs for the ingestion script (git-ignored)
-apps/web/                  ← (planned) Next.js frontend only (no API routes)
-apps/api/                  ← (planned) Fastify API service: routes, SSE, jobs; the only composition root
-packages/                  ← (planned) contracts, ui, board, tutor, db, sources, analysis, voice (see docs/21-repo-structure.md)
-scripts/ fixtures/         ← (planned) tsx scripts; JSON fixtures validated against the contracts
+apps/web/                  ← Next.js frontend only (no API routes)
+apps/api/                  ← Fastify API service: routes, SSE, jobs; the only composition root
+packages/                  ← contracts, ui, board, tutor, db, sources, analysis, voice (see docs/21-repo-structure.md)
+scripts/ fixtures/         ← tsx scripts; JSON fixtures validated against the contracts
 assets/                    ← brand source files: brand/ (logo.png, mascot.png) and brand-concepts/ (founder-owned; see assets/README.md)
 ```
 
-No source code exists yet. The planned monorepo layout is in `docs/21-repo-structure.md` and the **directory ownership per lane** in `docs/17-work-split.md` (§7) and `docs/21-repo-structure.md` (§9). When the code exists, keep this map in sync.
+The **K1 skeleton exists** (`pnpm install && pnpm dev`; web :3000, API :4000; MongoDB at `MONGODB_URI`); features are not built yet. Monorepo layout: `docs/21-repo-structure.md` and the **directory ownership per lane** in `docs/17-work-split.md` (§7) and `docs/21-repo-structure.md` (§9). Keep this map in sync.
 
 **If you are an agent working for one person:** ask which person they are — **1 Teacher interface + data + insights**, **2 Whiteboard front-end**, **3 Whiteboard back-end** — read `workstreams/README.md` and their file `workstreams/0N-….md`, and only edit that person's paths (ownership tables in `workstreams/README.md` and `docs/21-repo-structure.md` §9).
 

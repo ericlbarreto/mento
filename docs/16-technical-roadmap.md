@@ -43,7 +43,7 @@ The tutor is an LLM that emits a **script of tool calls**. The server streams th
 | STT | **Deepgram** streaming from the browser via WebSocket with a short-lived token minted by our server (Studdy does the same) | *(proposed)* |
 | TTS | Bake-off: **ElevenLabs Flash v2.5 (default pick: naturalness + latency)** vs Azure Speech (fallback) vs Cartesia Sonic 3.6, in pt-BR. All three can provide word timing (Azure `WordBoundary`, ElevenLabs character alignment, Cartesia `add_timestamps`). **Deepgram Aura-2 excluded (no Portuguese).** Details and sources: `11` | Bake-off |
 | Image model | Bake-off with 3 Rome prompts (style, latency, cost, background removal). Candidates: Google, OpenAI or open (Flux-class) image models | Bake-off |
-| Database | SQLite (fastest) or Postgres | Open (Q1) |
+| Database | **MongoDB + Mongoose** | Decided (D46) |
 | File storage | Local disk for the hackathon (PDFs, generated images) | *(proposed)* |
 | PDF viewer | pdf.js (page + text-layer highlight) | Decided |
 

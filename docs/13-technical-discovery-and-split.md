@@ -10,7 +10,7 @@ Turn the conceptual design (`07-architecture-and-data.md`) into concrete choices
 ## Decisions to make (check off and record in `10-decisions.md`)
 
 - [x] Language/framework: **TypeScript**; frontend **Next.js**, backend **Fastify** service (D24, D43; confirm Q20)
-- [x] Database: **SQLite** (D24)
+- [x] Database: **MongoDB + Mongoose** (D46; replaced SQLite from D24)
 - [x] Repository: https://github.com/ericlbarreto/mento (`main`)
 - [ ] Hosting/deployment for the demo
 - [ ] LLM provider and model for the tutor; model for analysis

@@ -26,7 +26,7 @@
 | API docs | `@fastify/swagger` + Zod provider (OpenAPI) | Nice-to-have; helps integrations |
 | Validation | Zod in `@mento/contracts`, reused by API and web | |
 | Jobs / events / files | In-process implementations behind **interfaces** (`JobQueue`, `EventBus`, `FileStore`) | Swap for Redis/BullMQ/S3 later (§6) |
-| DB | SQLite behind the `Repository` interface | Postgres later |
+| DB | **MongoDB via Mongoose** behind the `Repository` interface (D46) | Managed Atlas cluster |
 | Styling | Tailwind (+ shadcn/ui primitives in `@mento/ui`) | |
 | Tests | Vitest per package; API tests with Fastify's `inject` | Contract tests validate every fixture |
 | Lint/format | ESLint (flat) + Prettier at the root | |
@@ -69,7 +69,7 @@ mento/
 │  ├─ ui/          @mento/ui         tokens (CSS variables), Button, Card, Chip, Avatar, Drawer, Table, InsightCard
 │  ├─ board/       @mento/board      DOM board, element registry, action queue, renderers, sanitizer, Orb
 │  ├─ tutor/       @mento/tutor      turn handler, prompt assembly, tool validation, draw pipelines, judge
-│  ├─ db/          @mento/db         schema, SQLite repository, in-memory repository, seed
+│  ├─ db/          @mento/db         Mongoose models, MongoDB repository, in-memory repository, seed
 │  ├─ sources/     @mento/sources    PDF ingestion, chunks, FTS, citation validator
 │  ├─ analysis/    @mento/analysis   post-session analysis → insights
 │  └─ voice/       @mento/voice      /client (STT hook, useAudioLevel, SpeechPlayer impl) and /server (token, TTS proxy)
@@ -79,7 +79,7 @@ mento/
 ├─ workstreams/                      division of work among the 3 people
 ├─ materials/                        sample PDFs (git-ignored)
 ├─ assets/                           brand source files (founder-owned)
-├─ data/                             SQLite file, files/gen, files/tts (git-ignored)
+├─ data/                             files/gen, files/tts (git-ignored)
 ├─ docs/  .github/                   documentation; workflows/ci.yml, CODEOWNERS, PR template
 ├─ package.json, pnpm-workspace.yaml, tsconfig.base.json, eslint.config.js, .prettierrc
 ├─ .env.example, .nvmrc, .gitignore
@@ -157,7 +157,7 @@ interface FileStore { put(key: string, data: Uint8Array): Promise<void>;
 
 | Phase | What changes | When |
 |---|---|---|
-| **Hackathon (now)** | 1 API instance, SQLite file, in-process jobs and bus, local disk | Now |
+| **Hackathon (now)** | 1 API instance, one MongoDB (local or Atlas), in-process jobs and bus, local disk | Now |
 | **Pilot** | **Postgres** (`Repository` implementation), **Redis** for `JobQueue` (e.g., BullMQ) and the cross-instance `EventBus` (pub/sub), S3-compatible `FileStore`, authentication and per-school tenancy, rate limiting, **several stateless API instances behind a load balancer**, tuned SSE idle timeouts, observability (OpenTelemetry/Sentry) | First real school *(verify choices then)* |
 
 Because routes are thin and state lives behind interfaces, the pilot phase swaps implementations in `container.ts` without touching routes, tutor or analysis.
@@ -266,7 +266,7 @@ Package template and `tsconfig` as before: `exports: { ".": "./src/index.ts" }`,
 | Fastify plugin/type-provider friction | Fall back to plain Fastify validation with Zod `.parse` inside routes; NestJS only if the team already knows it |
 | Workspace friction | Fallback: collapse packages into folders under `apps/api/src` and `apps/web/src` keeping the same names |
 | Next.js does not transpile an internal package | Add it to `transpilePackages`; keep packages plain TS/ESM |
-| Native module (SQLite) | Server-only (`apps/api`); the web app never imports it |
+| Mongoose / MongoDB driver | Server-only (`apps/api`); the web app never imports it |
 | Lockfile conflicts | Small dependency PRs; rebase, `pnpm install`, commit the lockfile |
 
 ## 14. Open questions

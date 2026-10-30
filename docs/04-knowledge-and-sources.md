@@ -28,7 +28,7 @@ Both paths call the same `@mento/sources` pipeline.
 1. **Store the file** and create the `materials` row (`status: queued`).
 2. **Extract per-page text.** *Hypothesis:* use the PDF **text layer first** (cheap and exact for highlighting); send **only pages that need it** (images, tables, equations, scanned pages) to a model that reads the page image and returns Markdown. Reading every page of a book with a vision model is expensive; test cost and speed on the real book.
 3. **Chunk by page** (one chunk per page, optionally split long pages), keeping `material_id` and `page`.
-4. **Build the search index** (SQLite FTS over chunks).
+4. **Build the search index** (MongoDB text index over chunks, `default_language: "portuguese"`).
 5. **Build the outline** (chapters with page ranges) from the table of contents or by an LLM over the first pages and headings; used to scope retrieval and to display "Capítulo 3".
 6. Set `status: ready` (or `failed` with a reason). While processing, report `processed_pages / page_count`.
 

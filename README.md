@@ -2,7 +2,7 @@
 
 AI tutor for schools with a whiteboard that writes and draws live, grounded in the teacher's materials, plus an analysis of how each student learns.
 
-**Status:** hackathon prototype (Teachy), in planning. No code yet. Repo: https://github.com/ericlbarreto/mento. **Stack:** TypeScript, Next.js (frontend) + Fastify (API), Zod, SQLite.
+**Status:** hackathon prototype (Teachy), in planning. Monorepo skeleton in place (K1), features not built yet. Repo: https://github.com/ericlbarreto/mento. **Stack:** TypeScript, Next.js (frontend) + Fastify (API), Zod, MongoDB (Mongoose).
 
 ## Start here
 

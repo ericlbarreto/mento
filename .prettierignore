@@ -1,0 +1,11 @@
+node_modules
+.next
+dist
+coverage
+assets
+materials
+data
+pnpm-lock.yaml
+docs
+workstreams
+prompts

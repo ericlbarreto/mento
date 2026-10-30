@@ -1,0 +1,33 @@
+{
+  "name": "mento",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @mento/api --filter @mento/web dev",
+    "dev:api": "pnpm --filter @mento/api dev",
+    "dev:web": "pnpm --filter @mento/web dev",
+    "build": "pnpm --filter @mento/web build",
+    "start:api": "pnpm --filter @mento/api start",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "pnpm -r test",
+    "seed": "tsx scripts/seed.ts",
+    "ingest": "tsx scripts/ingest.ts",
+    "pregenerate": "tsx scripts/pregenerate-images.ts",
+    "turn": "tsx scripts/turn-cli.ts",
+    "fixtures:check": "tsx scripts/fixture-check.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "eslint": "^10.14.0",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1"
+  }
+}

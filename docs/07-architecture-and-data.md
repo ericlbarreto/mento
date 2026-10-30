@@ -27,7 +27,7 @@ Client (web)
 
 1. **Tutor Core:** builds the 3-layer prompt, runs the LLM loop, executes tools, emits events.
 2. **Whiteboard engine:** validates tool actions (see `16`), keeps board state, renders with deterministic DOM components (see `16-technical-roadmap.md`).
-3. **Sources service:** material ingestion (UI upload + script), FTS retrieval scoped to the chosen material, citation data (`04-knowledge-and-sources.md`).
+3. **Sources service:** material ingestion (UI upload + script), text-index retrieval scoped to the chosen material, citation data (`04-knowledge-and-sources.md`).
 4. **Event log:** append-only; the single source for replay, evidence and analysis.
 5. **Analysis job:** post-session; counters + LLM structured output.
 6. **Teacher API** (students, materials, class context, insights, overview metrics; single workspace, no auth).
@@ -38,7 +38,7 @@ Client (web)
 ```
 class_context (id = 1, grade_level, description, updated_at)
 materials     (id, title, subject, profile_key, type, file_path, status, page_count, outline JSON, created_at)
-chunks        (id, material_id, page, text)                  + FTS index
+chunks        (id, material_id, page, text)                  + MongoDB text index (default_language: portuguese)
 students      (id, name, is_simulated, created_at)
 sessions      (id, student_id, material_id, topic, persona, modality, started_at, ended_at)
 events        (id, session_id, ts, type, payload JSON)
@@ -100,4 +100,4 @@ Prerequisite graph, full BKT, a separate orchestration service, embeddings (unle
 
 ## Open technical decisions
 
-See `13-technical-discovery-and-split.md` and `10-decisions.md`: language/framework (front and back), database (SQLite vs Postgres), LLM/STT/TTS providers, whiteboard library confirmation, PDF viewer, hosting.
+See `13-technical-discovery-and-split.md` and `10-decisions.md`: language/framework (front and back), database (decided: MongoDB + Mongoose, D46), LLM/STT/TTS providers, whiteboard library confirmation, PDF viewer, hosting.
