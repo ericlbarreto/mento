@@ -10,17 +10,20 @@ import { useEndSession, type EndSessionFn } from "./useEndSession";
 
 export type EndSessionControlsProps = {
   sessionId: string;
-  /** After a manual or idle end. Default: back to the start screen. */
+  /** After a manual or idle end. Default: back to the start screen (with a notice after an idle end). */
   onEnded?: (reason: SessionEndReason) => void;
   /** Inactivity window before the session ends on its own. Default: 5 minutes. */
   idleMs?: number;
+  /** True while the tutor streams or speaks; the idle timer does not run meanwhile. */
+  paused?: boolean;
   /** Override for the dev demo page; defaults to the API client's endSession. */
   end?: EndSessionFn;
 };
 
-export function EndSessionControls({ sessionId, onEnded, idleMs = 300_000, end }: EndSessionControlsProps) {
+export function EndSessionControls({ sessionId, onEnded, idleMs = 300_000, paused = false, end }: EndSessionControlsProps) {
   const router = useRouter();
-  const { endNow } = useEndSession({ sessionId, idleMs, end, onEnded: onEnded ?? (() => router.push("/")) });
+  const goHome = (reason: SessionEndReason) => router.push(reason === "idle_timeout" ? "/?encerrada=inatividade" : "/");
+  const { endNow } = useEndSession({ sessionId, idleMs, paused, end, onEnded: onEnded ?? goHome });
   const [confirming, setConfirming] = useState(false);
   const [ending, setEnding] = useState(false);
   const [error, setError] = useState(false);
@@ -70,10 +73,10 @@ export function EndSessionControls({ sessionId, onEnded, idleMs = 300_000, end }
       <span id="end-confirm-label" className="text-sm font-bold">
         Terminar agora?
       </span>
-      <Button size="sm" loading={ending} onClick={confirm}>
-        Sim
+      <Button loading={ending} onClick={confirm}>
+        Sim, terminar
       </Button>
-      <Button ref={keepRef} variant="ghost" size="sm" disabled={ending} onClick={cancel}>
+      <Button ref={keepRef} variant="ghost" disabled={ending} onClick={cancel}>
         Continuar
       </Button>
       {error && (

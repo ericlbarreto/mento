@@ -4,8 +4,8 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { MaterialSummary, StudentSummary } from "@mento/board";
-import { Button, cx } from "@mento/ui";
-import { createSession } from "@/lib/api";
+import { Button, SimulatedDataBadge, cx } from "@mento/ui";
+import { MOCK_API, createSession } from "@/lib/api";
 import { MaterialGrid, SkeletonGrid, StudentGrid } from "./pickers";
 import { useStartData } from "./useStartData";
 import styles from "./start.module.css";
@@ -13,11 +13,39 @@ import styles from "./start.module.css";
 const TOPIC_MAX = 120;
 
 /** Short centered message for empty and error states. */
-function Notice({ children, action }: { children: ReactNode; action?: ReactNode }) {
+function Notice({ children, action, alert = false }: { children: ReactNode; action?: ReactNode; alert?: boolean }) {
   return (
-    <div className={cx("flex flex-col items-start gap-4 rounded-(--radius-lg) border border-dashed border-(--line) bg-(--paper-2) p-6", styles.fadeUp)}>
+    <div role={alert ? "alert" : undefined} className={cx("flex flex-col items-start gap-4 rounded-(--radius-lg) border border-dashed border-(--line) bg-(--paper-2) p-6", styles.fadeUp)}>
       <p className="max-w-[60ch] text-base text-(--ink)">{children}</p>
       {action}
+    </div>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true" className="size-4">
+      <path d="m4.5 4.5 7 7M11.5 4.5l-7 7" />
+    </svg>
+  );
+}
+
+/** Shown after the session page sent the student back for inactivity (/?encerrada=inatividade). */
+function IdleEndedNotice({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div
+      role="status"
+      className={cx("flex items-center justify-between gap-4 rounded-(--radius-md) bg-(--mento-blue-soft) py-2 pr-2 pl-4 text-(--mento-blue-strong)", styles.fadeUp)}
+    >
+      <p className="text-sm font-bold">Conversa encerrada por inatividade.</p>
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label="Fechar aviso"
+        className="inline-flex size-8 shrink-0 items-center justify-center rounded-full outline-none transition-colors duration-(--dur-fast) hover:bg-(--card) focus-visible:shadow-(--focus-ring)"
+      >
+        <CloseIcon />
+      </button>
     </div>
   );
 }
@@ -30,8 +58,9 @@ function BackIcon() {
   );
 }
 
-export function StartScreen() {
+export function StartScreen({ endedByIdle = false }: { endedByIdle?: boolean }) {
   const router = useRouter();
+  const [showIdleNotice, setShowIdleNotice] = useState(endedByIdle);
   const { data, retry } = useStartData();
   const [student, setStudent] = useState<StudentSummary | null>(null);
   const [materialId, setMaterialId] = useState<string | null>(null);
@@ -42,6 +71,17 @@ export function StartScreen() {
   const greetingRef = useRef<HTMLHeadingElement>(null);
   const whoRef = useRef<HTMLHeadingElement>(null);
   const movedFocus = useRef(false);
+  const retryRef = useRef<HTMLButtonElement>(null);
+
+  // Load error: focus "Tentar de novo" so keyboard users can retry right away.
+  useEffect(() => {
+    if (data.status === "error") retryRef.current?.focus();
+  }, [data.status]);
+
+  const dismissIdleNotice = () => {
+    setShowIdleNotice(false);
+    router.replace("/", { scroll: false });
+  };
 
   const materials = data.status === "ready" ? data.materials : [];
 
@@ -86,6 +126,7 @@ export function StartScreen() {
         topic: cleanTopic || undefined,
         modality: "text",
       });
+      // The session page reads ?topic= (another track) to seed the first turn.
       // Keep the loading state: the button stays busy until the session page replaces this one.
       router.push(`/session/${id}${cleanTopic ? `?topic=${encodeURIComponent(cleanTopic)}` : ""}`);
     } catch {
@@ -98,12 +139,16 @@ export function StartScreen() {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-4 pt-8 pb-10 sm:px-8 lg:pt-12">
+      {showIdleNotice && <IdleEndedNotice onDismiss={dismissIdleNotice} />}
       {!student ? (
         <section aria-labelledby="who-heading" className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <h1 id="who-heading" ref={whoRef} tabIndex={-1} className="text-[clamp(1.75rem,1.2rem+1.6vw,2.5rem)] leading-tight font-extrabold text-balance outline-none">
-              Quem é você?
-            </h1>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <h1 id="who-heading" ref={whoRef} tabIndex={-1} className="text-[clamp(1.75rem,1.2rem+1.6vw,2.5rem)] leading-tight font-extrabold text-balance outline-none">
+                Quem é você?
+              </h1>
+              {MOCK_API && <SimulatedDataBadge />}
+            </div>
             <p className="text-lg text-(--ink-soft)">Escolha seu nome para começar.</p>
           </div>
 
@@ -114,7 +159,14 @@ export function StartScreen() {
             </>
           )}
           {data.status === "error" && (
-            <Notice action={<Button variant="secondary" onClick={retry}>Tentar de novo</Button>}>
+            <Notice
+              alert
+              action={
+                <Button ref={retryRef} variant="secondary" onClick={retry}>
+                  Tentar de novo
+                </Button>
+              }
+            >
               Não conseguimos carregar a lista agora. Verifique a conexão e tente de novo.
             </Notice>
           )}

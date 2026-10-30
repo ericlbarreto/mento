@@ -20,6 +20,7 @@ const now = () => new Date().toLocaleTimeString("pt-BR");
 export default function SessionControlsDemo() {
   const [log, setLog] = useState<LogEntry[]>([]);
   const [mountKey, setMountKey] = useState(0);
+  const [paused, setPaused] = useState(false);
   const add = (text: string) => setLog((l) => [{ at: now(), text }, ...l]);
 
   useEffect(() => {
@@ -61,11 +62,15 @@ export default function SessionControlsDemo() {
           <code>beacon</code>, que aparece no registro depois do recarregamento.
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <EndSessionControls key={mountKey} sessionId={FAKE_SESSION_ID} idleMs={IDLE_MS} onEnded={onEnded} end={end} />
+          <EndSessionControls key={mountKey} sessionId={FAKE_SESSION_ID} idleMs={IDLE_MS} paused={paused} onEnded={onEnded} end={end} />
           <Button variant="ghost" size="sm" onClick={() => setMountKey((k) => k + 1)}>
             Reiniciar sessão fictícia
           </Button>
         </div>
+        <label className="flex items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" checked={paused} onChange={(e) => setPaused(e.target.checked)} className="size-4 accent-(--mento-blue)" />
+          Tutor falando (pausa a contagem de inatividade)
+        </label>
       </Card>
 
       <section aria-labelledby="log-heading" className="flex flex-col gap-3">
