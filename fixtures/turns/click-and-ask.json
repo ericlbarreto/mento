@@ -1,0 +1,12 @@
+{
+  "description": "Click-and-ask: the student selected '27 a.C.' on the timeline; the tutor answers, highlights the element and asks a verification question.",
+  "messages": [
+    { "at_ms": 0, "message": { "type": "action", "order": 0, "action": { "id": "act_11", "name": "speak", "args": { "text": "Boa pergunta! Essa é a data em que Otávio vira Augusto.", "audio_url": "/api/tts/act_11", "audio_format": "pcm_s16le_24000" } } } },
+    { "at_ms": 60, "message": { "type": "action", "order": 1, "action": { "id": "act_12", "name": "highlight", "args": { "target_id": "tl_republica", "color": "yellow" } } } },
+    { "at_ms": 120, "message": { "type": "action", "order": 2, "action": { "id": "act_13", "name": "write_text", "args": { "id": "nota_augusto", "column": "side", "html": "<p><b>Augusto</b>: primeiro imperador de Roma.</p>", "purpose": "explain", "sources": [ { "material_id": "6650f0c2a1b2c3d4e5f60718", "page": 12, "quote": "Em 27 a.C., o Senado concedeu a Otávio o título de Augusto" } ] } } } },
+    { "at_ms": 180, "message": { "type": "action", "order": 3, "action": { "id": "act_14", "name": "speak", "args": { "text": "Agora me diga com suas palavras: o que mudou na forma de governar Roma depois disso?", "purpose": "question", "audio_url": "/api/tts/act_14", "audio_format": "pcm_s16le_24000" } } } },
+    { "at_ms": 240, "message": { "type": "action", "order": 4, "action": { "id": "act_15", "name": "ask_verification", "args": { "id": "q_augusto", "column": "main", "verification_id": "ver_1", "concept": "Fim da República", "concept_key": "fim da republica", "question": "O que mudou na forma de governar Roma depois de 27 a.C.?", "kind": "explain" } } } },
+    { "at_ms": 280, "message": { "type": "script_done", "turn_id": "turn_2" } },
+    { "at_ms": 300, "message": { "type": "turn_done", "turn_id": "turn_2", "timing": { "first_action_ms": 1210, "script_done_ms": 3300 } } }
+  ]
+}
