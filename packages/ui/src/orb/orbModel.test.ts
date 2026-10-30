@@ -3,7 +3,9 @@ import {
   ORB_STATES,
   clampLevel,
   orbFace,
+  orbAnnounces,
   orbFaceSrc,
+  orbRingCue,
   orbRingMode,
   orbStateLabels,
   ringPath,
@@ -79,5 +81,29 @@ describe("ringPath", () => {
       expect(r).toBeGreaterThanOrEqual(74 - 0.01);
       expect(r).toBeLessThanOrEqual(86 + 0.01);
     }
+  });
+});
+
+describe("orbRingCue (reduced-motion static cues)", () => {
+  const key = (s: (typeof ORB_STATES)[number]) => JSON.stringify(orbRingCue(s));
+
+  it("keeps the motion states distinguishable without movement", () => {
+    const distinct = ["idle", "listening", "thinking", "waiting", "paused", "loading"] as const;
+    expect(new Set(distinct.map(key)).size).toBe(distinct.length);
+  });
+
+  it("uses the expected cue per state", () => {
+    expect(orbRingCue("thinking")).toMatchObject({ arc: true, dashed: false });
+    expect(orbRingCue("waiting").dashed).toBe(true);
+    expect(orbRingCue("listening").glow).toBeGreaterThan(orbRingCue("idle").glow);
+    expect(orbRingCue("speaking").width).toBeGreaterThan(orbRingCue("idle").width);
+    expect(orbRingCue("paused").line).toBeLessThan(orbRingCue("idle").line);
+    expect(orbRingCue("paused").line).toBeGreaterThanOrEqual(0.5);
+  });
+});
+
+describe("orbAnnounces", () => {
+  it("announces only thinking, speaking and waiting", () => {
+    expect(ORB_STATES.filter(orbAnnounces)).toEqual(["thinking", "speaking", "waiting"]);
   });
 });

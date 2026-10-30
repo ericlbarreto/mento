@@ -93,3 +93,29 @@ export function ringPath(cx: number, cy: number, r: number, amp: number, lobes: 
   }
   return `${d}Z`;
 }
+
+/**
+ * Static ring look per state. It is the whole cue under reduced motion (no loop runs), so states stay
+ * distinguishable without movement; with motion the loop animates on top of it.
+ * line/glow are opacities 0..1, width is the line's stroke width in the 200-unit viewBox.
+ */
+export type OrbRingCue = { line: number; width: number; glow: number; arc: boolean; dashed: boolean };
+
+const cueByState: Record<OrbState, OrbRingCue> = {
+  idle: { line: 0.9, width: 3.5, glow: 0.25, arc: false, dashed: false },
+  listening: { line: 1, width: 4.5, glow: 0.6, arc: false, dashed: false },
+  speaking: { line: 1, width: 4.5, glow: 0.6, arc: false, dashed: false },
+  thinking: { line: 0.3, width: 3, glow: 0, arc: true, dashed: false },
+  waiting: { line: 1, width: 3.5, glow: 0.3, arc: false, dashed: true },
+  paused: { line: 0.55, width: 3, glow: 0, arc: false, dashed: false },
+  loading: { line: 0.35, width: 3, glow: 0, arc: true, dashed: false },
+};
+
+export function orbRingCue(state: OrbState): OrbRingCue {
+  return cueByState[state];
+}
+
+/** Only these state changes are announced to screen readers (the rest would be noise mid-session). */
+export function orbAnnounces(state: OrbState): boolean {
+  return state === "thinking" || state === "speaking" || state === "waiting";
+}

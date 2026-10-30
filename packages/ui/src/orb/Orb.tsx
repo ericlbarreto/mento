@@ -5,13 +5,15 @@
 // opacity, never by swapping src (that restarts the GIF and flickers). Per-frame ring motion is written
 // straight to the DOM from one requestAnimationFrame loop, so audio levels never re-render React.
 
-import { useEffect, useId, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { cx } from "../components/cx";
 import { VisuallyHidden } from "../components/VisuallyHidden";
 import {
   ORB_FACES,
+  orbAnnounces,
   orbFace,
   orbFaceSrc,
+  orbRingCue,
   orbRingMode,
   orbStateLabels,
   ringPath,
@@ -33,6 +35,8 @@ export type OrbProps = {
   label?: ReactNode;
   /** Where the brand files live; faces are `${basePath}/mascot/*.gif` and `${basePath}/mascot.png`. */
   basePath?: string;
+  /** Owns the polite live region (default true). With several orbs on a screen, keep it on one only. */
+  announce?: boolean;
   className?: string;
 };
 
@@ -42,6 +46,7 @@ const RING_R = 84;
 const ARC_LEN = 130;
 const ARC_GAP = 2 * Math.PI * RING_R - ARC_LEN;
 const STATIC_RING = ringPath(C, C, RING_R, 0, 1, 0);
+const ANNOUNCE_DELAY_MS = 400; // debounce so quick thinking → speaking flips are read once
 const EASE_OUT = "cubic-bezier(0.16, 1, 0.3, 1)"; // --ease-out (WAAPI cannot read CSS variables)
 const SPARKLES = [
   { x: 100, y: 8, s: 1 },
@@ -79,10 +84,21 @@ function useKeyChange(key: string | number | undefined, effect: () => void) {
   }, [key]);
 }
 
-export function Orb({ state, size = 176, getLevel, perkKey, burstKey, label, basePath = "/brand", className }: OrbProps) {
+export function Orb({
+  state,
+  size = 176,
+  getLevel,
+  perkKey,
+  burstKey,
+  label,
+  basePath = "/brand",
+  announce = true,
+  className,
+}: OrbProps) {
   const reducedMotion = usePrefersReducedMotion();
   const face = orbFace(state, reducedMotion);
   const mode = orbRingMode(state);
+  const cue = orbRingCue(state);
   const gradientId = `mento-orb-arc-${useId().replace(/:/g, "")}`;
 
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -95,6 +111,16 @@ export function Orb({ state, size = 176, getLevel, perkKey, burstKey, label, bas
   const getLevelRef = useRef(getLevel);
   getLevelRef.current = getLevel;
 
+  // Live region: only thinking/speaking/waiting are announced, debounced; other states clear it
+  // (removals are not read), and the current state stays readable in the non-live label below.
+  const [announced, setAnnounced] = useState("");
+  useEffect(() => {
+    if (!announce) return;
+    const text = orbAnnounces(state) ? orbStateLabels[state] : "";
+    const timer = setTimeout(() => setAnnounced(text), text ? ANNOUNCE_DELAY_MS : 0);
+    return () => clearTimeout(timer);
+  }, [state, announce]);
+
   // Ring loop: one rAF per orb, paused while the tab is hidden, off for reduced motion and paused.
   useEffect(() => {
     const halo = haloRef.current;
@@ -106,7 +132,7 @@ export function Orb({ state, size = 176, getLevel, perkKey, burstKey, label, bas
     const resetStatic = () => {
       halo.style.transform = "";
       wave.setAttribute("d", STATIC_RING);
-      glow.setAttribute("stroke-opacity", "0");
+      glow.setAttribute("stroke-opacity", String(orbRingCue(state).glow));
       arc.setAttribute("transform", "rotate(-90 100 100)");
     };
     resetStatic();
@@ -213,7 +239,7 @@ export function Orb({ state, size = 176, getLevel, perkKey, burstKey, label, bas
   const ringFade = "transition-opacity duration-200 ease-out";
 
   return (
-    <div className={cx("inline-flex flex-col items-center gap-2", className)} role="status" aria-live="polite">
+    <div className={cx("inline-flex flex-col items-center gap-2", className)}>
       <div ref={bodyRef} data-state={state} className="relative shrink-0 rounded-full" style={{ width: size, height: size }}>
         {/* Soft disc behind the face; its scale breathes or follows the level. */}
         <div
@@ -229,8 +255,8 @@ export function Orb({ state, size = 176, getLevel, perkKey, burstKey, label, bas
         <svg aria-hidden viewBox="0 0 200 200" className="pointer-events-none absolute inset-0 size-full overflow-visible">
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" style={{ stopColor: "var(--mascot-light, #b1d8fa)" }} />
-              <stop offset="1" style={{ stopColor: "var(--mento-blue, #1e59ed)" }} />
+              <stop offset="0" style={{ stopColor: "var(--mascot-light)" }} />
+              <stop offset="1" style={{ stopColor: "var(--mento-blue)" }} />
             </linearGradient>
           </defs>
 
@@ -242,22 +268,21 @@ export function Orb({ state, size = 176, getLevel, perkKey, burstKey, label, bas
             r={RING_R}
             fill="none"
             strokeWidth={10}
-            strokeOpacity={0}
-            style={{ stroke: "var(--mascot-light, #b1d8fa)" }}
+            strokeOpacity={cue.glow}
+            style={{ stroke: "var(--mascot-light)" }}
           />
 
-          {/* Main ring line: a wave in listening/speaking, a circle otherwise. */}
+          {/* Main ring line: a wave in listening/speaking, dashed while waiting, a circle otherwise. */}
           <path
             ref={waveRef}
             d={STATIC_RING}
             fill="none"
-            strokeWidth={3}
+            strokeWidth={cue.width}
             strokeLinejoin="round"
+            strokeLinecap="round"
+            strokeDasharray={cue.dashed ? "10 8" : undefined}
             className={ringFade}
-            style={{
-              stroke: "var(--mento-blue, #1e59ed)",
-              opacity: mode === "dim" ? 0.3 : mode === "arc" ? (state === "loading" ? 0.25 : 0.2) : 0.85,
-            }}
+            style={{ stroke: "var(--mento-blue)", opacity: cue.line }}
           />
 
           {/* Rotating gradient arc for thinking (and, quieter, loading). */}
@@ -273,7 +298,7 @@ export function Orb({ state, size = 176, getLevel, perkKey, burstKey, label, bas
             strokeDasharray={`${ARC_LEN} ${ARC_GAP.toFixed(2)}`}
             transform="rotate(-90 100 100)"
             className={ringFade}
-            style={{ opacity: mode === "arc" ? (state === "loading" ? 0.6 : 1) : 0 }}
+            style={{ opacity: cue.arc ? (state === "loading" ? 0.6 : 1) : 0 }}
           />
 
           {/* Correct-answer burst (hidden until burstKey changes). */}
@@ -284,7 +309,7 @@ export function Orb({ state, size = 176, getLevel, perkKey, burstKey, label, bas
             r={RING_R}
             fill="none"
             strokeWidth={3}
-            style={{ stroke: "var(--mento-blue, #1e59ed)", opacity: 0, transformBox: "fill-box", transformOrigin: "center" }}
+            style={{ stroke: "var(--mento-blue)", opacity: 0, transformBox: "fill-box", transformOrigin: "center" }}
           />
           {SPARKLES.map((sp, i) => (
             <g key={i} transform={`translate(${sp.x} ${sp.y})`}>
@@ -294,7 +319,7 @@ export function Orb({ state, size = 176, getLevel, perkKey, burstKey, label, bas
                 }}
                 style={{ opacity: 0, transformBox: "fill-box", transformOrigin: "center" }}
               >
-                <path d={SPARKLE_D} style={{ fill: "var(--mascot-light, #b1d8fa)", stroke: "var(--mento-blue, #1e59ed)" }} strokeWidth={0.6} />
+                <path d={SPARKLE_D} style={{ fill: "var(--mascot-light)", stroke: "var(--mento-blue)" }} strokeWidth={0.6} />
               </g>
             </g>
           ))}
@@ -331,6 +356,11 @@ export function Orb({ state, size = 176, getLevel, perkKey, burstKey, label, bas
       </div>
 
       <VisuallyHidden>{orbStateLabels[state]}</VisuallyHidden>
+      {announce && (
+        <VisuallyHidden role="status" aria-live="polite">
+          {announced}
+        </VisuallyHidden>
+      )}
       {label != null && (
         <span aria-hidden className="text-sm font-semibold text-(--ink-soft)">
           {label}

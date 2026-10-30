@@ -123,7 +123,7 @@ export default function DevOrbPage() {
 
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => setPerkKey((k) => k + 1)}>
-              Perk
+              Chamar atenção
             </Button>
             <Button variant="secondary" onClick={() => setBurstKey((k) => k + 1)}>
               Acerto!
@@ -136,7 +136,7 @@ export default function DevOrbPage() {
         <div className="flex flex-wrap items-end gap-10">
           {[160, 176, 200].map((size) => (
             <div key={size} className="flex flex-col items-center gap-3">
-              <Orb {...orbProps} size={size} />
+              <Orb {...orbProps} size={size} announce={false} />
               <span className="text-sm font-semibold text-(--ink-soft)">{size} px</span>
             </div>
           ))}
@@ -145,7 +145,7 @@ export default function DevOrbPage() {
 
       <Section
         title="Movimento reduzido"
-        note="Com prefers-reduced-motion, o orb mostra o mascote estático (mascot.png) em todos os estados, o anel fica parado, o loop de animação não roda e Perk/Acerto não animam. Para testar: DevTools → Rendering → Emulate CSS prefers-reduced-motion."
+        note="Com prefers-reduced-motion, o orb mostra o mascote estático (mascot.png) em todos os estados e o loop de animação não roda; cada estado ganha um anel fixo próprio (arco em “Pensando”, anel tracejado em “Esperando”, anel forte com brilho em “Ouvindo”/“Falando”, anel apagado em “Pausado”). Chamar atenção/Acerto não animam. Para testar: DevTools → Rendering → Emulate CSS prefers-reduced-motion."
       >
         <p className="max-w-[65ch] text-sm text-(--ink-soft)">
           Troca de rosto: os quatro GIFs e o PNG ficam empilhados e pré-carregados; só a opacidade muda (~200 ms), nunca o src.

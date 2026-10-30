@@ -32,7 +32,7 @@ No hooks inside, so they render in Server and Client Components (pass event hand
 | `Button` | `variant` primary / secondary / ghost, `size` sm / md / lg, `loading` (spinner + `aria-busy`), `disabled`; native button props and `ref` |
 | `IconButton` | Round, `aria-label` required; same variants; for the orb controls |
 | `Chip` | `variant` source / outside / quick / status; a `<button>` when it has `onClick`, otherwise a `<span>`; `outside` defaults to "Fora do material" |
-| `Card` | Raised card; `interactive` renders a `<button>` with hover lift, `selected` adds the blue outline (`aria-pressed`) |
+| `Card` | Raised card; `interactive` renders a `<button>` with hover lift, `selected` adds the blue outline (`aria-pressed`, omitted when `selected` is undefined, e.g. navigation cards) |
 | `Badge`, `SimulatedDataBadge` | neutral / info / warning; "Dados simulados" is required wherever invented data is shown (AGENTS.md rule 4) |
 | `Spinner`, `VisuallyHidden`, `cx` | Helpers |
 
@@ -51,7 +51,8 @@ No hooks inside, so they render in Server and Client Components (pass event hand
 | `getLevel` | `() => number` 0..1, read every animation frame in `listening` and `speaking` (mic or TTS level); never triggers a render, so keep it cheap and stable |
 | `perkKey` | Change it to "perk up" (scale 1.06, 180 ms), e.g. on click-and-ask |
 | `burstKey` | Change it for the correct-answer burst (ring pulse + `--mascot-light` sparkles, ~700 ms) |
-| `label` | Optional visible caption (visual only; the state is announced by a hidden pt-BR `role="status"` label) |
+| `label` | Optional visible caption (visual only; a hidden pt-BR label always names the state) |
+| `announce` | Default `true`: owns a polite `role="status"` that announces only thinking / speaking / waiting, debounced 400 ms. Set `false` on every orb but one on a screen |
 | `basePath` | Brand folder, default `/brand` (faces: `mascot/{float,thinking,speaking,spin}.gif`, `mascot.png`) |
 
-Faces per state follow docs/19-brand-assets.md §4 (`orbFace()`); all faces are stacked and preloaded and switch by a 200 ms opacity crossfade (never a `src` swap). Under `prefers-reduced-motion` every state shows the static `mascot.png`, the ring is static and perk/burst do nothing. The loop pauses while the tab is hidden and stops on unmount. Pure helpers (`orbFace`, `orbFaceSrc`, `orbStateLabels`, `ORB_STATES`) are exported for callers and tests.
+Faces per state follow docs/19-brand-assets.md §4 (`orbFace()`); all faces are stacked and preloaded and switch by a 200 ms opacity crossfade (never a `src` swap). Under `prefers-reduced-motion` every state shows the static `mascot.png`, no loop runs and perk/burst do nothing; each state keeps a static ring cue (`orbRingCue()`): a fixed arc for thinking/loading, a dashed ring for waiting, a stronger ring with glow for listening/speaking, a dimmed ring for paused. The loop pauses while the tab is hidden and stops on unmount. Pure helpers (`orbFace`, `orbFaceSrc`, `orbStateLabels`, `ORB_STATES`) are exported for callers and tests.

@@ -7,7 +7,7 @@ type StaticCardProps = ComponentPropsWithRef<"div"> & { interactive?: false; sel
 type InteractiveCardProps = ComponentPropsWithRef<"button"> & {
   /** Renders a <button>, lifts on hover; use for material and student pickers. */
   interactive: true;
-  /** Blue outline + soft tint; exposed as aria-pressed. */
+  /** Blue outline + soft tint; exposed as aria-pressed. Leave undefined for navigation cards (no toggle semantics). */
   selected?: boolean;
 };
 export type CardProps = StaticCardProps | InteractiveCardProps;
@@ -15,7 +15,7 @@ export type CardProps = StaticCardProps | InteractiveCardProps;
 /** Raised card on the beige paper. */
 export function Card(props: CardProps) {
   if (props.interactive) {
-    const { interactive: _interactive, selected = false, type = "button", className, ...rest } = props;
+    const { interactive: _interactive, selected, type = "button", className, ...rest } = props;
     return (
       <button
         type={type}
