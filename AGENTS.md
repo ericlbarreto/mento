@@ -1,0 +1,101 @@
+# AGENTS.md — Mento
+
+> Entry point for any AI agent (Claude Code, Codex, Cursor, etc.) and for anyone new to this repository.
+> If the user says **"Study the repository"** (or "Estude o repositório"), follow [How to study this repository](#how-to-study-this-repository).
+
+## Language policy
+
+- **Everything in the repository is written in English**: code, comments, commit messages, documentation, prompts' *instructions*, file names.
+- **The product itself is in Brazilian Portuguese (pt-BR)**: UI text, tutor replies, demo content, teaching materials.
+- The founder and team chat in Portuguese. In chat, reply in the user's language, but **write all repo files in English**.
+- The tutor's system prompts are written in English and instruct the model to **always answer the student in pt-BR**.
+
+## What Mento is (in 5 lines)
+
+**Mento** is an AI tutoring platform for schools. The teacher defines a subject and uploads materials (PDFs, slides, books). Each student talks to an AI tutor that **writes and draws live on a whiteboard**, converses by text (and by voice if time allows), and **answers grounded in the teacher's materials, citing the source**. Each session produces learning evidence; an analysis turns that evidence into a picture of how the student thinks and learns, visible to the teacher.
+
+Thesis: *the school defines what must be learned; Mento teaches each student individually and turns the evidence from those tutoring sessions into pedagogical intelligence for the teacher.*
+
+## Current context (important)
+
+- **Stage:** ideation/prototype for a **2-day hackathon backed by Teachy**. ~24h of build time, then code freeze.
+- **Team:** 3 people working in parallel in this repo (https://github.com/ericlbarreto/mento).
+- **Demo:** one subject, one lesson: **History — Ancient Rome** (in Portuguese). No math in the demo.
+- **Stack (decided):** TypeScript, one Next.js project, Zod contracts, SQLite. See `docs/16-technical-roadmap.md` and `docs/17-work-split.md`.
+- There are **no** paying customers, proven efficacy or closed partnerships. Never present these as facts.
+
+## How to study this repository
+
+Read in this order. Stop when you have enough context for the task, but **always read 1 to 4**.
+
+1. `docs/00-product-vision.md` — what it is, for whom, why.
+2. `docs/01-hackathon-scope.md` — **what we build and what we do NOT build** (Must / Should / Nice / Out). Source of truth for scope.
+3. `docs/10-decisions.md` — decisions made and open questions.
+4. `docs/14-working-rules.md` — how we work in parallel.
+5. Then, depending on the task:
+   - Whiteboard and student experience → `docs/02-student-experience-whiteboard.md`
+   - Tutor and prompts → `docs/03-tutor-and-prompts.md`
+   - PDFs, retrieval, citations → `docs/04-knowledge-and-sources.md`
+   - Student model, evidence, analysis → `docs/05-learner-model-and-analysis.md`
+   - Teacher screen → `docs/06-teacher-interface.md`
+   - Architecture, database, events, voice → `docs/07-architecture-and-data.md`
+   - Privacy, ZDR, minors → `docs/08-privacy-zdr-security.md`
+   - Market, Teachy, competitors → `docs/09-market-and-competitors.md`
+   - Researched prices and technologies → `docs/11-technology-research.md`
+   - Vocabulary → `docs/12-glossary.md`
+   - How a competing whiteboard tutor works (tool calls, drawing pipelines, voice) → `docs/15-studdy-teardown.md`
+   - **Technical build plan (protocol, tools, board, order of work)** → `docs/16-technical-roadmap.md`
+   - **Who owns what, lanes, contracts, checkpoints** → `docs/17-work-split.md`
+   - **UI references, shared design language, orb and teacher layout** → `docs/18-ui-references.md`
+   - **Logo, mascot, brand colors and how the orb uses them** → `docs/19-brand-assets.md`
+   - **Demo preparation, script and fallbacks** → `docs/20-demo-runbook.md`
+6. Original raw material: `docs/reference/Mento_Company_Brief.md` (long brief, **in Portuguese**; also contains long-term vision and out-of-scope items).
+
+When done studying, answer the user with: (a) product summary, (b) hackathon scope, (c) open decisions, (d) what you understand still needs to be done.
+
+## Repository map
+
+```
+AGENTS.md                  ← you are here (entry point for agents)
+CLAUDE.md                  ← points to this file
+README.md                  ← short intro for humans
+docs/                      ← all product and technical documentation (numbered)
+  reference/               ← original raw material (Portuguese brief)
+prompts/                   ← tutor prompts as editable text files
+  base.md                  ← (to create) base tutor prompt
+  subjects/                ← (to create) one profile per subject (history.md, math.md)
+materials/                 ← sample PDFs per subject/lesson (git-ignored)
+assets/                    ← brand source files: brand/ (logo.png, mascot.png) and brand-concepts/ (founder-owned; see assets/README.md)
+```
+
+No source code exists yet. The planned code layout (`src/contracts`, `src/board`, `src/tutor`, `src/db`, `src/sources`, `src/analysis`, `src/voice`, `src/app`) and the **directory ownership per lane** are in `docs/17-work-split.md`. When the code exists, keep this map in sync.
+
+**If you are an agent working for one person:** ask which lane (A, B or C) they own and only edit that lane's paths (see the ownership table in `docs/17-work-split.md`).
+
+## Rules that always apply
+
+1. **Scope rules.** Before proposing anything large, check `docs/01-hackathon-scope.md`. If it is not in Must/Should, do not build it without approval.
+2. **No over-engineering.** Few tables, JSON where flexible, prompts as text files, no orchestration frameworks, no abstractions for a hypothetical future. We have ~24h.
+3. **Do not invent facts.** Metrics, customers, competitor features and prices only with a source and a date. Mark what is unverified.
+4. **Simulated data always carries a visible badge** ("simulated data"). Never present invented data as real evidence of efficacy.
+5. **No "learning styles"** (visual/auditory, etc.). They lack scientific support. The student profile records *what worked on tasks*, with `n` and uncertainty.
+6. **No psychological or sensitive inferences** about students (attention, anxiety, personality). Educational evidence only. Students may be minors (LGPD).
+7. **The tutor cites its source** when using teacher material and **flags** answers given outside the material.
+8. **The teacher decides.** The AI suggests; it never automates high-impact pedagogical decisions.
+9. **Secrets never go in the repo.** Keys live in `.env` (git-ignored).
+10. **Document decisions.** Changed something relevant? Update `docs/10-decisions.md` and the topic doc.
+
+## How to respond in this project
+
+- Be direct and give a recommendation, not an exhaustive list of options.
+- Always distinguish: **decision**, **hypothesis**, **verified fact**, and **out of scope**.
+- Real product doubt → ask the founder. Doubt that code or docs can answer → answer it yourself.
+
+## Shortcut phrases for the user
+
+| When the user says... | The agent should... |
+|---|---|
+| "Study the repository" / "Estude o repositório" | Follow [How to study](#how-to-study-this-repository) and summarize |
+| "Read `<file>`" / "Leia `<arquivo>`" | Read it, explain it, relate it to the scope |
+| "What's left to do?" | Compare the current code with `docs/01-hackathon-scope.md` |
+| "Update the decisions" | Edit `docs/10-decisions.md` |

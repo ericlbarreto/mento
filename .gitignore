@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.venv/
+__pycache__/
+.DS_Store
+*.log
+.next/
+dist/
+build/
+*.sqlite
+*.db
+
+# PDFs de material (podem ter direitos autorais); a pasta e o README ficam
+materials/*
+!materials/README.md
