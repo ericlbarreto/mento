@@ -30,3 +30,4 @@
 | 2026-10-31 | Illustrate on your own (more images) | prompts | [2026-10-31-23-illustrate-on-your-own.md](2026-10-31-23-illustrate-on-your-own.md) | see git log |
 | 2026-10-31 | More images, correct circles, merge main | prompts, merge | [2026-10-31-24-more-images-correct-circles-merge-main.md](2026-10-31-24-more-images-correct-circles-merge-main.md) | see git log |
 | 2026-10-31 | Add the prompts, deploy the API on Render | deploy | [2026-10-31-25-deploy-on-render.md](2026-10-31-25-deploy-on-render.md) | see git log |
+| 2026-10-31 | Prompts of the Codex sessions added; full export refreshed | prompts | [codex-session-prompts.md](codex-session-prompts.md) · [all-prompts.md](all-prompts.md) | see git log |
