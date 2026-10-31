@@ -90,6 +90,8 @@ export function useSessionController({
   holdVoiceOpening?: boolean;
 }) {
   const [phase, setPhase] = useState<SessionPhase>("loading");
+  /** The lesson was reopened with board content: the page shows it paused until the student resumes. */
+  const [restored, setRestored] = useState(false);
   const [loadError, setLoadError] = useState<SessionErrorView | null>(null);
   const [session, setSession] = useState<SessionSummary | null>(null);
   // Turns use the session's modality: a voice session gets tutor audio (`audio_url`) on every speak.
@@ -253,6 +255,7 @@ export function useSessionController({
     // `session_started` always exists, so "no events" is the wrong test: only a session the tutor never spoke in
     // gets the opening turn. Ended sessions stay continuable (draft D62): the next turn reopens them.
     if (replay.tutorActionCount > 0) {
+      setRestored(true);
       setPhase("ready");
       return;
     }
@@ -365,6 +368,7 @@ export function useSessionController({
               : "idle";
 
   return {
+    restored,
     phase,
     loadError,
     turnError,

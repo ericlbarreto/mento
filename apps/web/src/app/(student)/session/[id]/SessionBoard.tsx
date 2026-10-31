@@ -12,7 +12,8 @@ import { InputControls, PlaybackControls } from "../_components/controls/Session
 import { SessionHeader } from "../_components/header/SessionHeader";
 import { HistoryDrawer } from "../_components/history/HistoryDrawer";
 import { SessionErrorCard, SessionLoading } from "../_components/loading/SessionLoading";
-import { SessionOptions } from "../_components/menu/SessionOptions";
+import { SessionPauseModal } from "../_components/pause/SessionPauseModal";
+import { type SessionStats, sessionStats } from "../_components/pause/sessionStats";
 import { createSessionAudio } from "../_components/sessionAudio";
 import { makeSelection, readStudentId } from "../_components/sessionModel";
 import { useEndSession } from "../_components/useEndSession";
@@ -29,6 +30,8 @@ const NAV: TopBarNavItem[] = [
 ];
 
 const API = { getSession, streamTurn };
+
+const EMPTY_STATS: SessionStats = { elapsed: null, items: null, reference: null };
 
 /** Stitch's dotted notebook paper. */
 const dotted = "bg-[radial-gradient(color-mix(in_srgb,var(--ink-soft)_45%,transparent)_1.2px,transparent_1.2px)] bg-size-[24px_24px]";
@@ -60,8 +63,17 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
   // "Continuar por texto" closes the mic notice and opens the chat (the notice comes back if the mic state changes).
   const [noticeClosedFor, setNoticeClosedFor] = useState<string | null>(null);
 
-  // Tab close / reload ends the lesson (keepalive, reason "beacon"). The options menu ends it explicitly (endNow).
-  const { endNow } = useEndSession({ sessionId, onEnded: () => undefined });
+  // Leaving the page (tab close / reload) ends the lesson (keepalive, reason "beacon"): that is what sends the
+  // conversation to the teacher-side analysis. Coming back reopens it paused (below); there is no end button.
+  useEndSession({ sessionId, onEnded: () => undefined });
+
+  // A reopened lesson starts paused: "Retomar conversa" is the click that unlocks the audio and the mic.
+  const [resumeDismissed, setResumeDismissed] = useState(false);
+  const resumeOpen = c.restored && !resumeDismissed && c.phase === "ready";
+  const resume = () => {
+    setResumeDismissed(true);
+    if (voiceOn) void voice.start();
+  };
 
   // Generated images come from the API; in mock mode the fixtures point at this app's own origin.
   const [assetBaseUrl, setAssetBaseUrl] = useState(MOCK_API ? "" : API_URL);
@@ -69,8 +81,10 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
     if (MOCK_API) setAssetBaseUrl(window.location.origin);
   }, []);
 
-  const [studentId, setStudentId] = useState<string | null>(null);
-  useEffect(() => setStudentId(readStudentId()), []);
+  // The lesson's own student wins (a direct link or another tab has no stored id); storage is the fallback.
+  const [storedStudentId, setStoredStudentId] = useState<string | null>(null);
+  useEffect(() => setStoredStudentId(readStudentId()), []);
+  const studentId = session?.student_id ?? storedStudentId;
   // Names come from the students route; without it (404), from the mock list. Simulated students carry the badge.
   const [students, setStudents] = useState<{ list: StudentSummary[]; mock: boolean } | null>(null);
   useEffect(() => {
@@ -157,7 +171,6 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
               onOpenHistory={onOpenHistory ?? (() => setHistoryOpen(true))}
               chatOpen={chatOpen}
               onOpenChat={focusChat}
-              options={<SessionOptions controller={c} endNow={endNow} topic={`${subjectName}: ${title}`} />}
             />
           </div>
           {/* Click-and-ask listens here (bubbling from the board elements); Enter on a focused element does the same. */}
@@ -233,7 +246,17 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
         ) : c.phase !== "ready" ? (
           <SessionLoading stage={c.phase === "loading" ? "opening" : "preparing"} />
         ) : null}
-        {voice.needsTap && <VoiceStartGate onStart={() => void voice.start()} onTextOnly={voice.continueWithText} busy={voice.gate === "unlocking"} />}
+        <SessionPauseModal
+          view={resumeOpen ? "paused" : null}
+          topic={`${subjectName}: ${title}`}
+          stats={resumeOpen ? sessionStats(session?.started_at, player.store.getState(), Date.now(), c.lines) : EMPTY_STATS}
+          onResume={resume}
+          onRetryEnd={resume}
+          onHome={() => (window.location.href = "/")}
+          starting={false}
+          startError={false}
+        />
+        {voice.needsTap && !resumeOpen && <VoiceStartGate onStart={() => void voice.start()} onTextOnly={voice.continueWithText} busy={voice.gate === "unlocking"} />}
       </div>
       <Footer />
       <HistoryDrawer

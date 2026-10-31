@@ -68,12 +68,14 @@ describe("session audio", () => {
     expect(audio.unlocked).toBe(false);
   });
 
-  it("falls back to captions while the tutor is muted", async () => {
+  it("keeps playing while muted, so un-muting brings the voice back", async () => {
     const player = fakePlayer(async () => undefined);
     const audio = createSessionAudio((p) => p, { createPlayer: () => player });
     await audio.unlock();
     audio.setMuted(true);
-    await expect(audio.play("/api/tts/a1")).rejects.toThrow("muted");
-    expect(player.stop).toHaveBeenCalled();
+    await expect(audio.play("/api/tts/a1")).resolves.toBeUndefined();
+    expect(player.stop).not.toHaveBeenCalled();
+    expect(audio.level()).toBe(0);
+    audio.setMuted(false);
   });
 });
