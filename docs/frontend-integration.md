@@ -31,7 +31,7 @@ click a card ──► POST /api/sessions { student_id, modality, subject_id }
                          student speaks/types/clicks ──► POST /api/sessions/:id/turn ──► SSE
                          speak actions ──► GET /api/tts/:action_id (PCM audio)
                          draw_result ──► GET /api/gen/:file (image)
-                         leave ──► POST /api/sessions/:id/end
+                         leave ──► POST /api/sessions/:id/finish
 ```
 
 ## 2. Subjects (start screen)
@@ -87,9 +87,15 @@ Errors: 404 `subject_not_found` (unknown `subject_id`), 503 `database_unavailabl
 
 What the subject changes on the server: the tutor is told the subject, the material catalog in its prompt lists only that subject's books, and every search (before each reply and the `search_materials` tool) is limited to those books. Citations (`sources`) therefore point to the subject's books. Without a subject, the tutor follows the student and searches all materials.
 
-### `POST /api/sessions/:id/end` → 200 `{ "ok": true }`
+### `POST /api/sessions/:id/finish` → 200 `FinishSessionResponse`
 
 Body `EndSessionRequest`: `{ "reason": "user_left" | "idle_timeout" | "beacon" | "manual" }`. Call it when the student leaves (button), after ~5 min idle, and with `navigator.sendBeacon` on tab close. It triggers the teacher-side analysis. 404 `session_not_found`.
+
+The first call returns `{ "ok": true, "transition": "finished" }`. Repeating it is safe and returns `{ "ok": true, "transition": "already_finished" }`: it does not append another `session_ended` event or trigger analysis again. `POST /api/sessions/:id/end` remains as a backwards-compatible alias and returns `{ "ok": true }`.
+
+### `POST /api/sessions/:id/resume` → 200 `ResumeSessionResponse`
+
+No body. An ended session returns `{ "ok": true, "transition": "resumed" }`; an active session returns `{ "ok": true, "transition": "already_active" }`. Both are safe to retry. Resume keeps the same session id and all existing events, and appends one `session_resumed` audit event only for a real transition. 404 `session_not_found`.
 
 ### History: `GET /api/sessions` → 200 `ListSessionsResponse`
 
@@ -123,7 +129,8 @@ Query `ListSessionsQuery`: `student_id?`, `subject_id?`, `limit?` (1–100, defa
 - **Board:** apply every `tutor_action` event's `payload` (`{ turn_id, action_id, order, name, args }`) in order with the same renderer as live actions, skipping animations and audio. `draw_result` actions are stored too, so images come back (`args.url`).
 - **Transcript:** student lines from `user_message.payload.text` and `verification_answered.payload.answer`; tutor lines from `tutor_action` with `name: "speak"` (`args.text`, `args.sources`).
 - **Open question:** the last `verification_asked` without a later `verification_answered` with the same `verification_id` is still open.
-- To **continue** the conversation, just send a new turn to the same `id` (sessions are stored in MongoDB and survive API restarts). Ended sessions (`ended_at` set) can still be shown; start a new session to continue studying.
+- To **continue** an ended conversation, first `POST /api/sessions/:id/resume`, then send turns to the same `id`. Sessions and their append-only history survive API restarts. Calling `/turn` while `ended_at` is set returns 409 `{ "error": "session_ended" }`.
+- Finish the resumed conversation with `/finish`. The analysis row remains unique per session id: lifecycle-only retries reuse the cached result, while new turns/evidence change the input hash and update the same analysis and open insights instead of duplicating them.
 
 Errors: 404 `session_not_found`, 503 `database_unavailable`.
 
@@ -150,7 +157,7 @@ Errors: 404 `session_not_found`, 503 `database_unavailable`.
 | `interrupted` | Send when the student cut the tutor off: the last `turn_id`, the `action_id` of the `speak` being played, and how much was spoken |
 | `client_timing` | Optional: ms between the end of the student's speech and the start of the tutor's audio (latency report) |
 
-Errors before the stream starts: 404 `session_not_found`, 503 `tutor_unavailable` (no LLM key on the server), 400 `validation_error`.
+Errors before the stream starts: 404 `session_not_found`, 409 `session_ended` (call `/resume` first), 503 `tutor_unavailable` (no LLM key on the server), 400 `validation_error`.
 
 ### Response: an SSE stream of `StreamMessage`
 
@@ -285,8 +292,10 @@ Dev pages and tools: **`/dev/conversation`** (a full conversation test bench: pi
 | `POST /api/sessions` | `CreateSessionRequest` | 201 `CreateSessionResponse` | 400, 404, 503 |
 | `GET /api/sessions?student_id=&subject_id=&limit=` | | 200 `ListSessionsResponse` | 400, 503 |
 | `GET /api/sessions/:id` | | 200 `SessionDetailResponse` | 404, 503 |
-| `POST /api/sessions/:id/turn` | `TurnRequest` | 200 SSE of `StreamMessage` | 400, 404, 503 |
-| `POST /api/sessions/:id/end` | `EndSessionRequest` | 200 `{ ok: true }` | 400, 404 |
+| `POST /api/sessions/:id/turn` | `TurnRequest` | 200 SSE of `StreamMessage` | 400, 404, 409, 503 |
+| `POST /api/sessions/:id/finish` | `EndSessionRequest` | 200 `FinishSessionResponse` | 400, 404 |
+| `POST /api/sessions/:id/resume` | | 200 `ResumeSessionResponse` | 404 |
+| `POST /api/sessions/:id/end` | `EndSessionRequest` | 200 `{ ok: true }` (compatibility alias) | 400, 404 |
 | `POST /api/voice/token` | | 200 `VoiceTokenResponse` | 500, 503 |
 | `GET /api/tts/:action_id` | | 200 PCM stream | 404, 503 |
 | `GET /api/gen/:file` | | 200 image | 400, 404 |
