@@ -22,7 +22,7 @@ Teste para ver se a aplicação dele está rodando e tudo meu tabem, minha anali
 
 ## Outcome (English)
 
-Rebased onto main and resolved 20 conflicts keeping both implementations. Name clashes were solved by renaming mine (`teacherRepo`, `fileStore`, `SessionEvent`, `TextChunk`, `SubjectName`, `Teacher*` Mongo models in their own collections), restoring `baseSchemaOptions` for the whiteboard, honoring the database named in `MONGODB_URI`, moving my upload code to `packages/sources/src/upload/` and renumbering my decisions to D55–D61 (contracts-spec §15). Booted the real server against Atlas: Eric's health, ping, subjects, sessions and turn routes answered (voice token returned 403 from Deepgram for the key in `.env`); all of my routes, the analysis, the SSE feed and a PDF upload worked. Removed the test data and restored the seed. 357 tests, 24 of 24 rules, lint and typecheck clean.
+Rebased onto main and resolved 20 conflicts keeping both implementations. Name clashes were solved by renaming mine (`teacherRepo`, `fileStore`, `SessionEvent`, `TextChunk`, `SubjectName`, `Teacher*` Mongo models in their own collections), restoring `baseSchemaOptions` for the whiteboard, honoring the database named in `MONGODB_URI`, moving my upload code to `packages/sources/src/upload/` and renumbering my decisions to D57–D63 (contracts-spec §15). Booted the real server against Atlas: Eric's health, ping, subjects, sessions and turn routes answered (voice token returned 403 from Deepgram for the key in `.env`); all of my routes, the analysis, the SSE feed and a PDF upload worked. Removed the test data and restored the seed. 357 tests, 24 of 24 rules, lint and typecheck clean.
 
 ## Files changed
 
@@ -30,7 +30,7 @@ Rebased onto main and resolved 20 conflicts keeping both implementations. Name c
 
 ## Decisions and contracts touched
 
-- D55–D61 renumbered; `contracts-spec.md` §15; separate `teachermaterials` / `teacherchunks` collections (to be unified, see the next entry).
+- D57–D63 renumbered; `contracts-spec.md` §15; separate `teachermaterials` / `teacherchunks` collections (to be unified, see the next entry).
 
 ## Follow-ups / questions for other people
 

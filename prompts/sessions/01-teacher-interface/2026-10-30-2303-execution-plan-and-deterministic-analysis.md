@@ -51,8 +51,8 @@ Wrote the phased execution plan (contracts, models, seeds, analysis engine, API,
 
 ## Decisions and contracts touched
 
-- Conversations stay in a JSON file behind `ConversationSource` (became D59).
-- The LLM only writes text; rules decide (became D60).
+- Conversations stay in a JSON file behind `ConversationSource` (became D61).
+- The LLM only writes text; rules decide (became D62).
 
 ## Follow-ups / questions for other people
 

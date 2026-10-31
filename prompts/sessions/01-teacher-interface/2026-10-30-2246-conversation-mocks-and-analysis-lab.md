@@ -33,7 +33,7 @@ Answered that the event, evidence and session shapes existed only on paper (stub
 
 ## Decisions and contracts touched
 
-- The material carries a lesson sequence with prerequisites (became D58); the diagnosis follows the prerequisite graph (became D57).
+- The material carries a lesson sequence with prerequisites (became D60); the diagnosis follows the prerequisite graph (became D59).
 
 ## Follow-ups / questions for other people
 

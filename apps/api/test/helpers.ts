@@ -1,6 +1,7 @@
 import { MemoryChunkStore, MemoryRepository, MemorySubjectStore } from "@mento/db";
 import { seedLabMaterial, seedStudents } from "@mento/analysis";
 import { MemoryFileStore, fakeEmbed } from "@mento/sources";
+import { InMemoryTurnRepository } from "@mento/tutor/testing";
 import type { Embed } from "@mento/sources";
 import { buildApp } from "../src/app";
 import { loadConfig } from "../src/config";
@@ -18,6 +19,7 @@ export async function makeApp(options: { uploadMaxMb?: number; analyzeAll?: bool
   const chunkStore = new MemoryChunkStore(repo);
   const app = await buildApp(config, {
     teacherRepo: repo,
+    repo: new InMemoryTurnRepository(), // the whiteboard's session repository (MongoDB in production)
     fileStore: store,
     retryDelayMs: 10,
     subjects,

@@ -44,7 +44,7 @@ Read Eric's ingestion pipeline (`ingestPdf`, the Voyage client, `MongoChunkStore
 
 ## Decisions and contracts touched
 
-- Proposed D62 (one `materials` and one `chunks` collection; the upload is the entry point of the material flow).
+- Proposed D64 (one `materials` and one `chunks` collection; the upload is the entry point of the material flow).
 
 ## Follow-ups / questions for other people
 

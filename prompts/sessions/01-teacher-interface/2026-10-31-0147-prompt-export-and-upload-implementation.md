@@ -36,7 +36,7 @@ Exported the Person 1 prompts of this session into this folder (verbatim, read f
 
 ## Decisions and contracts touched
 
-- D62; `contracts-spec.md` §15 (materials are one collection, upload contract); the API connects to the database named in `MONGODB_URI`.
+- D64; `contracts-spec.md` §15 (materials are one collection, upload contract); the API connects to the database named in `MONGODB_URI`.
 
 ## Follow-ups / questions for other people
 

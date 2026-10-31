@@ -28,12 +28,12 @@ Planned the backend only: a deterministic analysis run after a conversation ends
 
 ## Decisions and contracts touched
 
-- Proposed: severity on insights decided by rules (became D56); student profile and school history as read-only fictional mock (became D55).
+- Proposed: severity on insights decided by rules (became D58); student profile and school history as read-only fictional mock (became D57).
 - Asked the founder to confirm that student data is mock-only and never sent to an LLM.
 
 ## Follow-ups / questions for other people
 
-- Confirm D55 with the founder (it refines the 'no gradebook' out-of-scope item).
+- Confirm D57 with the founder (it refines the 'no gradebook' out-of-scope item).
 
 ## Commit / PR
 

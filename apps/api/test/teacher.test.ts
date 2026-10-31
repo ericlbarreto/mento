@@ -404,8 +404,8 @@ describe("the uploaded material reaches the whiteboard (BR-25)", () => {
     const session = await app.inject({ method: "POST", url: "/api/sessions", payload: { student_id: "s1", modality: "text", subject_id: history.id } });
     expect(session.statusCode).toBe(201);
     expect(session.json().subject_id).toBe(history.id);
-    // the catalog the tutor puts in its prompt for that subject
-    expect((await app.container.repo.getCatalog(history.id)).map((c) => c.title)).toEqual(["Roma"]);
+    // the catalog the tutor puts in its prompt for that subject (MongoTurnRepository reads it from the chunk store)
+    expect((await app.container.chunkStore.listCatalog(history.id)).map((c) => c.title)).toEqual(["Roma"]);
   });
 });
 

@@ -21,7 +21,7 @@ Implemented the plan: Zod contracts, Mongoose models and two repositories (Mongo
 
 ## Decisions and contracts touched
 
-- D55–D61 (as renumbered after the rebase); `workstreams/contracts-spec.md` §15.
+- D57–D63 (as renumbered after the rebase); `workstreams/contracts-spec.md` §15.
 
 ## Follow-ups / questions for other people
 
