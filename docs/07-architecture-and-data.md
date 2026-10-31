@@ -82,7 +82,7 @@ The block above is the conceptual model. What exists in MongoDB today (`packages
 
 **Whiteboard collections (Person 3):** `subjects`, `sessions`, `events`, `evidences`, plus the shared `materials` and `chunks` above. The teacher code only resets its own collections and fixture materials.
 
-**Not in MongoDB yet:** `sessions`, `events`, `evidence`. The analysis reads them through the `ConversationSource` interface (`FileConversationSource` over `fixtures/analysis-lab/conversations.json`); the whiteboard back-end swaps in a MongoDB source later (D59). Shapes: `workstreams/contracts-spec.md` §15.
+**Conversations (Person 3):** `sessions`, `events` and `evidences` are written by the tutor and read, never written, by the analysis (`MongoConversationReader` → `toSessionBundle`, D65). The material and the lesson of a conversation are derived from the sources the tutor cited. The JSON file in `fixtures/analysis-lab/` is only a demo/test source.
 
 ## Event contract (single typed schema for all channels)
 

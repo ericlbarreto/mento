@@ -251,3 +251,7 @@ All phases were implemented and verified: `pnpm test:rules` reports **24 of 24 b
 ## Update 2026-10-31: upload linked to a subject, with embeddings (D64)
 
 After the rebase the teacher upload kept its own `teachermaterials` / `teacherchunks`. It now feeds the whiteboard's flow: the upload requires a `subject_id`, and the job runs the whiteboard's `ingestPdf` (Voyage embeddings into `chunks`), then saves chapters and lesson sequence and marks the material `ready`. One `materials` and one `chunks` collection remain; the database is the one named in `MONGODB_URI` (the same `pnpm ingest` writes to). Verified on Atlas with the real tutor citing an uploaded PDF. The "database `mento`" and "`teachermaterials`" mentions above are historical.
+
+## Update 2026-10-31: the analysis reads the stored conversations (D65)
+
+The mock is no longer the source: the API reads `sessions` / `events` / `evidences` from MongoDB (what the tutor writes) and analyses a conversation when `POST /sessions/:id/end` is called, after the judge has recorded the last answer. Material and lesson are derived from the sources the tutor cited. The lab JSON stays as a dev/demo source and as test fixtures. This supersedes the "conversations are not stored in MongoDB" choice (D61) and the "Still open" item about `material_id`.
