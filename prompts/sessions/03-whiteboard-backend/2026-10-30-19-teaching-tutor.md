@@ -19,4 +19,5 @@ The stored session showed one short `speak` per turn followed by board blocks, n
 ## What was done
 
 - Hand-off document `docs/superpowers/handoff/2026-10-30-whiteboard-backend-handoff.md` written first (state, how to test, the problem, the plan).
-- Tutor prompts rewritten for an interactive lesson loop (see the hand-off §5 and §6 for the measured result).
+- Found the real cause: the engine only continued after a search; Haiku stops after one or two tool calls. The engine now continues up to 4 rounds until the reply ends with a question (D56).
+- Tutor prompts rewritten for an interactive lesson loop. Measured before/after in the hand-off §6.

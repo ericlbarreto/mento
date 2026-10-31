@@ -61,6 +61,19 @@ interface RoundResult {
   searches: ToolBlock[];
   /** Every tool block of the round with the outcome the model should be told. */
   results: { block: ToolBlock; outcome: string; is_error: boolean }[];
+  stop_reason?: string;
+}
+
+/** Rounds per reply: the model often stops after one or two tool calls to wait for their results. */
+const MAX_ROUNDS = 4;
+const CONTINUE_TEXT = "Continue the same reply: explain what you just put on the board, then end with one question to the student.";
+
+/** The reply is complete when it asked a verification or its last successful action is a question. */
+function endsWithQuestion(result: RoundResult): boolean {
+  const ok = result.results.filter((r) => !r.is_error && r.block.name !== "search_materials");
+  if (ok.some((r) => r.block.name === "ask_verification")) return true;
+  const last = ok.at(-1);
+  return last?.block.name === "speak" && (safeJson(last.block.raw_input) as { purpose?: string } | null)?.purpose === "question";
 }
 
 const BRIDGE_TEXT = "Deixa eu pensar um instante…";
@@ -185,12 +198,16 @@ export class TurnEngine {
     let messages: LlmMessage[] = [{ role: "user", content: userText }];
 
     try {
-      for (let round = 0; round < 2; round++) {
+      let searched = false;
+      for (let round = 0; ; round++) {
         const result = await this.streamWithRetry(state, models.tutor, system, messages);
         if (signal.aborted) break;
-        if (result.searches.length === 0 || round === 1) break;
+        const search: boolean = result.searches.length > 0 && !searched;
+        const unfinished = result.stop_reason === "tool_use" && result.results.length > 0 && !endsWithQuestion(result);
+        if ((!search && !unfinished) || round === MAX_ROUNDS - 1) break;
 
-        const found = await this.runSearches(state, result.searches);
+        const found = search ? await this.runSearches(state, result.searches) : new Map<string, string>();
+        searched ||= search;
         const assistant: LlmContentBlock[] = result.results.map((r) => ({ type: "tool_use", id: r.block.id, name: r.block.name, input: safeJson(r.block.raw_input) }));
         const toolResults: LlmContentBlock[] = result.results.map((r) => ({
           type: "tool_result",
@@ -198,6 +215,7 @@ export class TurnEngine {
           content: r.block.name === "search_materials" ? (found.get(r.block.id) ?? "(no results)") : r.outcome,
           is_error: r.is_error || undefined,
         }));
+        if (!search) toolResults.push({ type: "text", text: CONTINUE_TEXT });
         messages = [...messages, { role: "assistant", content: assistant }, { role: "user", content: toolResults }];
       }
     } catch (err) {
@@ -254,6 +272,8 @@ export class TurnEngine {
         if (state.signal.aborted) break;
         if (ev.type === "first_token") {
           state.timing.llm_first_token_ms ??= Math.round(this.now() - state.t0);
+        } else if (ev.type === "stop") {
+          result.stop_reason = ev.stop_reason;
         } else if (ev.type === "tool_block") {
           if (ev.block.name === "search_materials") {
             result.searches.push(ev.block);

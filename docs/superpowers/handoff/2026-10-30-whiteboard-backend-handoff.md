@@ -51,11 +51,29 @@ Plan (applied in `prompts/base.md` and `prompts/subjects/history.md`):
 5. **Repeated question:** explain again from a different angle (analogy, example) and point at the existing block (`highlight`), do not rewrite it.
 6. **Voice mode shape:** 3–6 `speak`s per reply, each one or two short sentences.
 
-Measured result: see §6 (filled when the test runs).
+Measured result: see §6.
 
 ## 6. Result of the teaching prompt
 
-_Pending: to be filled after the test in this step._
+**Root cause found during the test:** the prompt was not the main problem. The turn engine only called the model a second time after `search_materials`. The Anthropic API stops a message after tool calls (`stop_reason: "tool_use"`) to wait for their results; Sonnet used to put many calls in one message, Haiku puts one or two, so the reply ended after "speak + write_text".
+
+**Fix (D56):**
+- `packages/tutor/src/turn-engine.ts`: when the model stops with `tool_use` and the reply has not ended with a question, the engine sends the tool results plus "Continue the same reply…" and streams again, up to **4 rounds** per reply. It stops at `ask_verification`, at a `speak` with `purpose: "question"`, or at `end_turn`. The single `search_materials` round still works (searches are run once per reply). Tests in `turn-engine.test.ts` ("continuing the reply").
+- `prompts/base.md`: new "Who you are", "How a reply is built" and "How you teach (the lesson loop)" sections with a worked example; `prompts/subjects/history.md`: guess-before-explain, concrete comparisons, student tasks.
+
+**Scripted 5-turn lesson (voice, História subject), before → after:**
+
+| | Before | After |
+|---|---|---|
+| `speak`s per reply | 1 (sometimes 2) | 2–4 |
+| Reply ends with a question | rarely | every reply |
+| Board blocks narrated by voice | no | yes (`highlight` on the block) |
+| `ask_verification` in 5 turns | 1 | 2 (teach it back) |
+| "Não sei, acho que ele era um rei?" | short correction | "Boa intuição!", explains why Romans feared kings, asks a follow-up |
+
+**Latency (`pnpm turn:bench 3`):** first action p50 2.05 s, p95 3.09 s (was 1.79 / 2.56 s; the prompt is longer and the run varies); script done p50 4.8 s (later rounds stream while the first `speak` is playing, so the student does not wait for them). 0 errors; all tests pass.
+
+**Not verified:** a person speaking in `/dev/conversation` with the new prompt.
 
 ## 7. Next steps (not started)
 
