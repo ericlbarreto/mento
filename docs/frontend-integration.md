@@ -236,7 +236,7 @@ On a click/selection of a board element, send `user_message` with `kind: "board_
 
 `GET /api/dev/fixture-turn?name=rome-intro&speed=1` replays a recorded turn in exactly the same SSE format (`speed=0` instant). Fixtures: `fixtures/turns/rome-intro.json` (title, speech with word timings, illustration, timeline, citation, circle, late image) and `click-and-ask.json` (highlight, side note, verification). Audio URLs in fixtures point to `/api/tts/...` and will 404 unless a real TTS job exists; image URLs are examples.
 
-Dev pages and tools: `/dev/voice-lab` (microphone + captions + TTS playback), `POST /api/dev/tts-start { action_id, text }` (starts a TTS job for any text).
+Dev pages and tools: **`/dev/conversation`** (a full conversation test bench: pick a subject, talk or type, see board actions, citations, images, verification answers, click-and-ask, interruption and per-turn latency; its source is a working reference for the integration), `/dev/voice-lab` (microphone + captions + TTS playback), `POST /api/dev/tts-start { action_id, text }` (starts a TTS job for any text).
 
 ## 12. Endpoint summary
 
