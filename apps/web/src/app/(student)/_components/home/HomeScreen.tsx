@@ -60,6 +60,12 @@ export function HomeScreen() {
   const { studentId, students, subjects, latest, retry, pickStudent } = useHomeData();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  // A subject card opens its lesson history: continue an earlier lesson or start a new one (drawer footer).
+  const [historySubject, setHistorySubject] = useState<{ id: string; name: string } | null>(null);
+  const openHistory = (subject: { id: string; name: string } | null) => {
+    setHistorySubject(subject);
+    setHistoryOpen(true);
+  };
   const [starting, setStarting] = useState<Starting>(null);
   const [startError, setStartError] = useState(false);
   const startingRef = useRef(false);
@@ -136,7 +142,7 @@ export function HomeScreen() {
             state={subjects}
             starting={starting}
             disabled={starting !== null || !studentId}
-            onStart={(s) => start(s.id, { modality: "voice", subject_id: s.id })}
+            onStart={(s) => openHistory({ id: s.id, name: s.name })}
           />
         </section>
 
@@ -144,7 +150,7 @@ export function HomeScreen() {
           <ContinueCard session={latest.value} disabled={starting !== null} onContinue={(id) => router.push(`/session/${id}`)} />
         )}
         {latest.status === "ready" && latest.value && (
-          <button type="button" aria-haspopup="dialog" onClick={() => setHistoryOpen(true)} className={cx(linkClasses, "-mt-8 self-start")}>
+          <button type="button" aria-haspopup="dialog" onClick={() => openHistory(null)} className={cx(linkClasses, "-mt-8 self-start")}>
             Ver histórico de aulas
           </button>
         )}
@@ -154,7 +160,7 @@ export function HomeScreen() {
 
       <Footer />
 
-      <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} studentId={studentId} subject={null} />
+      <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} studentId={studentId} subject={historySubject} />
 
       <Modal
         open={pickerOpen}
