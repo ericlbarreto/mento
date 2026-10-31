@@ -1,5 +1,5 @@
 "use client";
-// Owner: Person 1. The teacher edits a generated exercise list before printing it (D81): the title, every text of every
+// Owner: Person 1. The teacher edits a generated exercise list before printing it (D83): the title, every text of every
 // question (prompt, options and the right one, expected answer, why, page), and adds, removes or reorders questions.
 // Saved with PATCH /exercise-lists/:id; both PDFs are rebuilt from the saved list.
 import type { ExerciseKind, ExerciseList } from "@mento/contracts";

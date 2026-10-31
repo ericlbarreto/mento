@@ -33,7 +33,7 @@ const plugin: FastifyPluginAsyncZod = async (app) => {
     },
   );
 
-  // The teacher's edit of a ready list (D81): title and every question; the PDFs are rebuilt in the browser from it.
+  // The teacher's edit of a ready list (D83): title and every question; the PDFs are rebuilt in the browser from it.
   app.patch(
     "/exercise-lists/:id",
     { schema: { params: Params, body: UpdateExerciseListBody, response: { 200: ExerciseList, 404: ErrorResponse, 409: ErrorResponse } } },

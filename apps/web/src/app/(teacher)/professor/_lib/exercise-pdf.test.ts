@@ -163,7 +163,7 @@ describe("renderExercisePdf", () => {
     }
   });
 
-  it("builds an edited list (D81): two options, a blank explanation, an added open question", async () => {
+  it("builds an edited list (D83): two options, a blank explanation, an added open question", async () => {
     const edited: ExerciseList = {
       ...LIST,
       edited_at: "2026-10-31T12:00:00Z",

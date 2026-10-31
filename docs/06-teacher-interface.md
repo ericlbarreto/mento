@@ -65,7 +65,7 @@ Form: **name**. The student then appears in the student picker of the whiteboard
 
 Each intervention has **Gerar lista de exercícios**: Claude writes 5 questions (3 multiple choice, 2 open) on the topic from the lesson of the book where the difficulty starts. The card shows "generating", then the questions and two PDFs (teacher with answers, students without). Every list is kept and listed in **Materiais → Listas de exercícios geradas** (with delete). Storage: `exercise_lists` (docs/07). Replaces the simulated lists of D68.
 
-A ready list can be **edited** (D81): **Editar questões** opens an editor for the title and every question (texts, options and the right one, expected answer, why, page), with add, delete and reorder. The PDFs follow the saved version; an edited list is marked "revisada por você".
+A ready list can be **edited** (D83): **Editar questões** opens an editor for the title and every question (texts, options and the right one, expected answer, why, page), with add, delete and reorder. The PDFs follow the saved version; an edited list is marked "revisada por você".
 
 ## Tab 2 — Materials ("Materiais")
 

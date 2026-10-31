@@ -21,3 +21,4 @@
 | 2026-10-31 | Simpler student page and interventions | teacher-ui | [2026-10-31-0530-simpler-student-page.md](2026-10-31-0530-simpler-student-page.md) | not committed |
 | 2026-10-31 | Conversations as a full-width table named by subject, paginated | teacher-ui | [2026-10-31-0600-conversations-table.md](2026-10-31-0600-conversations-table.md) | not committed |
 | 2026-10-31 | Push the teacher front-end and merge into main | process | [2026-10-31-0630-push-and-merge-teacher-frontend.md](2026-10-31-0630-push-and-merge-teacher-frontend.md) | teacher front-end PR |
+| 2026-10-31 | The teacher edits generated exercise lists (title, questions, options; add, delete, reorder); merge into main | teacher-ui, api, contracts | [2026-10-31-0915-edit-exercise-lists.md](2026-10-31-0915-edit-exercise-lists.md) | branch `feat/edit-exercise-lists` |

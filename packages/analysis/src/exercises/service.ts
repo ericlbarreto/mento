@@ -101,7 +101,7 @@ export class ExerciseListService {
   }
 
   /**
-   * The teacher's edit (D81): the new title and the whole list of questions, in order. Only a ready list (a generating
+   * The teacher's edit (D83): the new title and the whole list of questions, in order. Only a ready list (a generating
    * one would be overwritten by the generator). Ids are re-assigned q1, q2, … so they stay unique.
    */
   async edit(id: string, body: UpdateExerciseListBody, now = () => new Date().toISOString()): Promise<ExerciseList> {

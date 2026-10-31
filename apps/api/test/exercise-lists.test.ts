@@ -90,7 +90,7 @@ describe("exercise lists (D72)", () => {
     expect(seen).toEqual(["generating", "ready"]);
   });
 
-  it("PATCH saves the teacher's edit (D81): new title, edited, added and removed questions, ids renumbered", async () => {
+  it("PATCH saves the teacher's edit (D83): new title, edited, added and removed questions, ids renumbered", async () => {
     const { app } = await world();
     const gaps = await gapsOf(app, "formas de governo");
     const created = (await app.inject({ method: "POST", url: "/api/exercise-lists", payload: { concept: "Formas de governo", gap_ids: [gaps[0].id] } })).json();

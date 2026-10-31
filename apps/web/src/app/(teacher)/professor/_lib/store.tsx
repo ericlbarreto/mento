@@ -54,7 +54,7 @@ interface TeacherStore {
   /** False in mock mode: lists are written by Claude through the API. */
   exercisesAvailable: boolean;
   generateExercises(concept: string, gapIds: string[]): Promise<void>; // POST /exercise-lists
-  updateExerciseList(id: string, body: UpdateExerciseListBody): Promise<void>; // PATCH /exercise-lists/:id (D81)
+  updateExerciseList(id: string, body: UpdateExerciseListBody): Promise<void>; // PATCH /exercise-lists/:id (D83)
   deleteExerciseList(id: string): Promise<void>; // DELETE /exercise-lists/:id
   materials: Material[];
   // POST /materials (multipart): the real call must also send the teacher's single `subject_id` (D64, D67).

@@ -357,7 +357,7 @@ function question(ex: Exercise, i: number, forTeacher: boolean, f: Fonts): Block
 
   if (forTeacher) {
     const letter = ex.options ? LETTERS[ex.options.indexOf(ex.answer)] : undefined;
-    // The teacher may leave the explanation blank (D81): then only the page, if any, or nothing.
+    // The teacher may leave the explanation blank (D83): then only the page, if any, or nothing.
     const why: Run<PDFFont>[] = ex.explanation.trim()
       ? [
           { text: "Por quê: ", font: f.sansBold, color: C.soft },

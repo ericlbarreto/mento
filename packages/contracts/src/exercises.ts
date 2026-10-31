@@ -43,7 +43,7 @@ export const ExerciseList = z.object({
   exercises: z.array(Exercise),
   model: z.string().nullable(),
   prompt_version: z.string(),
-  /** When the teacher last edited the questions (D81); null while the list is as Claude wrote it. */
+  /** When the teacher last edited the questions (D83); null while the list is as Claude wrote it. */
   edited_at: z.string().nullable().default(null),
   created_at: z.string(),
   updated_at: z.string(),
@@ -60,7 +60,7 @@ export type CreateExerciseListBody = z.infer<typeof CreateExerciseListBody>;
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 
-/** One question as the teacher edits it (D81). The id is re-assigned by the API (q1, q2, … in order). */
+/** One question as the teacher edits it (D83). The id is re-assigned by the API (q1, q2, … in order). */
 export const ExerciseInput = z
   .object({
     kind: ExerciseKind,
@@ -78,7 +78,7 @@ export const ExerciseInput = z
   });
 export type ExerciseInput = z.infer<typeof ExerciseInput>;
 
-/** `PATCH /api/exercise-lists/:id`: the teacher's version of the title and every question (D81). Only a ready list. */
+/** `PATCH /api/exercise-lists/:id`: the teacher's version of the title and every question (D83). Only a ready list. */
 export const UpdateExerciseListBody = z.object({
   title: text(160),
   exercises: z.array(ExerciseInput).min(1).max(30),

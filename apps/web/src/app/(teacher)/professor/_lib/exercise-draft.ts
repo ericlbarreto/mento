@@ -1,4 +1,4 @@
-// Owner: Person 1. The teacher's working copy of an exercise list while editing it (D81): plain strings for the form,
+// Owner: Person 1. The teacher's working copy of an exercise list while editing it (D83): plain strings for the form,
 // turned into the PATCH body on save. Pure, so it is tested without the UI.
 import type { ExerciseKind, ExerciseList, UpdateExerciseListBody } from "@mento/contracts";
 

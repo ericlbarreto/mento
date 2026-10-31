@@ -38,7 +38,7 @@ const LIST: ExerciseList = {
   ],
 };
 
-describe("exercise list draft (D81)", () => {
+describe("exercise list draft (D83)", () => {
   it("round-trips a generated list: the body is valid and equal to the list", () => {
     const draft = toDraft(LIST);
     expect(problemsOf(draft)).toEqual([]);
