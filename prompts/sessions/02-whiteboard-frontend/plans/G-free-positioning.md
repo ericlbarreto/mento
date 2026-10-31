@@ -1,7 +1,7 @@
 # Plan G — Free positioning on the board (student drag anywhere; the tutor places blocks side by side)
 
 ## FINAL (merged after independent reviews: architect = data/replay, product/UI = interaction)
-Both reviewers back the hybrid (flow + pinned) and agree the live failure is mostly the tutor not knowing the columns' screen positions. Merged decisions (built, D81):
+Both reviewers back the hybrid (flow + pinned) and agree the live failure is mostly the tutor not knowing the columns' screen positions. Merged decisions (built, D82):
 
 - **Student pins with absolute coordinates.** `place { x, y }` (0–20000; negative is unreachable for the camera), 8 px grid, stepped down so a pinned block never overlaps another pinned block. Pinned blocks live in `free` (their column array is replaced so the column re-renders); drawn in the world layer at their column's width.
 - **The tutor never gets coordinates and never measures.** Architect: a client-measured relative placement breaks replay (images/fonts change heights). So `place_element { id, next_to, side }` is stored as a relation (`near`) and drawn as a group (above · left · host · right · below), in a column or pinned; no chains; deleting the host sends the block back to its column.

@@ -14,7 +14,7 @@ import {
 } from "@mento/contracts";
 
 /**
- * The student's board edits (plans F and G, D79, D81): deleting, moving or placing a block is not educational evidence, so the analysis and
+ * The student's board edits (plans F and G, D79, D82): deleting, moving or placing a block is not educational evidence, so the analysis and
  * every teacher view never see them, not even as counts (AGENTS.md rule 6).
  */
 export const withoutBoardEdits = <E extends { type: string }>(events: E[]): E[] => events.filter((e) => !isBoardEditEvent(e.type));

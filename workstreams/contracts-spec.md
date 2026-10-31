@@ -271,7 +271,7 @@ Additive. Source of truth: `packages/contracts/src/{diagram,actions}.ts`; resolv
 - **The tutor tidies the board too:** new action `move_element { id, column, after_id: ElementId | null }` (same placement as a student move; the server checks that `id` exists and is not deleted, and that `after_id` is null or an element of that column), stored as a normal `tutor_action` and replayed like the others. `remove_element` is unchanged.
 - **`highlight` gains an optional `text_to_match`** (1–120 chars, must occur in the target's text, same server check as `circle_annotate`): highlight one passage instead of the whole element.
 
-### 18.1 Free positioning (2026-10-31, D81, plan G)
+### 18.1 Free positioning (2026-10-31, D82, plan G)
 
 - `BoardEditRequest` gains `{ op: "place", edit_id, element_id, x, y }` (`BoardCoord`: finite, 0–20000, board px at zoom 1 from the board's top-left): the student drops a block at a free spot, out of its column. A later `move` puts it back into a column. Stored as `board_element_placed { element_id, x, y, edit_id }` (in `EventType` and `SessionEvent`), same answers and dedupe as the other edits, never read by the analysis or a teacher route.
 - `BOARD_EDIT_EVENTS`, `isBoardEditEvent`, `boardEditEvent(edit)` and `boardEditOf(type, payload)` in `@mento/contracts` map each op to its stored event and back (one place for the API, the tutor runtime, replay, the mock and the analysis filter).

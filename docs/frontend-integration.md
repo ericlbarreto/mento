@@ -145,7 +145,7 @@ The student deletes or moves a block. Body `BoardEditRequest`:
 { "op": "place", "edit_id": "c3d4…", "element_id": "nota", "x": 224, "y": 264 }
 ```
 
-- `place` (plan G, D81) pins the block at a free spot: `x`, `y` in board px at zoom 1 from the board's top-left (0–20000). A later `move` puts it back in a column ("Arrumar" sends one `move` per placed block).
+- `place` (plan G, D82) pins the block at a free spot: `x`, `y` in board px at zoom 1 from the board's top-left (0–20000). A later `move` puts it back in a column ("Arrumar" sends one `move` per placed block).
 
 - `edit_id` is a client uuid (1–64 chars): resending the same edit answers `{ "ok": true, "result": "already_applied" }` and stores nothing. Retry freely.
 - A move is **absolute**: the element goes to `column`, right after `after_id` (`null` = top of the column). Anchor on the element above the drop slot, never send an index (the server may already hold tutor blocks the student has not seen). An `after_id` the server does not find in that column puts the element at the end.

@@ -57,6 +57,19 @@ describe("ClaudeJudge", () => {
     expect(evidence.items[0]?.citation).toBeUndefined();
   });
 
+  it("keeps the judgment when the rationale is too long (clipped) or the citation is malformed (dropped)", async () => {
+    const long = "A resposta confunde o Dia do Fico com a Proclamação da República e diz que D. Pedro voltou para Portugal. ".repeat(4);
+    const llm = new ScriptedLlm([[toolEvent("record_judgment", { result: "incorrect", rationale: long, citation: { page: "x" } }), stopEvent("tool_use")]]);
+    const { judge, evidence, session_id } = await setup(llm);
+    await judge.start(input(session_id));
+    expect(evidence.items).toHaveLength(1);
+    const row = evidence.items[0]!;
+    expect(row.result).toBe("incorrect");
+    expect(row.rationale.length).toBeLessThanOrEqual(300);
+    expect(row.rationale.endsWith("…")).toBe(true);
+    expect(row.citation).toBeUndefined();
+  });
+
   it("stores nothing for an invalid judgment, a missing question or an LLM failure", async () => {
     const bad = new ScriptedLlm([[toolEvent("record_judgment", { result: "great" }), stopEvent("tool_use")]]);
     const a = await setup(bad);
