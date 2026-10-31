@@ -45,11 +45,11 @@ describe("the teacher side follows one subject (D78)", () => {
     expect(await conversations.getSessionBundle("free")).toBeNull();
   });
 
-  it("hides insights and analyses of other subjects and of the free whiteboard; keeps those whose session is not a conversation", async () => {
+  it("hides insights and analyses of other subjects and of the free whiteboard; hides those whose session is not a conversation (lab mocks)", async () => {
     const repo = scope().repo(fakeRepo);
-    expect((await repo.listInsights()).map((i) => i.id)).toEqual(["i_hist", "i_fixture"]);
+    expect((await repo.listInsights()).map((i) => i.id)).toEqual(["i_hist"]);
     expect(await repo.getInsight("i_math")).toBeNull();
-    expect(await repo.getInsight("i_fixture")).not.toBeNull();
+    expect(await repo.getInsight("i_fixture")).toBeNull();
     expect(await repo.getAnalysisBySession("math")).toBeNull();
     expect(await repo.getAnalysisBySession("hist")).not.toBeNull();
   });

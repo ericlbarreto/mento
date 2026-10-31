@@ -6,8 +6,9 @@ import type { ConversationSource, Session, SubjectStore, TeacherRepository } fro
  *
  * - A session with `subject_id` of another subject, or `null` (free whiteboard), is left out.
  * - A session that does not record its subject at all (`subject_id` absent: the lab fixtures) is kept.
- * - An insight or analysis is hidden when its `session_id` is a real conversation left out above; ids that are not
- *   conversations (the lab's `ses_ana_01`) are kept. Nothing is deleted.
+ * - An insight or analysis is shown only when its `session_id` is a conversation kept above. Ids that are not
+ *   conversations (the lab's seeded `ses_ana_01` mocks) are hidden: the teacher sees only what the analysis found in
+ *   real conversations. Nothing is deleted.
  */
 export class SubjectScope {
   private subjectId: string | null = null;
@@ -38,7 +39,7 @@ export class SubjectScope {
     let out = this.outside.get(sessionId);
     if (out === undefined) {
       const bundle = await this.deps.conversations.getSessionBundle(sessionId);
-      out = !!bundle && !(await this.includes(bundle.session));
+      out = !bundle || !(await this.includes(bundle.session));
       if (!bundle || this.subjectId !== null || bundle.session.subject_id === undefined) this.outside.set(sessionId, out);
     }
     return !out;
