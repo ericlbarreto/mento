@@ -61,7 +61,7 @@ function NavLink({ item }: { item: TopBarNavItem }) {
 /** Student shell header (Stitch S1–S7): logo, class chip, student name and avatar. */
 export function TopBar({
   logoHref = "/",
-  logoSrc = "/brand/logo.png",
+  logoSrc = "/brand/logo-wordmark.png",
   classLabel,
   studentName,
   studentAction,
@@ -81,7 +81,7 @@ export function TopBar({
       <div className="flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-8">
         <div className="flex min-w-0 items-center gap-6 lg:gap-10">
           <a href={logoHref} className={cx("shrink-0 rounded-(--radius-sm)", focusRing)}>
-            <img src={logoSrc} alt="Mento, início" className="h-10 w-auto sm:h-11" />
+            <img src={logoSrc} alt="Mento, início" className="h-7 w-auto sm:h-8" />
           </a>
         </div>
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
