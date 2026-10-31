@@ -165,7 +165,6 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
     if (c.retry() === "dismissed") focusChat();
   };
 
-  const paused = player.queueState === "paused";
   const caption = c.phase === "ready" ? player.caption : null;
   const subjectName = session ? (session.subject?.name ?? "Conversa livre") : "Aula";
   const title = session?.title ?? "Nova conversa";
@@ -210,8 +209,6 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
               {voiceOn && <InterimCaption text={voice.interim} />}
               <div className="flex w-full items-end justify-between gap-4">
                 <PlaybackControls
-                  paused={paused}
-                  onTogglePause={paused ? player.resume : player.pause}
                   muted={muted}
                   onToggleMute={toggleMute}
                   captionsOn={captionsOn}
