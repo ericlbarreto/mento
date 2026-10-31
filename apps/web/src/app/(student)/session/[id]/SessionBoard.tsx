@@ -4,7 +4,7 @@
 // chrome, the PR #6 board, captions, orb, controls and chat around useSessionController. Plan 2026-10-30-2330 §3.
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { Board, type BoardEditingEnv, MOCK_STUDENTS, type StudentSummary, createEditOutbox } from "@mento/board";
-import { Footer, Orb, TopBar, type TopBarNavItem } from "@mento/ui";
+import { Orb, TopBar, type TopBarNavItem } from "@mento/ui";
 import { API_URL, MOCK_API, apiUrl, getSession, getVoiceToken, listSessions, listStudents, streamTurn, editBoard } from "@/lib/api";
 import { CaptionBar } from "../_components/caption/CaptionBar";
 import { ChatPanel } from "../_components/chat/ChatPanel";
@@ -241,9 +241,10 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
   const title = session?.title ?? "Nova conversa";
 
   return (
-    <div className="flex min-h-dvh flex-col bg-(--paper)">
+    // The lesson fills the screen exactly: no page scroll and no footer; only the board pans and the chat scrolls inside.
+    <div className="flex h-dvh flex-col overflow-hidden bg-(--paper)">
       <TopBar nav={NAV} classLabel="8º ano" studentName={student?.name} />
-      <div className="relative flex h-[calc(100dvh-4rem)] min-h-[600px]">
+      <div className="relative flex min-h-0 flex-1">
         <main className={`relative flex min-w-0 flex-1 flex-col ${dotted}`}>
           <div className="shrink-0 px-6 pt-4 pb-1">
             <SessionHeader
@@ -358,7 +359,6 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
         />
         {voice.needsTap && !resumeOpen && <VoiceStartGate onStart={() => void voice.start()} onTextOnly={voice.continueWithText} busy={voice.gate === "unlocking"} />}
       </div>
-      <Footer />
       <HistoryDrawer
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
