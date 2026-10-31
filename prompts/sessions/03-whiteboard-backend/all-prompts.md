@@ -609,3 +609,7 @@
 > Eu queria que você fosse muito mais proativo no sentido de gerar mais imagens. Além disso, eu queria que você também circulasse mais as coisas, porque isso torna o processo de educação bem mais intuitivo. Eu acho que nosso engine está escrevendo muito e está sendo pouco intuitivo. Então, se você conseguisse ser mais visual, seria melhor, tá?
 >
 > [pasted: a Codex transcript. It says: "Show, isso é uma boa solução, tá? Eu queria que você juntasse essa solução com a solução do autofalante para evitar usar o fone de ouvido. No mesmo PR eu queria que você me trouxesse essas duas coisas. Principalmente a geração de imagem precisa ser algo meio que assíncrono: não precisa depender da pessoa esperar o speak para poder colocar a imagem na tela. Assim que você tiver a imagem, já pode colocar na tela". Codex then planned one PR with two blocks (draw_result applied outside the speech queue; barge-in tolerant to the tutor's own audio: browser AEC + transcript confirmation), committed the image part (0331a86, queue.ts and queue.test.ts) and stopped at its usage limit with the voice classifier test written.]
+
+## 114. 2026-10-31
+
+> Beijo, irmão. Quero que você faça imagem para caralho, tá? Sério, sério, sério, sério, sério. Não precisa exagerar também, né, mas seja mais proativo no sentido de ser mais ilustrativo, sabe? Vai ensinar matemática, coloca um gráfico. Vai ensinar sobre Roma antiga, desenha um coliseu, entendeu? Tipo de coisa. Não precisa esperar o cara pedir para você gerar uma imagem para você gerar a imagem.
