@@ -35,6 +35,7 @@ export function useSessionVoice({
   tutorText,
   onFinal,
   onBargeIn,
+  paused = false,
 }: {
   /** A voice session with a real API (false in text sessions and mock mode). */
   enabled: boolean;
@@ -48,6 +49,8 @@ export function useSessionVoice({
   tutorText: string;
   onFinal: (caption: SttCaption) => void;
   onBargeIn: () => void;
+  /** The lesson is paused: the mic is held (muted) and nothing it hears cuts or reaches the tutor. */
+  paused?: boolean;
 }) {
   const [gate, setGate] = useState<AudioGate>("pending");
   const [textOnly, setTextOnly] = useState(false);
@@ -55,9 +58,9 @@ export function useSessionVoice({
   const [unavailable, setUnavailable] = useState(false);
   const [userMuted, setUserMuted] = useState(false);
 
-  const latest = useRef({ floor, speakingId, tutorText, onFinal, onBargeIn });
+  const latest = useRef({ floor, speakingId, tutorText, onFinal, onBargeIn, paused });
   useEffect(() => {
-    latest.current = { floor, speakingId, tutorText, onFinal, onBargeIn };
+    latest.current = { floor, speakingId, tutorText, onFinal, onBargeIn, paused };
   });
   // The tutor's last word can reach the mic a moment later: it still counts as the tutor talking for ECHO_TAIL_MS.
   const quietSince = useRef<number | null>(null);
@@ -85,6 +88,7 @@ export function useSessionVoice({
     // Speech detection alone does not cut the tutor (it may be the tutor's own voice): the captions decide.
     onSpeechStarted: () => undefined,
     onFinal: (caption) => {
+      if (latest.current.paused) return;
       const { verdict, talking } = judge(caption);
       if (verdict === "interrupt_and_send" && talking) latest.current.onBargeIn();
       if (verdict === "send" || verdict === "interrupt_and_send") latest.current.onFinal(caption);
@@ -92,7 +96,7 @@ export function useSessionVoice({
   });
   const liveCaption = stt.caption;
   useEffect(() => {
-    if (!liveCaption || liveCaption.kind !== "interim") return;
+    if (!liveCaption || liveCaption.kind !== "interim" || latest.current.paused) return;
     const { verdict, talking } = judge(liveCaption);
     if (verdict === "interrupt" && talking) latest.current.onBargeIn();
   }, [liveCaption]);
@@ -156,18 +160,18 @@ export function useSessionVoice({
     else setGate("locked");
   }, [enabled, start]);
 
-  // The mic is open while the tutor talks; only the student's own mute closes it.
-  const shouldMute = micMuted({ userMuted });
+  // The mic is open while the tutor talks; only the student's own mute (or a pause) closes it.
+  const shouldMute = micMuted({ userMuted, paused });
   useEffect(() => {
     if (sttState === "listening" && shouldMute) setSttMuted(true);
     else if (sttState === "muted" && !shouldMute) setSttMuted(false);
   }, [sttState, shouldMute, setSttMuted]);
 
-  const status: MicStatus = micStatus({ permission, unavailable, sttState, userMuted });
+  const status: MicStatus = micStatus({ permission, unavailable, sttState, userMuted, paused });
 
   /** Orb click / mic indicator: mute ↔ listen. Unmuting while the tutor talks silences the tutor at once. */
   const toggleMic = useCallback(() => {
-    if (!enabled || status === "denied" || status === "unavailable" || status === "asking" || status === "connecting") return;
+    if (!enabled || paused || status === "denied" || status === "unavailable" || status === "asking" || status === "connecting") return;
     if (status === "off" || status === "error") {
       void start();
       return;
@@ -178,7 +182,7 @@ export function useSessionVoice({
     }
     setUserMuted(false);
     if (shouldBargeIn(floor, speakingId)) latest.current.onBargeIn();
-  }, [enabled, floor, speakingId, start, status]);
+  }, [enabled, floor, paused, speakingId, start, status]);
 
   const interim = stt.caption?.kind === "interim" && status === "listening" ? stt.caption.text.trim() : "";
   // Interim words cut the tutor only through judgeCaption above (an interim copied from the tutor is echo).
