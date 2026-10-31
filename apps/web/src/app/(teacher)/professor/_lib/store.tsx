@@ -1,36 +1,30 @@
 "use client";
-// Owner: Person 1. In-memory teacher workspace (mock). Each action maps to one teacher API route of PR #7,
-// noted next to it, so wiring the real API later only replaces the bodies here.
+// Owner: Person 1. In-memory teacher workspace (mock). Each action notes the teacher API route it will call,
+// so wiring the real API later only replaces the bodies here.
 import { createContext, useContext, useMemo, useState } from "react";
-import { MOCK_CLASS_CONTEXT, MOCK_INSIGHTS, MOCK_MATERIALS, MOCK_SESSIONS, MOCK_STUDENTS } from "./mock";
-import type { ClassContext, Insight, InsightStatus, Material, SessionItem, Student } from "./types";
-
-const OPEN: InsightStatus[] = ["new", "accepted"];
+import { MOCK_CLASS_CONTEXT, MOCK_GAPS, MOCK_INSIGHTS, MOCK_INTERVENTIONS, MOCK_MATERIALS, MOCK_SESSIONS, MOCK_STUDENTS } from "./mock";
+import type { ClassContext, ClassInsight, Gap, Intervention, InterventionStatus, Material, SessionItem, Student } from "./types";
 
 export interface StudentRow extends Student {
   conversations: number;
   last_activity: string | null;
-  open_gaps: number;
+  gaps: Gap[];
 }
 
 interface TeacherStore {
   students: Student[];
   sessions: SessionItem[];
-  insights: Insight[];
+  gaps: Gap[];
+  insights: ClassInsight[];
+  interventions: Intervention[];
   materials: Material[];
   classContext: ClassContext;
   rows: StudentRow[];
-  overview: { students: number; conversations: number; gaps: number; insights: number };
-  setInsightStatus(id: string, status: InsightStatus): void; // PATCH /insights/:id
-  saveClassContext(next: ClassContext): void; // PUT /class-context
-  uploadMaterial(input: { title: string; subject: string; file: File }): Promise<Material>; // POST /materials
+  setInterventionStatus(id: string, status: InterventionStatus): void; // PATCH /interventions/:id (to agree with Person 1)
+  uploadMaterial(input: { title: string; file: File }): Promise<Material>; // POST /materials
 }
 
 const Ctx = createContext<TeacherStore | null>(null);
-
-export function isOpenGap(i: Insight) {
-  return i.kind === "gap" && OPEN.includes(i.status);
-}
 
 /** Counts pages from the PDF bytes (`/Type /Page` objects). Good enough for the mock; the API extracts it. */
 async function countPages(file: File) {
@@ -40,10 +34,12 @@ async function countPages(file: File) {
 
 export function TeacherStoreProvider({ children }: { children: React.ReactNode }) {
   const students = MOCK_STUDENTS;
-  const [insights, setInsights] = useState(MOCK_INSIGHTS);
-  const [materials, setMaterials] = useState(MOCK_MATERIALS);
-  const [classContext, setClassContext] = useState(MOCK_CLASS_CONTEXT);
   const sessions = MOCK_SESSIONS;
+  const gaps = MOCK_GAPS;
+  const insights = MOCK_INSIGHTS;
+  const [interventions, setInterventions] = useState(MOCK_INTERVENTIONS);
+  const [materials, setMaterials] = useState(MOCK_MATERIALS);
+  const classContext = MOCK_CLASS_CONTEXT;
 
   const value = useMemo<TeacherStore>(() => {
     const rows = students.map((s) => {
@@ -52,31 +48,25 @@ export function TeacherStoreProvider({ children }: { children: React.ReactNode }
         ...s,
         conversations: mine.length,
         last_activity: mine.at(-1)?.started_at ?? null,
-        open_gaps: insights.filter((i) => i.student_id === s.id && isOpenGap(i)).length,
+        gaps: gaps.filter((g) => g.student_id === s.id && g.status === "open"),
       };
     });
     return {
       students,
       sessions,
+      gaps,
       insights,
+      interventions,
       materials,
       classContext,
       rows,
-      overview: {
-        students: students.length,
-        conversations: sessions.length,
-        gaps: insights.filter((i) => i.kind === "gap" && i.status !== "dismissed").length,
-        insights: insights.length,
+      setInterventionStatus(id, status) {
+        setInterventions((list) => list.map((i) => (i.id === id ? { ...i, status } : i)));
       },
-      setInsightStatus(id, status) {
-        setInsights((list) => list.map((i) => (i.id === id ? { ...i, status } : i)));
-      },
-      saveClassContext: setClassContext,
-      async uploadMaterial({ title, subject, file }) {
+      async uploadMaterial({ title, file }) {
         const material: Material = {
           id: `mat_${Date.now()}`,
           title,
-          subject,
           pages: await countPages(file),
           status: "processing",
           created_at: new Date().toISOString(),
@@ -89,7 +79,7 @@ export function TeacherStoreProvider({ children }: { children: React.ReactNode }
         return material;
       },
     };
-  }, [students, sessions, insights, materials, classContext]);
+  }, [students, sessions, gaps, insights, interventions, materials, classContext]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

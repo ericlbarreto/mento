@@ -8,7 +8,7 @@ import { UploadMaterialModal } from "../_components/UploadMaterialModal";
 import { Button, Card, Chip, MetricCard, buttonClass } from "../_components/ui";
 import { relativeDate } from "../_lib/format";
 import { useTeacher } from "../_lib/store";
-import type { Material } from "../_lib/types";
+import { SUBJECT, type Material } from "../_lib/types";
 
 const pagesText = (n: number) => (n === 0 ? "páginas: calculando" : `${n} ${n === 1 ? "página" : "páginas"}`);
 
@@ -49,7 +49,7 @@ function EmptyState({ onUpload }: { onUpload: () => void }) {
         </span>
         <p className="-mt-4 rotate-[-2deg] bg-[var(--marker-yellow)] px-4 py-1 font-[family-name:var(--font-board)] text-[24px] shadow-[var(--shadow-card)]">Pronto para ler seus PDFs!</p>
         <Chip tone="danger" className="mt-6">
-          <IconBook size={14} /> Turma · {classContext.grade_level}
+          <IconBook size={14} /> {SUBJECT} · {classContext.grade_level}
         </Chip>
         <h2 className="mt-3 max-w-xl text-[30px] font-extrabold leading-9 tracking-[-0.01em]">Nenhum material adicionado ainda para a turma</h2>
         <p className="mt-3 max-w-xl text-[17px] leading-7 text-[var(--ink-soft)]">
@@ -76,7 +76,7 @@ function EmptyState({ onUpload }: { onUpload: () => void }) {
 function MaterialRow({ material }: { material: Material }) {
   return (
     <Card className="group flex flex-wrap items-center gap-5 p-5 transition-shadow hover:shadow-[var(--shadow-float)] md:flex-nowrap md:px-6">
-      <MaterialTile subject={material.subject} />
+      <MaterialTile />
       <div className="min-w-0 flex-1">
         <Link href={`/professor/materiais/${material.id}`} className="block truncate text-[19px] font-bold leading-7 hover:text-[var(--mento-blue)]">
           {material.title}
@@ -87,8 +87,6 @@ function MaterialRow({ material }: { material: Material }) {
           </span>
           <span aria-hidden="true">•</span>
           <span>Enviado {relativeDate(material.created_at)}</span>
-          <span aria-hidden="true">•</span>
-          <span className="font-[family-name:var(--font-board)] text-[19px] text-[var(--mento-blue)]">{material.subject}</span>
         </p>
       </div>
       <div className="flex items-center gap-3 max-md:w-full max-md:justify-between">
@@ -106,14 +104,13 @@ export function MaterialsView({ forceEmpty }: { forceEmpty: boolean }) {
   const materials = forceEmpty ? [] : store.materials;
   const [uploading, setUploading] = useState(false);
   const ready = materials.filter((m) => m.status === "ready");
-  const subjects = [...new Set(materials.map((m) => m.subject))];
 
   return (
     <>
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-2xl">
           <p className="flex items-center gap-2 text-[14px] font-bold text-[var(--mento-blue)]">
-            <IconBook size={17} /> Acervo didático · Turma · {store.classContext.grade_level}
+            <IconBook size={17} /> Acervo de {SUBJECT} · {store.classContext.grade_level}
           </p>
           <h1 className="mt-1 text-[36px] font-extrabold leading-[44px] tracking-[-0.02em]">Materiais</h1>
           <p className="mt-2 text-[17px] leading-7 text-[var(--ink-soft)]">Livros e apostilas em PDF que o tutor usa para explicar e citar a página exata.</p>
@@ -123,10 +120,9 @@ export function MaterialsView({ forceEmpty }: { forceEmpty: boolean }) {
         </Button>
       </header>
 
-      <section aria-label="Resumo do acervo" className="mb-10 grid gap-4 sm:grid-cols-3">
+      <section aria-label="Resumo do acervo" className="mb-10 grid gap-4 sm:grid-cols-2">
         <MetricCard label="Materiais" value={ready.length} unit={ready.length === 1 ? "pronto" : "prontos"} note={materials.length > ready.length ? `${materials.length - ready.length} sendo preparado` : "disponíveis para o tutor"} icon={<IconBook size={18} />} />
         <MetricCard label="Páginas" value={ready.reduce((n, m) => n + m.pages, 0)} unit="no acervo" note="que o tutor pode citar" icon={<IconFile size={18} />} />
-        <MetricCard label="Matérias" value={subjects.length} unit={subjects.length === 1 ? "matéria" : "matérias"} note={subjects.join(", ") || "nenhuma ainda"} icon={<IconLayers size={18} />} tone="warn" />
       </section>
 
       {materials.length === 0 ? (

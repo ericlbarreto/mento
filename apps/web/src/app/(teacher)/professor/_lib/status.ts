@@ -1,22 +1,24 @@
-// Owner: Person 1. One label per student, derived from their open insights (no score, no ranking).
+// Owner: Person 1. Shared labels for gaps and students (no score, no ranking).
 import type { StudentRow } from "./store";
-import type { Insight } from "./types";
+import type { Gap } from "./types";
+
+export const confidenceLabel = (c: number) => (c >= 0.75 ? "alta" : c >= 0.5 ? "média" : "baixa");
+
+export const evidenceLine = (g: Gap) =>
+  `${g.attempts} ${g.attempts === 1 ? "resposta" : "respostas"} · confiança ${confidenceLabel(g.confidence)}`;
+
+export const ORIGIN_LABEL: Record<Gap["origin"], string> = {
+  stated: "Disse no chat",
+  inferred: "Percebido nas respostas",
+};
 
 export type StudentStatus = { label: string; tone: "danger" | "warn" | "ok" | "neutral" };
 
-export function studentStatus(row: StudentRow, insights: Insight[]): StudentStatus {
+export function studentStatus(row: StudentRow): StudentStatus {
   if (row.conversations === 0) return { label: "Sem conversas", tone: "neutral" };
-  const open = insights.filter((i) => i.student_id === row.id && i.kind === "gap" && (i.status === "new" || i.status === "accepted"));
-  if (open.some((i) => i.severity === "critical")) return { label: "Lacuna ativa", tone: "danger" };
-  if (open.length > 0) return { label: "Em atenção", tone: "warn" };
-  return { label: "Em dia", tone: "ok" };
-}
-
-/** The insight to show next to a student: the most severe open gap, else the latest progress. */
-export function highlight(studentId: string, insights: Insight[]) {
-  const mine = insights.filter((i) => i.student_id === studentId && i.status !== "dismissed");
-  const gaps = mine.filter((i) => i.kind === "gap").sort((a, b) => (a.severity === "critical" ? -1 : 0) - (b.severity === "critical" ? -1 : 0));
-  return gaps[0] ?? mine.filter((i) => i.kind === "progress").at(-1) ?? null;
+  if (row.gaps.length === 0) return { label: "Sem lacunas abertas", tone: "ok" };
+  const n = row.gaps.length;
+  return { label: n === 1 ? "1 lacuna" : `${n} lacunas`, tone: row.gaps.some((g) => g.severity === "critical") ? "danger" : "warn" };
 }
 
 export const firstName = (name: string) => name.split(" ")[0] ?? name;

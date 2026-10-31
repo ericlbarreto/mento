@@ -7,6 +7,7 @@ import { MaterialTile } from "../../_components/MaterialTile";
 import { Card, Chip, buttonClass } from "../../_components/ui";
 import { relativeDate } from "../../_lib/format";
 import { useTeacher } from "../../_lib/store";
+import { SUBJECT } from "../../_lib/types";
 
 export default function MaterialViewer({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -25,7 +26,7 @@ export default function MaterialViewer({ params }: { params: Promise<{ id: strin
 
   const ready = material.status === "ready";
   const details = [
-    ["Matéria", material.subject],
+    ["Matéria", SUBJECT],
     ["Páginas", material.pages === 0 ? "—" : String(material.pages)],
     ["Enviado", relativeDate(material.created_at)],
   ];
@@ -36,7 +37,7 @@ export default function MaterialViewer({ params }: { params: Promise<{ id: strin
         <IconArrowLeft size={18} /> Voltar para Materiais
       </Link>
       <div className="mb-6 flex flex-wrap items-center gap-5">
-        <MaterialTile subject={material.subject} size="lg" />
+        <MaterialTile size="lg" />
         <div className="min-w-0 flex-1">
           <h1 className="text-[30px] font-extrabold leading-9 tracking-[-0.01em]">{material.title}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">

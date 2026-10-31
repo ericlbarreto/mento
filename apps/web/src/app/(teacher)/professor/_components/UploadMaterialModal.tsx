@@ -1,7 +1,6 @@
 "use client";
-// Owner: Person 1. Upload a PDF: drop zone, title (defaults to the file name) and subject.
+// Owner: Person 1. Upload a PDF: drop zone and title (defaults to the file name). The teacher has one subject.
 import { useState } from "react";
-import { SUBJECTS } from "../_lib/mock";
 import { useTeacher } from "../_lib/store";
 import { IconFile, IconUpload } from "./icons";
 import { Button, Modal, cx, inputClass } from "./ui";
@@ -12,7 +11,6 @@ export function UploadMaterialModal({ open, onClose }: { open: boolean; onClose:
   const { uploadMaterial } = useTeacher();
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
-  const [subject, setSubject] = useState(SUBJECTS[0]!);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [sending, setSending] = useState(false);
@@ -20,7 +18,6 @@ export function UploadMaterialModal({ open, onClose }: { open: boolean; onClose:
   const reset = () => {
     setFile(null);
     setTitle("");
-    setSubject(SUBJECTS[0]!);
     setError(null);
   };
   const close = () => {
@@ -45,7 +42,7 @@ export function UploadMaterialModal({ open, onClose }: { open: boolean; onClose:
           if (!file) return;
           setSending(true);
           try {
-            await uploadMaterial({ title: title.trim() || file.name, subject, file });
+            await uploadMaterial({ title: title.trim() || file.name, file });
             close();
           } catch {
             setError("Não foi possível enviar. Tente de novo.");
@@ -96,23 +93,12 @@ export function UploadMaterialModal({ open, onClose }: { open: boolean; onClose:
           </p>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-[1fr_180px]">
-          <div>
-            <label htmlFor="mat-title" className="mb-2 block text-[15px] font-bold">
-              Título
-            </label>
-            <input id="mat-title" value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} placeholder="Ex.: História 8º ano · Roma Antiga" />
-          </div>
-          <div>
-            <label htmlFor="mat-subject" className="mb-2 block text-[15px] font-bold">
-              Matéria
-            </label>
-            <select id="mat-subject" value={subject} onChange={(e) => setSubject(e.target.value)} className={inputClass}>
-              {SUBJECTS.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </select>
-          </div>
+        <div>
+          <label htmlFor="mat-title" className="mb-2 block text-[15px] font-bold">
+            Título do material
+          </label>
+          <input id="mat-title" value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} placeholder="Ex.: Roma Antiga · Capítulo 4" />
+          <p className="mt-1 text-[13px] text-[var(--ink-soft)]">É o nome que aparece para os alunos quando o tutor cita uma página.</p>
         </div>
 
         <div className="flex justify-end gap-3">
