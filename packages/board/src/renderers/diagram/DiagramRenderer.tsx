@@ -57,8 +57,9 @@ export function DiagramRenderer({ element }: RendererProps<"diagram">) {
         viewBox={`0 0 ${view.w} ${view.h}`}
         role="img"
         aria-label={label}
-        className="block h-auto w-full overflow-visible"
-        style={{ aspectRatio: `${view.w} / ${view.h}` }}
+        className="mx-auto block h-auto overflow-visible"
+        // Same scale for every frame: the wide frame (160 units) fills the column, square/tall ones are narrower.
+        style={{ aspectRatio: `${view.w} / ${view.h}`, width: `${Math.min(100, (view.w / 160) * 100)}%` }}
       >
         {highlights.map((h) => {
           const box = drawn.find((d) => d.id === h.shape_id)?.box;
