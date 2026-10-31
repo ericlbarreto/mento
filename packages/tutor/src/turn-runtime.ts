@@ -1,4 +1,4 @@
-import { Action, BoardEditRequest, type Event } from "@mento/contracts";
+import { Action, type BoardEditRequest, type Event, boardEditEvent, boardEditOf, isBoardEditEvent } from "@mento/contracts";
 import { Board } from "./board";
 import type { CatalogEntry } from "./prompt-builder";
 
@@ -32,11 +32,7 @@ export function applyStudentEdit(rt: Runtime, edit: BoardEditRequest): StudentEd
 }
 
 /** The stored event of an applied edit (contracts-spec §18). */
-export function studentEditEvent(edit: BoardEditRequest): { type: "board_element_removed" | "board_element_moved"; payload: unknown } {
-  return edit.op === "remove"
-    ? { type: "board_element_removed", payload: { element_id: edit.element_id, edit_id: edit.edit_id } }
-    : { type: "board_element_moved", payload: { element_id: edit.element_id, column: edit.column, after_id: edit.after_id, edit_id: edit.edit_id } };
-}
+export const studentEditEvent = boardEditEvent;
 
 export function restoreRuntime(events: Event[]): Runtime {
   const rt: Runtime = { board: new Board(), turnNo: 0, verSeq: 0, lastTopic: "", editIds: new Set() };
@@ -55,10 +51,10 @@ export function restoreRuntime(events: Event[]): Runtime {
       rt.openVerification = { verification_id: String(p.verification_id), concept_key: String(p.concept_key) };
     } else if (e.type === "verification_answered" && rt.openVerification?.verification_id === p.verification_id) {
       rt.openVerification = undefined;
-    } else if (e.type === "board_element_removed" || e.type === "board_element_moved") {
+    } else if (isBoardEditEvent(e.type)) {
       // The student's edits, in event order with the tutor actions they refer to.
-      const parsed = BoardEditRequest.safeParse({ ...p, op: e.type === "board_element_removed" ? "remove" : "move" });
-      if (parsed.success) applyStudentEdit(rt, parsed.data);
+      const edit = boardEditOf(e.type, p);
+      if (edit) applyStudentEdit(rt, edit);
     }
   }
   return rt;

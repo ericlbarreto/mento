@@ -1,7 +1,7 @@
 // Rebuilds a reopened session from its stored events (GET /api/sessions/:id): the board actions, the
 // transcript, the open question and the last turn id. Payloads are `unknown` on the wire, so every field is
 // checked; anything malformed is skipped, never thrown.
-import { Action, BoardEditRequest, type Citation, type Event } from "@mento/contracts";
+import { Action, type Citation, type Event, boardEditOf, isBoardEditEvent } from "@mento/contracts";
 import type { BoardEdit } from "../store";
 
 export interface TranscriptLine {
@@ -81,16 +81,14 @@ export function replayEvents(events: readonly Event[]): ReplayResult {
         if (openVerification && openVerification.verification_id === p.verification_id) openVerification = null;
         break;
       }
-      case "board_element_removed":
-      case "board_element_moved": {
-        const parsed = BoardEditRequest.safeParse({ ...p, op: event.type === "board_element_removed" ? "remove" : "move" });
-        if (!parsed.success) break;
-        const { edit_id: _, ...edit } = parsed.data;
+      default: {
+        if (!isBoardEditEvent(event.type)) break;
+        const parsed = boardEditOf(event.type, p);
+        if (!parsed) break;
+        const { edit_id: _, ...edit } = parsed;
         steps.push({ kind: "edit", edit });
         break;
       }
-      default:
-        break;
     }
   }
   return { actions, steps, transcript, openVerification, lastTurnId, tutorActionCount };

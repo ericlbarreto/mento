@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useMemo, useRef } from "react";
 import type { Column } from "@mento/contracts";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { type RendererMap, basicRenderers } from "../renderers";
 import { type BoardStore, useBoardColumn } from "../store";
 import {
@@ -18,13 +18,12 @@ import {
 } from "./editing/context";
 import { columnLabel, useEditor } from "./editing/useEditor";
 import { UndoToast } from "./editing/UndoToast";
-import { ElementFrame } from "./ElementFrame";
+import { COLUMN_PX } from "./columns";
+import { BlockGroup, PinnedLayer, usePinnedLayout } from "./layout";
 import { Pen } from "./Pen";
 import { PAPER_TILE_PX, useCanvasCamera } from "./useCanvasCamera";
 import { createBoardWriter } from "./writer";
 
-// Fixed widths: on the canvas the world has no width to be a percentage of.
-const COLUMN_PX: Record<Column, number> = { main: 680, visuals: 560, side: 400 };
 /** World padding (p-8) on each side of the main column, for the first camera fit. */
 const WORLD_PAD_PX = 32;
 
@@ -78,6 +77,7 @@ export function Board({
     COLUMN_PX.main + 2 * WORLD_PAD_PX,
     writer,
   );
+  usePinnedLayout(worldRef, store);
   const { editor, dragging, announcement, barRef, ghostRef } = useEditor({
     store,
     writer,
@@ -148,6 +148,7 @@ export function Board({
                   editor={editing ? editor : null}
                   dragging={dragging}
                 />
+                <PinnedLayer store={store} renderers={map} />
                 <Pen ref={penRef} />
                 {/* Drag feedback, placed by the editor in world coordinates. */}
                 <div
@@ -200,6 +201,7 @@ export function Board({
                   >
                     Centralizar
                   </button>
+                  {editing && <TidyButton store={store} onTidy={editor.tidy} />}
                 </div>
                 {!following && (
                   <button
@@ -242,11 +244,11 @@ function BoardColumn({
     <section
       aria-label={columnLabel[column]}
       data-column={column}
-      className="flex shrink-0 flex-col gap-5 rounded-(--radius-md) transition-colors duration-(--dur-fast) data-drop-target:bg-[color-mix(in_srgb,var(--mento-blue-soft)_55%,transparent)]"
-      style={{ width: COLUMN_PX[column] }}
+      className="flex w-max shrink-0 flex-col items-start gap-5 rounded-(--radius-md) transition-colors duration-(--dur-fast) data-drop-target:bg-[color-mix(in_srgb,var(--mento-blue-soft)_55%,transparent)]"
+      style={{ minWidth: COLUMN_PX[column] }}
     >
       {ids.map((id) => (
-        <ElementFrame key={id} store={store} id={id} renderers={renderers} />
+        <BlockGroup key={id} store={store} id={id} renderers={renderers} />
       ))}
       {dragging && ids.length === 0 && (
         <div
@@ -258,5 +260,23 @@ function BoardColumn({
         </div>
       )}
     </section>
+  );
+}
+
+/** "Arrumar" (plan G): every block placed elsewhere goes back to the end of its column. Shown only when there is one. */
+function TidyButton({ store, onTidy }: { store: BoardStore; onTidy: () => void }) {
+  const subscribe = useCallback((l: () => void) => store.subscribeFree(l), [store]);
+  const count = () => store.getState().free.length + store.getState().attached.length;
+  if (useSyncExternalStore(subscribe, count, () => 0) === 0) return null;
+  return (
+    <button
+      type="button"
+      className={controlButton}
+      onClick={onTidy}
+      aria-label="Arrumar: devolver os blocos às colunas"
+      title="Devolver os blocos às colunas"
+    >
+      Arrumar
+    </button>
   );
 }

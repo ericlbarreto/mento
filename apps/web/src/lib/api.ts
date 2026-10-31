@@ -8,6 +8,8 @@
 import {
   BoardEditRequest,
   BoardEditResponse,
+  boardEditEvent,
+  isBoardEditEvent,
   CreateSessionRequest,
   CreateSessionResponse,
   EndSessionRequest,
@@ -391,7 +393,7 @@ const mock = (() => {
             present.add(p.args.id);
             known.add(p.args.id);
           }
-        } else if (e.type === "board_element_removed" || e.type === "board_element_moved") {
+        } else if (isBoardEditEvent(e.type)) {
           if (p.edit_id) editIds.add(p.edit_id);
           if (e.type === "board_element_removed" && p.element_id) present.delete(p.element_id);
         }
@@ -399,8 +401,8 @@ const mock = (() => {
       if (editIds.has(edit.edit_id)) return { ok: true, result: "already_applied" };
       if (!known.has(edit.element_id)) throw new ApiError(404, "element_not_found");
       if (!present.has(edit.element_id)) return { ok: true, result: "already_removed" };
-      if (edit.op === "remove") record(s, "board_element_removed", { element_id: edit.element_id, edit_id: edit.edit_id });
-      else record(s, "board_element_moved", { element_id: edit.element_id, column: edit.column, after_id: edit.after_id, edit_id: edit.edit_id });
+      const { type, payload } = boardEditEvent(edit);
+      record(s, type, payload);
       return { ok: true, result: "applied" };
     },
 

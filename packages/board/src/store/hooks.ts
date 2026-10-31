@@ -17,3 +17,10 @@ export function useBoardColumn(store: BoardStore, column: Column): readonly stri
   const get = () => store.getColumn(column);
   return useSyncExternalStore(subscribe, get, get);
 }
+
+/** Pinned element ids (plan G). */
+export function useBoardFree(store: BoardStore): readonly string[] {
+  const subscribe = useCallback((l: () => void) => store.subscribeFree(l), [store]);
+  const get = () => store.getFree();
+  return useSyncExternalStore(subscribe, get, get);
+}

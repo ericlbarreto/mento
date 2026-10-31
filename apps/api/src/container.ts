@@ -128,7 +128,7 @@ function buildEngine(config: Config, repo: TurnRepository, tts: TtsService | nul
     retriever,
     tts,
     draw: buildDraw(config, images),
-    judge: new ClaudeJudge({ llm, model: config.JUDGE_MODEL, repo, retriever, evidence }),
+    judge: new ClaudeJudge({ llm, model: config.JUDGE_MODEL, repo, retriever, evidence, log: (message, extra) => console.warn(`[judge] ${message}`, extra ?? "") }),
     prompts: loadPromptsSync(config.PROMPTS_DIR),
     models: {
       tutor: config.TUTOR_MODEL,

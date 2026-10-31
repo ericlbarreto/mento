@@ -1,10 +1,11 @@
 "use client";
 
 // Owner: Person 2. Student home (Stitch S1, plan §3): greeting + free voice conversation, one study card per
-// subject from the API, and "Continuar de onde parou". Every card opens /session/:id.
+// subject from the API, and "Continuar de onde parou". The voice button scrolls to the subject cards: every
+// conversation belongs to a subject, and each card opens its lessons (new ones start by voice).
 import { useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import type { CreateSessionRequest, SessionSummary, SubjectSummary } from "@mento/contracts";
+import type { SessionSummary, SubjectSummary } from "@mento/contracts";
 import {
   Badge,
   Button,
@@ -26,12 +27,10 @@ import {
   IconZap,
   Modal,
   SimulatedDataBadge,
-  Spinner,
   TopBar,
   cx,
   type TopBarNavItem,
 } from "@mento/ui";
-import { createSession } from "@/lib/api";
 import { HistoryDrawer } from "../../session/_components/history/HistoryDrawer";
 import { Skeleton, StudentGrid, stagger } from "../start/pickers";
 import styles from "../start/start.module.css";
@@ -53,9 +52,6 @@ const SUBJECT_ICONS: Record<SubjectIconName, typeof IconBook> = { landmark: Icon
 const linkClasses =
   "rounded-(--radius-sm) font-bold text-(--mento-blue-strong) underline-offset-4 outline-none hover:underline focus-visible:shadow-(--focus-ring)";
 
-/** Which start action is in flight: "voice" or a subject id. */
-type Starting = string | null;
-
 export function HomeScreen() {
   const router = useRouter();
   const { studentId, students, subjects, latest, retry, pickStudent } = useHomeData();
@@ -67,29 +63,19 @@ export function HomeScreen() {
     setHistorySubject(subject);
     setHistoryOpen(true);
   };
-  const [starting, setStarting] = useState<Starting>(null);
-  const [startError, setStartError] = useState(false);
-  const startingRef = useRef(false);
+  const subjectsHeadingRef = useRef<HTMLHeadingElement>(null);
 
   const student = students.status === "ready" ? students.value.list.find((s) => s.id === studentId) : undefined;
   const simulated = students.status === "ready" && students.value.simulated;
   const serverDown = students.status === "error" || subjects.status === "error" || latest.status === "error";
 
-  const start = async (key: string, req: Omit<CreateSessionRequest, "student_id">) => {
-    // Double-click guard: a ref, because state updates land after the second click.
-    if (!studentId || startingRef.current) return;
-    startingRef.current = true;
-    setStarting(key);
-    setStartError(false);
-    try {
-      const { id } = await createSession({ student_id: studentId, ...req });
-      // Stay busy until the session page replaces this one.
-      router.push(`/session/${id}`);
-    } catch {
-      startingRef.current = false;
-      setStarting(null);
-      setStartError(true);
-    }
+  const goToSubjects = () => {
+    const heading = subjectsHeadingRef.current;
+    if (!heading) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    heading.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    // scroll-mt-24 on the heading clears the sticky 64px top bar. Keyboard and screen-reader users land on the cards too.
+    heading.focus({ preventScroll: true });
   };
 
   const changeStudent = (
@@ -119,20 +105,12 @@ export function HomeScreen() {
           name={student ? firstName(student.name) : null}
           simulated={simulated}
           latest={latest.status === "ready" ? latest.value : null}
-          startingVoice={starting === "voice"}
-          busy={starting !== null || !studentId}
-          onVoice={() => start("voice", { modality: "voice", subject_id: null })}
+          onVoice={goToSubjects}
         />
-
-        {startError && (
-          <p role="alert" className="-mt-8 text-sm font-semibold text-(--accent-ink)">
-            Não foi possível começar a conversa. Tente de novo em instantes.
-          </p>
-        )}
 
         <section aria-labelledby="subjects-heading" className="flex flex-col gap-6">
           <div className="flex flex-col gap-3 border-b border-(--line) pb-5 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
-            <h2 id="subjects-heading" className="text-[clamp(1.75rem,1.3rem+1.4vw,2.5rem)] leading-tight font-extrabold text-balance">
+            <h2 id="subjects-heading" ref={subjectsHeadingRef} tabIndex={-1} className="scroll-mt-24 outline-none text-[clamp(1.75rem,1.3rem+1.4vw,2.5rem)] leading-tight font-extrabold text-balance">
               Cadernos de Estudo do 8º ano
             </h2>
             <p className="max-w-[46ch] text-base text-(--ink-soft) text-pretty">
@@ -141,14 +119,13 @@ export function HomeScreen() {
           </div>
           <SubjectCards
             state={subjects}
-            starting={starting}
-            disabled={starting !== null || !studentId}
+            disabled={!studentId}
             onStart={(s) => openHistory({ id: s.id, name: s.name })}
           />
         </section>
 
         {latest.status === "ready" && latest.value && (
-          <ContinueCard session={latest.value} disabled={starting !== null} onContinue={(id) => router.push(`/session/${id}`)} />
+          <ContinueCard session={latest.value} onContinue={(id) => router.push(`/session/${id}`)} />
         )}
         {latest.status === "ready" && latest.value && (
           <button type="button" aria-haspopup="dialog" onClick={() => openHistory(null)} className={cx(linkClasses, "-mt-8 self-start")}>
@@ -195,15 +172,11 @@ function Hero({
   name,
   simulated,
   latest,
-  startingVoice,
-  busy,
   onVoice,
 }: {
   name: string | null;
   simulated: boolean;
   latest: SessionSummary | null;
-  startingVoice: boolean;
-  busy: boolean;
   onVoice: () => void;
 }) {
   return (
@@ -228,26 +201,22 @@ function Hero({
         <button
           type="button"
           onClick={onVoice}
-          disabled={busy}
-          aria-label="Conversar com o Mento por voz"
-          aria-busy={startingVoice || undefined}
+          aria-label="Conversar com o Mento por voz: escolha uma matéria"
           className={cx(
             "group mt-2 flex w-full max-w-xl items-center gap-4 rounded-(--radius-lg) bg-[linear-gradient(120deg,var(--mento-blue-strong),var(--mento-blue))] p-4 text-left text-white shadow-(--shadow-float) outline-none sm:gap-5 sm:p-5",
             "transition-[transform,box-shadow] duration-(--dur-base) ease-(--ease-out) hover:-translate-y-0.5 hover:shadow-(--shadow-pop) focus-visible:shadow-[var(--focus-ring),var(--shadow-float)] active:translate-y-0",
-            "disabled:cursor-not-allowed disabled:hover:translate-y-0",
-            startingVoice && "cursor-progress",
           )}
         >
           <span aria-hidden="true" className="flex size-12 shrink-0 items-center justify-center rounded-full bg-white/15 sm:size-14">
-            {startingVoice ? <Spinner size={22} /> : <IconMic className="size-6" />}
+            <IconMic className="size-6" />
           </span>
           <span className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="inline-flex w-fit items-center gap-1.5 rounded-(--radius-pill) bg-white/15 px-2.5 py-0.5 text-xs font-bold">
               <IconSparkles className="size-3.5" />
-              Conversa livre por voz
+              Conversa por voz
             </span>
             <span className="text-lg leading-tight font-extrabold sm:text-xl">Conversar com o Mento por voz</span>
-            <span className="text-sm text-white/85">Fale naturalmente e tire dúvidas ao vivo</span>
+            <span className="text-sm text-white/85">Escolha a matéria e tire dúvidas ao vivo</span>
           </span>
           <span
             aria-hidden="true"
@@ -299,12 +268,10 @@ const GRID = "grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
 
 function SubjectCards({
   state,
-  starting,
   disabled,
   onStart,
 }: {
   state: ReturnType<typeof useHomeData>["subjects"];
-  starting: Starting;
   disabled: boolean;
   onStart: (s: SubjectSummary) => void;
 }) {
@@ -336,16 +303,14 @@ function SubjectCards({
     <ul className={GRID} aria-label="Matérias">
       {state.value.map((s, i) => {
         const Icon = SUBJECT_ICONS[subjectIcon(s.key)];
-        const busy = starting === s.id;
         return (
           <li key={s.id} className={styles.fadeUp} style={stagger(i)}>
             <Card
               interactive
               disabled={disabled}
-              aria-busy={busy || undefined}
               aria-label={`Estudar ${s.name} com o Mento`}
               onClick={() => onStart(s)}
-              className={cx("group flex h-full min-h-60 flex-col gap-4 p-6", busy && "disabled:cursor-progress disabled:opacity-100")}
+              className="group flex h-full min-h-60 flex-col gap-4 p-6"
             >
               <span className="flex items-start justify-between gap-3">
                 <span aria-hidden="true" className="flex size-12 items-center justify-center rounded-full bg-(--mento-blue-soft) text-(--mento-blue-strong)">
@@ -360,8 +325,8 @@ function SubjectCards({
                 <span className="line-clamp-3 text-base leading-relaxed text-(--ink-soft)">{s.materials.map((m) => m.title).join(" · ")}</span>
               )}
               <span className="mt-auto flex items-center justify-between border-t border-(--line) pt-4 font-bold text-(--mento-blue-strong)">
-                {busy ? "Abrindo…" : "Estudar com o Mento"}
-                {busy ? <Spinner size={18} /> : <IconArrowRight className="size-5 transition-transform duration-(--dur-fast) group-hover:translate-x-0.5" />}
+                Estudar com o Mento
+                <IconArrowRight className="size-5 transition-transform duration-(--dur-fast) group-hover:translate-x-0.5" />
               </span>
             </Card>
           </li>
@@ -371,7 +336,7 @@ function SubjectCards({
   );
 }
 
-function ContinueCard({ session, disabled, onContinue }: { session: SessionSummary; disabled: boolean; onContinue: (id: string) => void }) {
+function ContinueCard({ session, onContinue }: { session: SessionSummary; onContinue: (id: string) => void }) {
   return (
     <section
       aria-labelledby="continue-heading"
@@ -391,7 +356,7 @@ function ContinueCard({ session, disabled, onContinue }: { session: SessionSumma
         <p className="truncate text-xl font-extrabold">{sessionTitle(session)}</p>
         <p className="text-base text-(--ink-soft)">{sessionSubtitle(session)}</p>
       </div>
-      <Button size="lg" disabled={disabled} onClick={() => onContinue(session.id)} className="shrink-0">
+      <Button size="lg" onClick={() => onContinue(session.id)} className="shrink-0">
         <IconRotateCcw className="size-5" />
         Continuar estudo
       </Button>

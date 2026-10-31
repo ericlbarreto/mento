@@ -8,6 +8,7 @@ import { useBoardWriter } from "./context";
 import { useBoardEditor, useIsSelected } from "./editing/context";
 import { SelectedToolbar } from "./editing/EditToolbar";
 import { HighlightLayer } from "./HighlightLayer";
+import { COLUMN_PX } from "./columns";
 
 /**
  * One board element: subscribes to its own id only, so a new element never re-renders this one.
@@ -55,6 +56,7 @@ export const ElementFrame = memo(function ElementFrame({
   return (
     <div
       data-element-id={element.id}
+      data-board-block
       data-element-type={element.type}
       data-author={element.author}
       data-status={element.status}
@@ -63,7 +65,10 @@ export const ElementFrame = memo(function ElementFrame({
       onFocus={finish}
       data-selected={selected ? "" : undefined}
       className="group relative rounded-(--radius-sm) px-2 py-1 outline-none transition-[box-shadow] duration-(--dur-slow) ease-(--ease-out) focus-visible:shadow-(--focus-ring) data-queued:opacity-0 data-dragging:opacity-30"
-      style={selected ? { outline: "2px solid var(--mento-blue)", outlineOffset: 4 } : undefined}
+      style={{
+        width: COLUMN_PX[element.column],
+        ...(selected ? { outline: "2px solid var(--mento-blue)", outlineOffset: 4 } : {}),
+      }}
     >
       {/* Plan F: the selected block gets an outline (not the focus ring) and its toolbar. */}
       {selected && editor && <SelectedToolbar editor={editor} id={element.id} />}

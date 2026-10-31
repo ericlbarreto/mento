@@ -183,3 +183,35 @@ describe("Board: the tutor tidies and marks passages", () => {
     expect(board.validate(hl("o povo"))).toMatchObject({ ok: false, reason: "text_to_match not found in t" });
   });
 });
+
+describe("Board: placement (plan G)", () => {
+  const board3 = () => Board.fromActions([writeText("a", "<p>A</p>"), writeText("b", "<p>B</p>"), writeText("c", "<p>C</p>")]);
+  const place = (id: string, next_to: string, side: "right" | "left" | "below" | "above" = "right"): Action => ({ id: `act_p_${id}`, name: "place_element", args: { id, next_to, side } });
+  const move = (id: string, after_id: string | null): Action => ({ id: `act_m_${id}`, name: "move_element", args: { id, column: "main", after_id } });
+
+  it("rejects a move that changes nothing, so the reply cannot claim it", () => {
+    const board = board3();
+    expect(board.validate(move("b", "a"))).toMatchObject({ ok: false, reason: expect.stringMatching(/already there.*place_element/) });
+    expect(board.validate(move("a", null))).toMatchObject({ ok: false });
+    expect(board.validate(move("a", "b")).ok).toBe(true);
+  });
+
+  it("attaches a block beside another one, lists it in the snapshot, and refuses chains, itself and unknown ids", () => {
+    const board = board3();
+    expect(board.validate(place("c", "a")).ok).toBe(true);
+    board.apply(place("c", "a"));
+    expect(board.snapshot()).toContain("c | text | main, right of a | C");
+    expect(board.validate(place("b", "c"))).toMatchObject({ ok: false, reason: expect.stringMatching(/use next_to: a/) });
+    expect(board.validate(place("a", "a")).ok).toBe(false);
+    expect(board.validate(place("a", "ghost")).ok).toBe(false);
+  });
+
+  it("a deleted host sends its attached block back to the end of its column; a student place is listed", () => {
+    const board = board3();
+    board.apply(place("c", "a", "below"));
+    board.applyEdit({ op: "remove", element_id: "a" });
+    expect(board.snapshot().split("\n")[1]).toBe("c | text | main | C");
+    board.applyEdit({ op: "place", element_id: "b", x: 300, y: 40 });
+    expect(board.snapshot()).toContain("b | text | main, placed by the student at a free spot | B");
+  });
+});
