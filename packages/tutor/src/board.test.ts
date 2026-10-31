@@ -99,3 +99,59 @@ describe("Board: diagrams", () => {
     expect(board.validate({ id: "u", name: "update_element", args: { id: "forcas", html: "<p>x</p>" } }).ok).toBe(false);
   });
 });
+
+describe("Board: student edits (plan F)", () => {
+  const board3 = () => Board.fromActions([writeText("a", "<p>A</p>"), writeText("b", "<p>B</p>"), writeText("c", "<p>C</p>"), writeText("n", "<p>N</p>", "side")]);
+  const ids = (b: Board) => b.snapshot().split("\n").map((l) => l.split(" | ")[0]);
+
+  it("moves an element after an anchor, to the top with null, and to the end of the column for an unknown anchor", () => {
+    const board = board3();
+    board.applyEdit({ op: "move", element_id: "c", column: "main", after_id: "a" });
+    expect(ids(board)).toEqual(["a", "c", "b", "n"]);
+    board.applyEdit({ op: "move", element_id: "b", column: "main", after_id: null });
+    expect(ids(board)).toEqual(["b", "a", "c", "n"]);
+    board.applyEdit({ op: "move", element_id: "b", column: "side", after_id: "ghost" });
+    expect(board.snapshot()).toBe("a | text | main | A\nc | text | main | C\nn | text | side | N\nb | text | side | B");
+  });
+
+  it("appends new tutor elements at the end of their column, after the student's order", () => {
+    const board = board3();
+    board.applyEdit({ op: "move", element_id: "c", column: "main", after_id: null });
+    board.apply(writeText("d", "<p>D</p>"));
+    expect(ids(board)).toEqual(["c", "a", "b", "d", "n"]);
+  });
+
+  it("keeps a tombstone for a deleted id: actions on it fail, its id cannot be reused, the snapshot names it", () => {
+    const board = board3();
+    expect(board.checkEdit({ op: "remove", element_id: "b" })).toBe("ok");
+    board.applyEdit({ op: "remove", element_id: "b" });
+    expect(board.has("b")).toBe(false);
+    expect(board.removedByStudent("b")).toBe(true);
+    expect(board.snapshot()).toBe("a | text | main | A\nc | text | main | C\nn | text | side | N\nRemoved by the student: b (text)");
+
+    const deleted = "deleted by the student; do not reference or re-create it";
+    expect(board.validate({ id: "h", name: "highlight", args: { target_id: "b", color: "yellow" } })).toEqual({ ok: false, reason: `b: ${deleted}` });
+    expect(board.validate({ id: "c", name: "circle_annotate", args: { target_id: "b", text_to_match: "B", color: "red" } })).toEqual({ ok: false, reason: `b: ${deleted}` });
+    expect(board.validate({ id: "u", name: "update_element", args: { id: "b", html: "<p>x</p>" } })).toEqual({ ok: false, reason: `b: ${deleted}` });
+    expect(board.validate({ id: "r", name: "remove_element", args: { id: "b" } })).toEqual({ ok: false, reason: `b: ${deleted}` });
+    expect(board.validate(writeText("b", "<p>de novo</p>"))).toEqual({ ok: false, reason: `duplicate element id: b (${deleted})` });
+  });
+
+  it("tells a never-seen id from one already removed (by the student or the tutor)", () => {
+    const board = board3();
+    board.applyEdit({ op: "remove", element_id: "a" });
+    board.apply({ id: "r", name: "remove_element", args: { id: "c" } });
+    expect(board.checkEdit({ op: "remove", element_id: "ghost" })).toBe("not_found");
+    expect(board.checkEdit({ op: "remove", element_id: "a" })).toBe("already_removed");
+    expect(board.checkEdit({ op: "move", element_id: "c", column: "main", after_id: null })).toBe("already_removed");
+    expect(board.checkEdit({ op: "move", element_id: "b", column: "main", after_id: null })).toBe("ok");
+  });
+
+  it("caps the removed list in the snapshot and still shows it on an empty board", () => {
+    const board = Board.fromActions(Array.from({ length: 12 }, (_, i) => writeText(`t${i}`, `<p>${i}</p>`)));
+    for (let i = 0; i < 12; i++) board.applyEdit({ op: "remove", element_id: `t${i}` });
+    const lines = board.snapshot().split("\n");
+    expect(lines[0]).toBe("(the board is empty)");
+    expect(lines[1]).toMatch(/^Removed by the student: t2 \(text\), .*t11 \(text\) and 2 more$/);
+  });
+});

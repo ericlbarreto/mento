@@ -495,3 +495,98 @@ describe("TurnEngine.prewarm", () => {
     expect(llm.prewarmed).toBe(1);
   });
 });
+
+describe("TurnEngine: student board edits (plan F)", () => {
+  const write = (id: string, column = "main") => toolEvent("write_text", { id, column, html: `<p>${id}</p>` });
+  const boardOf = (call: { messages: unknown[] } | undefined) => /## Board\n([\s\S]*?)\n\n## /.exec(String((call?.messages[0] as { content: string }).content))?.[1];
+
+  it("stores an edit, dedupes it, and the next turn's board excludes the deleted id and lists the student's order", async () => {
+    const { engine, session, repo, llm } = await setup([
+      [write("a"), write("b"), write("c"), toolEvent("speak", { text: "Pronto." }), stopEvent()],
+      [toolEvent("highlight", { target_id: "a", color: "yellow" }), write("a"), write("d"), toolEvent("speak", { text: "Ok." }), stopEvent()],
+    ]);
+    await run(engine, session, opening);
+    expect(await engine.applyStudentEdit(session, { op: "remove", edit_id: "e1", element_id: "a" })).toBe("applied");
+    expect(await engine.applyStudentEdit(session, { op: "remove", edit_id: "e1", element_id: "a" })).toBe("already_applied");
+    expect(await engine.applyStudentEdit(session, { op: "remove", edit_id: "e2", element_id: "a" })).toBe("already_removed");
+    expect(await engine.applyStudentEdit(session, { op: "move", edit_id: "e3", element_id: "c", column: "main", after_id: null })).toBe("applied");
+    expect(await engine.applyStudentEdit(session, { op: "move", edit_id: "e4", element_id: "ghost", column: "main", after_id: null })).toBe("element_not_found");
+
+    const stored = (await repo.listEvents(session)).filter((e) => e.type.startsWith("board_element"));
+    expect(stored.map((e) => [e.type, e.payload])).toEqual([
+      ["board_element_removed", { element_id: "a", edit_id: "e1" }],
+      ["board_element_moved", { element_id: "c", column: "main", after_id: null, edit_id: "e3" }],
+    ]);
+
+    const { messages } = await run(engine, session, say("continue"));
+    expect(boardOf(llm.calls[1])).toBe("c | text | main | c\nb | text | main | b\nRemoved by the student: a (text)");
+    // the highlight and the re-created "a" are dropped; "d" goes to the end of the column
+    expect(actionNames(messages)).toEqual(["write_text", "speak"]);
+    const written = messages.flatMap((m) => (m.type === "action" && m.action.name === "write_text" ? [m.action.args.id] : []));
+    expect(written).toEqual(["d"]);
+  });
+
+  it("restores the edits after a restart and rejects an unknown session", async () => {
+    const { engine, session, repo } = await setup([[write("a"), write("b"), toolEvent("speak", { text: "Pronto." }), stopEvent()]]);
+    await run(engine, session, opening);
+    await engine.applyStudentEdit(session, { op: "remove", edit_id: "e1", element_id: "a" });
+    const llm2 = new ScriptedLlm([[toolEvent("speak", { text: "Oi." }), stopEvent()]]);
+    const engine2 = new TurnEngine({ llm: llm2, repo, retriever: retriever(), tts: null, draw: noopDraw, judge: noopJudge, prompts, models: { tutor: "m" } });
+    expect(await engine2.applyStudentEdit(session, { op: "remove", edit_id: "e1", element_id: "a" })).toBe("already_applied");
+    expect(await engine2.applyStudentEdit(session, { op: "remove", edit_id: "e9", element_id: "a" })).toBe("already_removed");
+    await run(engine2, session, say("continue"));
+    expect(boardOf(llm2.calls[0])).toBe("b | text | main | b\nRemoved by the student: a (text)");
+    await expect(engine.applyStudentEdit("nope", { op: "remove", edit_id: "e1", element_id: "a" })).rejects.toBeInstanceOf(SessionNotFoundError);
+  });
+
+  it("applies an edit that arrives while a turn is streaming, in order with the tutor's events", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    let reached!: () => void;
+    const atGate = new Promise<void>((r) => (reached = r));
+    const llm: LlmClient = {
+      async *stream() {
+        yield write("a");
+        reached();
+        await gate;
+        yield toolEvent("highlight", { target_id: "a", color: "yellow" });
+        yield write("b");
+        yield toolEvent("speak", { text: "Pronto." });
+        yield stopEvent();
+      },
+    };
+    const { engine, session, repo } = await setup([[stopEvent()]], { llm });
+    const messages: StreamMessage[] = [];
+    const turn = engine.run(session, opening, (m) => messages.push(m), new AbortController().signal);
+    await atGate;
+    expect(await engine.applyStudentEdit(session, { op: "remove", edit_id: "e1", element_id: "a" })).toBe("applied");
+    release();
+    await turn;
+    await engine.idle();
+    expect(actionNames(messages)).toEqual(["write_text", "write_text", "speak"]); // the highlight on the deleted "a" was dropped
+    const order = (await repo.listEvents(session)).map((e) => (e.type === "tutor_action" ? `${(e.payload as { name: string }).name}` : e.type));
+    expect(order).toEqual(["session_started", "write_text", "board_element_removed", "write_text", "speak", "turn_timing"]);
+  });
+
+  it("drops a draw_result for a picture the student deleted while it was being made", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const draw: DrawPipeline = {
+      start: async (a) => {
+        await gate;
+        return [{ type: "action", order: 0, action: { id: "late", name: "draw_result", args: { element_id: a.args.id, url: "/api/gen/x.jpg" } } }];
+      },
+    };
+    const { engine, session, repo } = await setup([[write("a"), toolEvent("draw", { id: "pic", column: "visuals", prompt: "Coliseu", is_structured: false, max_dimensions: { w: 500, h: 400 } }), toolEvent("speak", { text: "Veja." }), stopEvent()]], { draw });
+    const messages: StreamMessage[] = [];
+    const turn = engine.run(session, opening, (m) => messages.push(m), new AbortController().signal);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(await engine.applyStudentEdit(session, { op: "remove", edit_id: "e1", element_id: "pic" })).toBe("applied");
+    release();
+    await turn;
+    await engine.idle();
+    expect(actionNames(messages)).not.toContain("draw_result");
+    const names = (await repo.listEvents(session)).flatMap((e) => (e.type === "tutor_action" ? [(e.payload as { name: string }).name] : []));
+    expect(names).not.toContain("draw_result");
+  });
+});

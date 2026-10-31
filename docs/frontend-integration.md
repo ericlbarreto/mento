@@ -129,10 +129,29 @@ Query `ListSessionsQuery`: `student_id?`, `subject_id?`, `limit?` (1–100, defa
 - **Board:** apply every `tutor_action` event's `payload` (`{ turn_id, action_id, order, name, args }`) in order with the same renderer as live actions, skipping animations and audio. `draw_result` actions are stored too, so images come back (`args.url`).
 - **Transcript:** student lines from `user_message.payload.text` and `verification_answered.payload.answer`; tutor lines from `tutor_action` with `name: "speak"` (`args.text`, `args.sources`).
 - **Open question:** the last `verification_asked` without a later `verification_answered` with the same `verification_id` is still open.
+- **Student edits:** `board_element_removed` / `board_element_moved` events are interleaved with the `tutor_action`s; apply them in event order (see below), so the reopened board shows the student's deletions and order.
 - To **continue** an ended conversation, first `POST /api/sessions/:id/resume`, then send turns to the same `id`. Sessions and their append-only history survive API restarts. Calling `/turn` while `ended_at` is set returns 409 `{ "error": "session_ended" }`.
 - Finish the resumed conversation with `/finish`. The analysis row remains unique per session id: lifecycle-only retries reuse the cached result, while new turns/evidence change the input hash and update the same analysis and open insights instead of duplicating them.
 
 Errors: 404 `session_not_found`, 503 `database_unavailable`.
+
+### Student board edits: `POST /api/sessions/:id/board` → 200 `BoardEditResponse` (plan F, D79)
+
+The student deletes or moves a block. Body `BoardEditRequest`:
+
+```json
+{ "op": "remove", "edit_id": "1f6c…", "element_id": "titulo" }
+{ "op": "move", "edit_id": "9a2b…", "element_id": "nota", "column": "main", "after_id": "titulo" }
+```
+
+- `edit_id` is a client uuid (1–64 chars): resending the same edit answers `{ "ok": true, "result": "already_applied" }` and stores nothing. Retry freely.
+- A move is **absolute**: the element goes to `column`, right after `after_id` (`null` = top of the column). Anchor on the element above the drop slot, never send an index (the server may already hold tutor blocks the student has not seen). An `after_id` the server does not find in that column puts the element at the end.
+- Removing (or moving) an element that is already deleted answers 200 `already_removed`. 404 `element_not_found` only for an id that never existed in the session; 404 `session_not_found`; 400 for a bad body.
+- Works on ended sessions too (no resume needed).
+- Stored events: `board_element_removed { element_id, edit_id }` and `board_element_moved { element_id, column, after_id, edit_id }`, in `GET /api/sessions/:id`.
+- The tutor sees the result on its next round: each column in the student's order, deleted ids as tombstones (it cannot point at or re-create them; a late `draw_result` for a deleted picture is never sent), new blocks appended at the end of their column.
+- Undo has no event: hold the delete client-side for the 6 s toast and send it when the toast closes, on `pagehide` (`editBoard(id, edit, { keepalive: true })` in `apps/web/src/lib/api.ts`) and before sending any turn.
+- Never shown to the teacher or read by the analysis (rule 6). Mock mode (`NEXT_PUBLIC_MOCK_API=1`) stores the event in the in-memory session with the same answers; with `NEXT_PUBLIC_TURN_SOURCE=fixture` edits stay local (fixture turns are not stored).
 
 ## 4. Turns: `POST /api/sessions/:id/turn` (Server-Sent Events)
 
@@ -293,6 +312,7 @@ Dev pages and tools: **`/dev/conversation`** (a full conversation test bench: pi
 | `GET /api/sessions?student_id=&subject_id=&limit=` | | 200 `ListSessionsResponse` | 400, 503 |
 | `GET /api/sessions/:id` | | 200 `SessionDetailResponse` | 404, 503 |
 | `POST /api/sessions/:id/turn` | `TurnRequest` | 200 SSE of `StreamMessage` | 400, 404, 409, 503 |
+| `POST /api/sessions/:id/board` | `BoardEditRequest` | 200 `BoardEditResponse` | 400, 404, 503 |
 | `POST /api/sessions/:id/finish` | `EndSessionRequest` | 200 `FinishSessionResponse` | 400, 404 |
 | `POST /api/sessions/:id/resume` | | 200 `ResumeSessionResponse` | 404 |
 | `POST /api/sessions/:id/end` | `EndSessionRequest` | 200 `{ ok: true }` (compatibility alias) | 400, 404 |

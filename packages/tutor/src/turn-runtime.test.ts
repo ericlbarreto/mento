@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Event } from "@mento/contracts";
-import { OrderedQueue, restoreRuntime } from "./turn-runtime";
+import { OrderedQueue, applyStudentEdit, restoreRuntime } from "./turn-runtime";
 
 const ev = (type: Event["type"], payload: unknown, n = 1): Event => ({ id: String(n), session_id: "s", ts: "2026-10-30T21:00:00.000Z", type, payload });
 const action = (turn: number, name: string, args: unknown, id: string) => ev("tutor_action", { turn_id: `turn_${turn}`, action_id: id, order: 0, name, args });
@@ -28,6 +28,33 @@ describe("restoreRuntime", () => {
     ]);
     expect(rt.openVerification).toBeUndefined();
     expect(rt.turnNo).toBe(1);
+  });
+});
+
+describe("student board edits in the runtime", () => {
+  const text = (id: string, turn = 1) => action(turn, "write_text", { id, column: "main", html: `<p>${id}</p>` }, `act_${id}`);
+
+  it("replays edits in event order with the tutor actions, and remembers their edit ids", () => {
+    const rt = restoreRuntime([
+      text("a"),
+      text("b"),
+      ev("board_element_moved", { element_id: "b", column: "main", after_id: null, edit_id: "e1" }),
+      ev("board_element_removed", { element_id: "a", edit_id: "e2" }),
+      text("c", 2),
+      ev("board_element_moved", { element_id: "c", column: "side", after_id: "ghost", edit_id: "e3" }),
+    ]);
+    expect(rt.board.snapshot()).toBe("b | text | main | b\nc | text | side | c\nRemoved by the student: a (text)");
+    expect([...rt.editIds]).toEqual(["e1", "e2", "e3"]);
+  });
+
+  it("answers applied, already_applied, already_removed and element_not_found", () => {
+    const rt = restoreRuntime([text("a"), text("b")]);
+    expect(applyStudentEdit(rt, { op: "remove", edit_id: "e1", element_id: "a" })).toBe("applied");
+    expect(applyStudentEdit(rt, { op: "remove", edit_id: "e1", element_id: "a" })).toBe("already_applied");
+    expect(applyStudentEdit(rt, { op: "remove", edit_id: "e2", element_id: "a" })).toBe("already_removed");
+    expect(applyStudentEdit(rt, { op: "move", edit_id: "e3", element_id: "ghost", column: "main", after_id: null })).toBe("element_not_found");
+    expect(applyStudentEdit(rt, { op: "move", edit_id: "e4", element_id: "b", column: "side", after_id: null })).toBe("applied");
+    expect(rt.board.get("b")?.column).toBe("side");
   });
 });
 

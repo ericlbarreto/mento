@@ -1,4 +1,4 @@
-import type { Chunk, EventType, StreamMessage, TurnRequest, TurnTiming } from "@mento/contracts";
+import type { BoardEditRequest, Chunk, EventType, StreamMessage, TurnRequest, TurnTiming } from "@mento/contracts";
 import type { Effort, LlmClient, LlmContentBlock, LlmMessage, ThinkingSetting } from "./llm";
 import { LlmError } from "./llm";
 import { commitAction, prepareAction } from "./action-pipeline";
@@ -9,7 +9,7 @@ import type { TurnRepository } from "./repository";
 import { retrievalQuery } from "./retrieval-step";
 import type { ToolBlock } from "./tool-assembler";
 import { SearchMaterialsArgs, modelTools } from "./tools";
-import { OrderedQueue, restoreRuntime, type Runtime } from "./turn-runtime";
+import { OrderedQueue, applyStudentEdit, restoreRuntime, studentEditEvent, type Runtime, type StudentEditResult } from "./turn-runtime";
 import type { Retriever } from "@mento/contracts";
 
 export class SessionNotFoundError extends Error {
@@ -122,6 +122,8 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 export class TurnEngine {
   private readonly runtimes = new Map<string, Runtime>();
+  /** Runtimes being restored from events, so a turn and a board edit arriving together share one. */
+  private readonly loading = new Map<string, Promise<Runtime>>();
   private readonly queues = new Map<string, OrderedQueue>();
   private readonly background = new Set<Promise<unknown>>();
 
@@ -145,12 +147,19 @@ export class TurnEngine {
   }
 
   private async runtime(session_id: string): Promise<Runtime> {
-    let rt = this.runtimes.get(session_id);
-    if (!rt) {
-      rt = restoreRuntime(await this.deps.repo.listEvents(session_id));
-      this.runtimes.set(session_id, rt);
+    const rt = this.runtimes.get(session_id);
+    if (rt) return rt;
+    let pending = this.loading.get(session_id);
+    if (!pending) {
+      pending = this.deps.repo.listEvents(session_id).then((events) => {
+        const restored = restoreRuntime(events);
+        this.runtimes.set(session_id, restored);
+        return restored;
+      });
+      this.loading.set(session_id, pending);
+      pending.finally(() => this.loading.delete(session_id)).catch(() => undefined);
     }
-    return rt;
+    return pending;
   }
 
   private track<T>(p: Promise<T>): void {
@@ -167,6 +176,32 @@ export class TurnEngine {
   private async catalogFor(rt: Runtime, subject: SessionSubject | null): Promise<CatalogEntry[]> {
     rt.catalog ??= await this.deps.repo.getCatalog(subject?.id);
     return rt.catalog;
+  }
+
+  /**
+   * The student deleted or moved a board element (plan F, D79). Applied to the in-memory board at once (the next
+   * round of a streaming turn already sees it) and stored through the session's ordered queue, so it lands between
+   * the tutor actions in the order it happened. Works on ended sessions too. Resolves once the event is stored.
+   */
+  async applyStudentEdit(session_id: string, edit: BoardEditRequest): Promise<StudentEditResult> {
+    const session = await this.deps.repo.getSession(session_id);
+    if (!session) throw new SessionNotFoundError(session_id);
+    const rt = await this.runtime(session_id);
+    const result = applyStudentEdit(rt, edit);
+    if (result !== "applied") return result;
+    const event = studentEditEvent(edit);
+    await new Promise<void>((resolve, reject) =>
+      this.queueFor(session_id).enqueue(() =>
+        this.deps.repo.appendEvent(session_id, event).then(
+          () => resolve(),
+          (err: unknown) => {
+            reject(err);
+            throw err;
+          },
+        ),
+      ),
+    );
+    return result;
   }
 
   forget(session_id: string): void {
@@ -457,6 +492,9 @@ export class TurnEngine {
                 state.emit(m);
                 continue;
               }
+              // The student deleted the picture while it was being made: its result is dropped.
+              const target = m.action.name === "draw_result" ? m.action.args.element_id : m.action.name === "update_element" ? m.action.args.id : null;
+              if (target && state.rt.board.removedByStudent(target)) continue;
               const order = state.order++;
               state.emit({ ...m, order });
               state.persist({ type: "tutor_action", payload: { turn_id: state.turn_id, action_id: m.action.id, order, name: m.action.name, args: m.action.args } });
