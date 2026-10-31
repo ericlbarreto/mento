@@ -1,8 +1,8 @@
 "use client";
 
-// Owner: Person 2. Controls around the orb (Stitch S3): bottom-left pause/resume, mute and captions; bottom-right
+// Owner: Person 2. Controls around the orb (Stitch S3): bottom-left mute and captions; bottom-right
 // the keyboard (opens and focuses the chat) and the second mascot button (inert, no defined purpose, plan §6).
-import { IconButton, IconCaptions, IconKeyboard, IconPause, IconPlay, IconVolume, cx } from "@mento/ui";
+import { IconButton, IconCaptions, IconKeyboard, IconVolume, cx } from "@mento/ui";
 
 const group = "pointer-events-auto flex items-center gap-1 rounded-(--radius-pill) bg-(--card) p-1.5 shadow-(--shadow-float)";
 
@@ -10,15 +10,11 @@ const group = "pointer-events-auto flex items-center gap-1 rounded-(--radius-pil
 const pressedClass = (on: boolean) => (on ? "bg-(--mento-blue-soft) text-(--mento-blue-strong) border-transparent" : "border-transparent");
 
 export function PlaybackControls({
-  paused,
-  onTogglePause,
   muted,
   onToggleMute,
   captionsOn,
   onToggleCaptions,
 }: {
-  paused: boolean;
-  onTogglePause: () => void;
   muted: boolean;
   onToggleMute: () => void;
   captionsOn: boolean;
@@ -26,9 +22,6 @@ export function PlaybackControls({
 }) {
   return (
     <div className={group} role="group" aria-label="Controles da aula">
-      <IconButton aria-label={paused ? "Continuar a aula" : "Pausar a aula"} variant="ghost" onClick={onTogglePause}>
-        {paused ? <IconPlay /> : <IconPause />}
-      </IconButton>
       <IconButton
         aria-label="Silenciar o tutor"
         aria-pressed={muted}
