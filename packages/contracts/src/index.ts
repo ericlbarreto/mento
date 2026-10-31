@@ -11,3 +11,4 @@ export * from "./repository";
 export * from "./speech";
 export * from "./infra";
 export * from "./fixtures";
+export * from "./voice";
