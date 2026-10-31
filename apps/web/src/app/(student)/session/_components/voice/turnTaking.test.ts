@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SpeechPlayer } from "@mento/contracts";
 import { createSessionAudio } from "../sessionAudio";
-import { micMuted, micStatus, shouldBargeIn, tutorHasFloor, voiceOrbState } from "./turnTaking";
+import { judgeCaption, micMuted, micStatus, shouldBargeIn, tutorHasFloor, voiceOrbState } from "./turnTaking";
 
 describe("turn-taking", () => {
   it("keeps the floor with the tutor until script_done AND the queue played the last speak", () => {
@@ -17,11 +17,9 @@ describe("turn-taking", () => {
     expect(tutorHasFloor({ turnOpen: false, scriptDone: false, queueState: "playing" })).toBe(false);
   });
 
-  it("mutes the mic while the tutor talks unless the student opened it, and always when the student muted it", () => {
-    expect(micMuted({ userMuted: false, floor: true, openedDuringTurn: false })).toBe(true);
-    expect(micMuted({ userMuted: false, floor: false, openedDuringTurn: false })).toBe(false);
-    expect(micMuted({ userMuted: false, floor: true, openedDuringTurn: true })).toBe(false);
-    expect(micMuted({ userMuted: true, floor: false, openedDuringTurn: false })).toBe(true);
+  it("keeps the mic open while the tutor talks (the browser cancels the echo); only the student's own mute closes it", () => {
+    expect(micMuted({ userMuted: false })).toBe(false);
+    expect(micMuted({ userMuted: true })).toBe(true);
   });
 
   it("barges in only while the tutor holds the floor or speaks", () => {
@@ -31,9 +29,8 @@ describe("turn-taking", () => {
   });
 
   it("reports the mic state: permission and availability first, then turn-taking", () => {
-    const base = { permission: "granted", unavailable: false, sttState: "listening", userMuted: false, floor: false, openedDuringTurn: false } as const;
+    const base = { permission: "granted", unavailable: false, sttState: "listening", userMuted: false } as const;
     expect(micStatus(base)).toBe("listening");
-    expect(micStatus({ ...base, sttState: "muted", floor: true })).toBe("held");
     expect(micStatus({ ...base, sttState: "muted", userMuted: true })).toBe("muted");
     expect(micStatus({ ...base, permission: "denied", sttState: "idle" })).toBe("denied");
     expect(micStatus({ ...base, unavailable: true, sttState: "error" })).toBe("unavailable");
@@ -98,5 +95,33 @@ describe("session audio", () => {
     expect(player.stop).not.toHaveBeenCalled();
     expect(audio.level()).toBe(0);
     audio.setMuted(false);
+  });
+
+  describe("judgeCaption (speakers instead of headphones)", () => {
+    const tutorText = "Em 27 a.C., o Senado deu a Otávio o título de Augusto.";
+    const during = { tutorActive: true, tutorText };
+
+    it("sends a final caption as the student's message when the tutor is quiet", () => {
+      expect(judgeCaption({ kind: "final", text: "Quem foi Augusto?", tutorActive: false, tutorText })).toBe("send");
+      expect(judgeCaption({ kind: "interim", text: "Quem foi", tutorActive: false, tutorText })).toBe("wait");
+    });
+
+    it("never cuts the tutor on the tutor's own voice picked up by the mic", () => {
+      expect(judgeCaption({ kind: "interim", text: "o Senado deu a Otávio", ...during })).toBe("wait");
+      expect(judgeCaption({ kind: "final", text: "o Senado deu a Otávio o título", ...during })).toBe("drop");
+    });
+
+    it("waits for two words in an interim caption before cutting the tutor", () => {
+      expect(judgeCaption({ kind: "interim", text: "Espera", ...during })).toBe("wait");
+      expect(judgeCaption({ kind: "interim", text: "Espera aí", ...during })).toBe("interrupt");
+    });
+
+    it("a different final caption cuts the tutor and is sent", () => {
+      expect(judgeCaption({ kind: "final", text: "Pare", ...during })).toBe("interrupt_and_send");
+    });
+
+    it("drops an empty final caption while the tutor talks", () => {
+      expect(judgeCaption({ kind: "final", text: "  ", ...during })).toBe("drop");
+    });
   });
 });

@@ -3,6 +3,7 @@
 // the mic indicator show.
 import type { QueueState } from "@mento/board";
 import type { OrbState } from "@mento/ui";
+import { classifyBargeIn } from "@mento/voice/client";
 
 /**
  * The tutor holds the floor from the moment a turn is sent until its script is done AND the queue played it
@@ -15,35 +16,45 @@ export function tutorHasFloor({ turnOpen, scriptDone, queueState }: { turnOpen: 
 }
 
 /**
- * Mic muted while the tutor talks (no headphones assumed, so its voice cannot cut itself), unless the student
- * opened it on purpose during this turn (orb click: barge-in with headphones). Always muted when the student
- * turned it off.
+ * The mic stays open while the tutor talks, so the student can interrupt through speakers (no headphones): the
+ * browser cancels the echo (echoCancellation in startMic) and `judgeCaption` ignores what still leaks through.
+ * Only the student's own mute closes it.
  */
-export function micMuted({ userMuted, floor, openedDuringTurn }: { userMuted: boolean; floor: boolean; openedDuringTurn: boolean }): boolean {
-  if (userMuted) return true;
-  return floor && !openedDuringTurn;
-}
+export const micMuted = ({ userMuted }: { userMuted: boolean }): boolean => userMuted;
 
 /** Barge-in only while the tutor has the floor; otherwise speech is just the student's next message. */
 export const shouldBargeIn = (floor: boolean, speakingId: string | null) => floor || speakingId !== null;
 
-/** What the mic indicator shows. "held": muted by turn-taking while the tutor talks. */
-export type MicStatus = "off" | "asking" | "connecting" | "listening" | "held" | "muted" | "denied" | "unavailable" | "error";
+/** The tutor's voice can still reach the mic (and Deepgram) this long after its last word. */
+export const ECHO_TAIL_MS = 1500;
+
+export type CaptionVerdict = "wait" | "drop" | "send" | "interrupt" | "interrupt_and_send";
+
+/**
+ * What to do with a caption from the speech-to-text stream. While the tutor talks, speech counts only if the words
+ * differ from what the tutor is saying (two words in an interim caption, one in a final one): a caption copied
+ * from the tutor is echo and is dropped. Once the tutor is quiet a final caption is the student's next message.
+ */
+export function judgeCaption({ kind, text, tutorActive, tutorText }: { kind: "interim" | "final"; text: string; tutorActive: boolean; tutorText: string }): CaptionVerdict {
+  if (!tutorActive) return kind === "final" && text.trim() ? "send" : "wait";
+  const { decision } = classifyBargeIn({ transcript: text, kind, tutorText });
+  if (decision === "interrupt") return kind === "final" ? "interrupt_and_send" : "interrupt";
+  return kind === "final" ? "drop" : "wait";
+}
+
+/** What the mic indicator shows. */
+export type MicStatus = "off" | "asking" | "connecting" | "listening" | "muted" | "denied" | "unavailable" | "error";
 
 export function micStatus({
   permission,
   unavailable,
   sttState,
   userMuted,
-  floor,
-  openedDuringTurn,
 }: {
   permission: "unknown" | "asking" | "granted" | "denied";
   unavailable: boolean;
   sttState: "idle" | "connecting" | "listening" | "muted" | "error";
   userMuted: boolean;
-  floor: boolean;
-  openedDuringTurn: boolean;
 }): MicStatus {
   if (permission === "denied") return "denied";
   if (unavailable) return "unavailable";
@@ -52,7 +63,7 @@ export function micStatus({
   if (sttState === "connecting") return "connecting";
   if (sttState === "idle") return "off";
   if (userMuted) return "muted";
-  return micMuted({ userMuted, floor, openedDuringTurn }) ? "held" : "listening";
+  return micMuted({ userMuted }) ? "muted" : "listening";
 }
 
 /** The orb listens when the mic is open and the tutor is not busy (an open question keeps "waiting"). */
@@ -66,7 +77,6 @@ export const MIC_LABEL: Record<MicStatus, string> = {
   asking: "Permitir microfone…",
   connecting: "Conectando o microfone…",
   listening: "Ouvindo você",
-  held: "Microfone em espera",
   muted: "Microfone mudo",
   denied: "Microfone bloqueado",
   unavailable: "Voz indisponível",
