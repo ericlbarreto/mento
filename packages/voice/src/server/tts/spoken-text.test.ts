@@ -22,13 +22,46 @@ describe("toSpokenText", () => {
   });
 
   it("reads powers and integrals", () => {
-    expect(say("Veja: x² tem expoente 2.")).toBe("Veja: x ao quadrado tem expoente 2.");
-    expect(say("a integral de x² vira x³ sobre 3, mais C.")).toBe("a integral de x ao quadrado vira x ao cubo sobre 3, mais C.");
-    expect(say("quanto dá a integral de x⁴?")).toBe("quanto dá a integral de x elevado à quarta?");
-    expect(say("x⁵ sobre 5, mais C.")).toBe("x elevado à quinta sobre 5, mais C.");
-    expect(say("e xⁿ vira xⁿ⁺¹?")).toBe("e x elevado a n vira x elevado a n mais 1?");
-    expect(say("x⁻¹ é o inverso")).toBe("x elevado a menos 1 é o inverso");
-    expect(say("calcule ∫ x² dx agora")).toBe("calcule integral de x ao quadrado d x agora");
+    expect(say("Veja: x² tem expoente 2.")).toBe("Veja: xis ao quadrado tem expoente 2.");
+    expect(say("a integral de x² vira x³ sobre 3, mais C.")).toBe("a integral de xis ao quadrado vira xis ao cubo sobre 3, mais C.");
+    expect(say("quanto dá a integral de x⁴?")).toBe("quanto dá a integral de xis elevado à quarta?");
+    expect(say("x⁵ sobre 5, mais C.")).toBe("xis elevado à quinta sobre 5, mais C.");
+    expect(say("e xⁿ vira xⁿ⁺¹?")).toBe("e xis elevado a n vira xis elevado a n mais 1?");
+    expect(say("x⁻¹ é o inverso")).toBe("xis elevado a menos 1 é o inverso");
+    expect(say("calcule ∫ x² dx agora")).toBe("calcule integral de xis ao quadrado dê xis agora");
+  });
+
+  it("reads equations and formulas inside math runs", () => {
+    expect(say("no sistema x + y = 10 e x − y = 4, as retas se cruzam no ponto (7, 3).")).toBe(
+      "no sistema xis mais ípsilon igual a 10 e xis menos ípsilon igual a 4, as retas se cruzam no ponto (7, 3).",
+    );
+    expect(say("uma incógnita, como em 5 + 2x = 23.")).toBe("uma incógnita, como em 5 mais 2 xis igual a 23.");
+    expect(say("a aceleração: F = m·a. Vou desenhar")).toBe("a aceleração: éfe igual a eme vezes a. Vou desenhar");
+    expect(say("o peso é uma força, P = m × g, medida em newtons")).toBe("o peso é uma força, pê igual a eme vezes gê, medida em newtons");
+    expect(say("Vou desenhar o gráfico de f(x) = x² para você.")).toBe("Vou desenhar o gráfico de éfe de xis igual a xis ao quadrado para você.");
+    expect(say("Por exemplo, f(0) = 0, então")).toBe("Por exemplo, éfe de 0 igual a 0, então");
+    expect(say("para y = 2x de 0 a 2")).toBe("para ípsilon igual a 2 xis de 0 a 2");
+    expect(say("Com F = 10 N e m = 2 kg, a = 10 / 2 = 5 m/s².")).toBe(
+      "Com éfe igual a 10 newtons e eme igual a 2 quilogramas, a igual a 10 dividido por 2 igual a 5 metros por segundo ao quadrado.",
+    );
+    expect(say("O gráfico confirma: 7 + 3 dá 10 e 7 − 3 dá 4.")).toBe("O gráfico confirma: 7 mais 3 dá 10 e 7 menos 3 dá 4.");
+  });
+
+  it("reads x, y and units after numbers outside equations", () => {
+    expect(say("quanto vale y quando x é 2?")).toBe("quanto vale ípsilon quando xis é 2?");
+    expect(say("o par (x, y) e o eixo x.")).toBe("o par (xis, ípsilon) e o eixo xis.");
+    expect(say("um bloco de 1 kg e uma força de 10 N")).toBe("um bloco de 1 quilograma e uma força de 10 newtons");
+    expect(say("um chuveiro de 5500 W gasta 41,25 kWh.")).toBe("um chuveiro de 5500 watts gasta 41,25 quilowatts-hora.");
+  });
+
+  it("leaves words and dates that only look like math", () => {
+    for (const l of [
+      "Ele tinha 24 anos em 30/10/2026 — um dia bem-humorado, 24/7.",
+      "A e B são letras; a e o também; o N do norte.",
+      "Um time de 3 a 2 e um placar de 10 - 0 é goleada?",
+      "Página 12, capítulo 3: e-mail, guarda-chuva, pré-história.",
+    ])
+      expect(say(l)).toBe(l);
   });
 
   it("leaves lines without targets byte-identical", () => {
@@ -38,7 +71,7 @@ describe("toSpokenText", () => {
       "Ele tinha 24 anos em 30/10/2026 — um dia bem-humorado, 24/7.",
       "O 1° colocado e a 2ª turma; a e o são letras; I am fine.",
       "Augusto, César, Otávio: Roma  cresceu\n muito.",
-      "Já é 753 antes de Cristo e x ao quadrado.",
+      "Já é 753 antes de Cristo e xis ao quadrado.",
       "A sala C. e o bloco a. estão longe.",
     ];
     for (const l of lines) expect(say(l)).toBe(l);
