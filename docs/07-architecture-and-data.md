@@ -67,6 +67,23 @@ Whiteboard conversation ─► events + evidence ─► analysis (after each ses
                                   Teacher: Students tab (metrics, student detail)
 ```
 
+### Teacher-side data model as implemented (2026-10-30, D57–D63)
+
+The block above is the conceptual model. What exists in MongoDB today (`packages/db`, snake_case, relations as string ids):
+
+| Collection | Notes |
+|---|---|
+| `students` | `fixture_id`, `name`, `is_simulated`, `profile` (birth date, enrollment, class, guardian), `school_history[]`, `current_term[]`: fictional, read-only, never sent to an LLM |
+| `classcontexts` | singleton: `grade_level`, `description` |
+| `teachermaterials` | teacher uploads: metadata, `status`/`progress`, `outline`, **`sequence`** (lessons with prerequisites), `pages_needing_ocr`, `file {key,size,sha256}`. **Separate from the whiteboard's `materials`** (subjects, catalog) |
+| `teacherchunks` | text pieces of uploaded pages for search and citation checks; text index on `text_norm`, Portuguese. Created only by real PDF ingestion. **Separate from the whiteboard's `chunks`** (embedded passages for hybrid retrieval) |
+| `analyses` | one per session (unique `session_id`): status, `input_hash`, versions, findings, summary, rejections |
+| `insights` | `gap | progress | suggestion` rows with `severity`, `rule`, `diagnosis`, `root_cause`, `metrics`, `evidence`, `status` |
+
+**Whiteboard collections (Person 3), untouched by the teacher code:** `materials`, `chunks` (with embeddings), `subjects`.
+
+**Not in MongoDB yet:** `sessions`, `events`, `evidence`. The analysis reads them through the `ConversationSource` interface (`FileConversationSource` over `fixtures/analysis-lab/conversations.json`); the whiteboard back-end swaps in a MongoDB source later (D59). Shapes: `workstreams/contracts-spec.md` §15.
+
 ## Event contract (single typed schema for all channels)
 
 **Client → server** (stored as events; full list in `workstreams/contracts-spec.md` §3): user messages (`kind` = chat, speech, board_select, quick_action), answers to verifications, interruptions, end of conversation. Audio chunks go to the STT provider, not to our API.

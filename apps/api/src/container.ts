@@ -1,7 +1,15 @@
-import { join } from "node:path";
-import type { Retriever, SessionHistory, SubjectStore } from "@mento/contracts";
-import { MongoChunkStore, MongoEvidenceStore, MongoSubjectStore, MongoTurnRepository, mongoState } from "@mento/db";
-import { createRetriever, embedWithVoyage } from "@mento/sources";
+import path, { join } from "node:path";
+import type { ConversationSource, Retriever, SessionHistory, SubjectStore, TeacherRepository } from "@mento/contracts";
+import { MongoChunkStore, MongoEvidenceStore, MongoRepository, MongoSubjectStore, MongoTurnRepository, mongoState } from "@mento/db";
+import { createRetriever, embedWithVoyage, DiskFileStore, MaterialIngestQueue, type FileStore, type SequenceLlm } from "@mento/sources";
+import {
+  AnalysisService,
+  FileConversationSource,
+  LAB_CONVERSATIONS_PATH,
+  SessionEndedHandler,
+  idMapsFromRepo,
+  type AnalysisWriter,
+} from "@mento/analysis";
 import {
   AnthropicLlm,
   ClaudeJudge,
@@ -18,6 +26,7 @@ import {
 } from "@mento/tutor";
 import { createTtsService, isVoiceConfigError, mintSttToken, type TtsService } from "@mento/voice/server";
 import type { Config } from "./config";
+import { TeacherBus } from "./services/bus";
 import { MongoService } from "./services/mongo.service";
 
 export interface Container {
@@ -41,7 +50,35 @@ export interface Container {
   dbReady: () => boolean;
   /** null when ANTHROPIC_API_KEY is not set: the turn route answers 503. */
   engine: TurnEngine | null;
+
+  // ---- Teacher side (Person 1): students, insights, material uploads ----
+  /** Students, class context, uploaded materials, analyses and insights (MongoDB). Not the whiteboard's `repo`. */
+  teacherRepo: TeacherRepository;
+  /** Conversations for the analysis: a JSON file for now; a MongoDB-backed source replaces it when the whiteboard stores them. */
+  conversations: ConversationSource;
+  analysis: AnalysisService;
+  /** Call `sessionEnded.handle(sessionId)` when a conversation ends to run the analysis (one retry after 30 s). */
+  sessionEnded: SessionEndedHandler;
+  /** Live feed behind `GET /api/stream/teacher`. */
+  bus: TeacherBus;
+  /** Where uploaded PDFs are kept. */
+  fileStore: FileStore;
+  ingest: MaterialIngestQueue;
 }
+
+/** Things only the teacher side needs to replace (tests, a different deployment). */
+export interface TeacherOverrides {
+  /** Optional LLM writer for the analysis; without it the deterministic template writes the text. */
+  writer?: AnalysisWriter;
+  /** Optional LLM used to extract the lesson sequence of an uploaded material. */
+  sequenceLlm?: SequenceLlm;
+  now?: () => string;
+  log?: (message: string, error?: unknown) => void;
+  /** Delay before the single automatic retry of a failed analysis. */
+  retryDelayMs?: number;
+}
+
+export type ContainerOverrides = Partial<Container> & TeacherOverrides;
 
 const isMongoUp = () => mongoState() === "connected";
 
@@ -93,7 +130,12 @@ function buildEngine(config: Config, repo: TurnRepository, tts: TtsService | nul
   });
 }
 
-export function createContainer(config: Config, overrides: Partial<Container> = {}): Container {
+const repoRoot = (rel: string) => path.resolve(import.meta.dirname, "../../..", rel);
+
+export function createContainer(config: Config, allOverrides: ContainerOverrides = {}): Container {
+  const { writer, sequenceLlm, now, log, retryDelayMs, ...overrides } = allOverrides;
+
+  // ---- Whiteboard (Person 3) ----
   const tts = "tts" in overrides ? (overrides.tts ?? null) : buildTts(config);
   const store = new MongoChunkStore();
   const mongoRepo = new MongoTurnRepository(store);
@@ -105,5 +147,32 @@ export function createContainer(config: Config, overrides: Partial<Container> = 
   const engine = "engine" in overrides ? (overrides.engine ?? null) : buildEngine(config, repo, tts, images, evidence, retriever);
   const subjects = overrides.subjects ?? new MongoSubjectStore();
   const dbReady = overrides.dbReady ?? isMongoUp;
-  return { config, mongo: new MongoService(config.MONGODB_URI), mintSttToken, ...overrides, tts, repo, images, evidence, history, retriever, subjects, dbReady, engine };
+
+  // ---- Teacher side (Person 1) ----
+  const teacherRepo = overrides.teacherRepo ?? new MongoRepository();
+  const conversations = overrides.conversations ?? new FileConversationSource(config.CONVERSATIONS_FILE ?? LAB_CONVERSATIONS_PATH, idMapsFromRepo(teacherRepo));
+  const fileStore = overrides.fileStore ?? new DiskFileStore(config.UPLOAD_DIR ? path.resolve(config.UPLOAD_DIR) : repoRoot("data/uploads"));
+  const bus = overrides.bus ?? new TeacherBus();
+  const analysis = overrides.analysis ?? new AnalysisService({ repo: teacherRepo, conversations, writer, now, emit: bus.emit, log });
+  const sessionEnded = overrides.sessionEnded ?? new SessionEndedHandler(analysis, { retryDelayMs: retryDelayMs ?? 30_000, log });
+  const ingest =
+    overrides.ingest ??
+    new MaterialIngestQueue(
+      {
+        repo: teacherRepo,
+        store: fileStore,
+        llm: sequenceLlm,
+        onStatus: (m) => bus.emit({ type: "material_status", material_id: m.id, status: m.status, progress: m.progress }),
+      },
+      log,
+    );
+
+  return {
+    config,
+    mongo: new MongoService(config.MONGODB_URI, config.MONGODB_DB),
+    mintSttToken,
+    ...overrides,
+    tts, repo, images, evidence, history, retriever, subjects, dbReady, engine,
+    teacherRepo, conversations, analysis, sessionEnded, bus, fileStore, ingest,
+  };
 }

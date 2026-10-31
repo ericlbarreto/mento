@@ -102,6 +102,8 @@ The tutor's `speak` (and `write_text`) accepts two optional fields: `purpose: "e
 
 ## 8. Insights, analysis input/output, learner summary (snake_case)
 
+> **The Insight, analysis input/output and learner-summary shapes below are superseded by §15** (implemented in `packages/contracts/src/insights.ts`, 2026-10-30). Kept for history.
+
 ```ts
 type Insight = {
   id: number; student_id: number; session_id: number;
@@ -210,3 +212,21 @@ Source of truth in code: `packages/contracts/src/{subjects,sessions,retrieval,ch
 - **Errors:** every error body is `ErrorResponse = { error, message? }`.
 - Endpoints: `GET /api/subjects`, `GET /api/subjects/:id`, `POST /api/subjects`.
 
+## 15. Teacher-side additions (implemented 2026-10-30, Person 1)
+
+Source of truth in code: `packages/contracts/src/{student,class-context,material,session,session-events,evidence,insights,repository}.ts`. Additive to §2–§9 and to §12–§14 (the whiteboard back-end).
+
+- **Ids** are opaque strings. Relations (`student_id`, `material_id`, …) are stored as strings, not `ObjectId`s, because sessions are not in MongoDB yet (D61). Lab fixtures use readable ids and map to database ids through `fixture_id`.
+- **Events:** every event has `seq` (1-based, unique per session). `session_started` and `verification_asked` carry an optional `lesson_id` (a lesson of `material.sequence`).
+- **Session:** `{ id, student_id, material_id, lesson_id | null, topic?, persona?, modality, status, started_at, ended_at?, end_reason?, is_simulated }`. `lesson_id` = the lesson the student is studying. **Person 3 must fill it** (and `evidence.lesson_id`) from `material.sequence`; without it the diagnosis is `null`.
+- **Evidence:** `lesson_id | null` added (the lesson the question belongs to).
+- **Material:** `sequence: Lesson[]` with `Lesson = { lesson_id, order, title, pages: [start, end], taught_in_class, summary, key_concepts[], activities[], prerequisites[] }`, plus `status` (`queued | processing | ready | failed`), `progress {done,total}`, `outline`, `pages_needing_ocr`, `file {key,size,sha256,mime}`, `fixture_id?`, `is_fixture`.
+- **Student:** `{ fixture_id?, name, is_simulated, profile?, school_history[], current_term[] }` (fictional; never sent to an LLM).
+- **Insight:** `{ id, student_id, session_id, analysis_id, kind: gap|progress|suggestion, severity: critical|medium|positive, rule, rules_version, concept, concept_key, title, body, confidence, evidence[{event_id, quote}], diagnosis: current_topic|prerequisite|outside_material|null, root_cause {lesson_id,title,pages,taught_in_class,reasoning}|null, studying_lesson_id, related_gap_id, material_ref, metrics, source: llm|template, status: new|accepted|dismissed|resolved, created_at, updated_at }`. A `suggestion` row hangs from its gap through `related_gap_id` and inherits its severity.
+- **Analysis:** `{ id, session_id (unique), student_id, status: pending|running|done|failed, attempts, input_hash, rules_version, writer, prompt_version, skip_reason, studying_lesson_id, counters, findings[], summary, rejections[], insight_ids[], error, started_at, finished_at }`.
+- **Rules `rules-v1`** (first match wins): P2_resolved, R3_recurring, R1_repeated_errors, M1_single_error, M2_needs_hints, P1_consistent, P3_first_success. Severity: `R*` critical, `M*` medium, `P*` positive. Findings exist only for concepts that appear in the analysed session; history includes only sessions up to it.
+- **`getLearnerSummary(student_id)`** (for Person 3): top 5 open gaps (most severe first) and 3 recent progress items; concepts and descriptions only.
+- **Teacher API** (all under `/api`): `GET /overview`, `GET|POST /students`, `GET /students/:id`, `GET /students/:id/{insights,evolution,sessions}`, `GET /insights`, `PATCH /insights/:id`, `GET|PUT /class-context`, `GET|POST /sessions/:id/analysis`, `POST /dev/analyze/:sessionId`, `GET /stream/teacher` (SSE), `GET|POST /materials`, `GET /materials/:id`, `GET /files/:id`. Details and examples: `/api/openapi.json`.
+- **Hook for Person 3:** when a conversation ends call `container.sessionEnded.handle(session_id)` (runs the analysis, one retry after 30 s).
+- **Name differences from the whiteboard contracts (§12–§14), kept on purpose so both coexist:** the typed event union read by the analysis is `SessionEvent` (the loose envelope used by the turn route stays `Event`); a text piece of an uploaded material is `TextChunk` (the retrieval passage stays `Chunk`); the pt-BR subject name accepted by the upload is `SubjectName` (a subject document stays `Subject`); the API container exposes the teacher repository as `teacherRepo` and the upload store as `fileStore` (the turn repository stays `repo`).
+- **To reconcile (open):** whiteboard sessions have **no `material_id`** (§12–§14: the tutor searches a subject's materials), while the analysis needs the material's `sequence` and the session's `lesson_id`. Teacher uploads (`teachermaterials` / `teacherchunks`, text search, lesson sequence) and the whiteboard catalog (`materials` / `chunks`, embeddings, subjects) are separate collections today; decision D53 assigns ingestion and retrieval to Person 3.

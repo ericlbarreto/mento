@@ -8,6 +8,8 @@ const app = await buildApp(config);
 try {
   await app.container.mongo.connect();
   app.log.info("MongoDB connected");
+  const recovered = await app.container.ingest.recover();
+  if (recovered > 0) app.log.info({ recovered }, "re-queued interrupted material ingestions");
 } catch (err) {
   app.log.warn({ err }, "MongoDB not reachable: start mongod or set MONGODB_URI. Continuing without database.");
 }

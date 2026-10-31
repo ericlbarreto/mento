@@ -9,10 +9,14 @@ import {
   ListSessionsResponse,
   SessionDetailResponse,
 } from "@mento/contracts";
+import { getAnalysisData, startAnalysis } from "../controllers/teacher.controller";
 
-// Sessions are stored in MongoDB (sessions + events collections).
-// POST /api/sessions: from a subject (its books are the sources) or a free whiteboard (subject_id omitted or null).
-// GET /api/sessions, GET /api/sessions/:id: the history screen and re-opening a conversation.
+// Whiteboard (Person 3): sessions are stored in MongoDB (sessions + events collections).
+//   POST /api/sessions: from a subject (its books are the sources) or a free whiteboard (subject_id omitted or null).
+//   GET /api/sessions, GET /api/sessions/:id: the history screen and re-opening a conversation. POST /sessions/:id/end.
+// Teacher side (Person 1): the analysis of one conversation (POST|GET /sessions/:id/analysis).
+const Params = z.object({ id: z.string() });
+
 const plugin: FastifyPluginAsyncZod = async (app) => {
   app.get("/sessions", { schema: { querystring: ListSessionsQuery, response: { 200: ListSessionsResponse, 503: ErrorResponse } } }, async (request) => {
     return { sessions: await request.server.container.history.listSessions(request.query) };
@@ -61,6 +65,14 @@ const plugin: FastifyPluginAsyncZod = async (app) => {
       return { ok: true };
     },
   );
+
+  app.post(
+    "/sessions/:id/analysis",
+    { schema: { params: Params, querystring: z.object({ force: z.enum(["true", "false"]).optional() }) } },
+    async (request, reply) => reply.code(202).send(await startAnalysis(app.container, request.params.id, request.query.force === "true")),
+  );
+
+  app.get("/sessions/:id/analysis", { schema: { params: Params } }, async (request) => getAnalysisData(app.container, request.params.id));
 };
 
 export default plugin;

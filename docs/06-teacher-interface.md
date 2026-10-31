@@ -1,6 +1,6 @@
 # 06 — Teacher interface
 
-> Status: **rewritten 2026-10-30** for the simplified product model. Should-have item 9 (`01-hackathon-scope.md`). Layout and shared components: `18-ui-references.md` §4; brand: `19-brand-assets.md`. Last updated: 2026-10-30.
+> Status: **rewritten 2026-10-30** for the simplified product model; **backend implemented 2026-10-30** (see "Backend as implemented" below). Should-have item 9 (`01-hackathon-scope.md`). Layout and shared components: `18-ui-references.md` §4; brand: `19-brand-assets.md`. Last updated: 2026-10-30.
 
 ## Principles
 
@@ -85,6 +85,18 @@ Data: `class_context`, `materials`, `students`, `sessions`, `evidence`, `analyse
 | `PATCH /api/insights/:id` | Set status `accepted` / `dismissed` |
 | `GET /api/materials`, `POST /api/materials` (multipart) | List / upload (starts background ingestion) |
 | `GET /api/materials/:id` | Status and metadata |
+
+## Backend as implemented (2026-10-30)
+
+The teacher backend exists and is tested (`pnpm test:rules`, `pnpm e2e:teacher`); the screens are still to be built on top of it.
+
+- **Insights section (critical, medium, positive).** Every insight has a `severity` decided by deterministic rules (D58): *critical* (the same concept wrong in several conversations, or twice in one), *medium* (a first error, a partial answer, or a correct answer only with hints), *positive* (answers right without help, or a previous gap overcome). `GET /api/insights` returns the class-wide section grouped by severity; `GET /api/students/:id/insights` returns the per-student table.
+- **Root cause from the material.** A gap says whether the difficulty is in the lesson being studied, in an **earlier lesson** it depends on (with the lesson, pages and whether it was taught in class), or outside the material (D59). The student detail shows the latest analysis `summary`, e.g. *"Está estudando a crise da República, mas as dúvidas vêm de Formas de governo (Lição 2)"*.
+- **Student detail also shows** the mocked personal data and school history (profile, guardian, 6º/7º ano grades, current term; D57).
+- **Dismissing a gap also dismisses its suggestion;** a dismissed insight is never reopened by later analyses (D63).
+- **Class context** is rejected if it names a student (the tutor reads it in every chat).
+- **Upload** accepts PDFs only, de-duplicates by content, and processes in the background (`queued → processing n/N → ready | failed`); the result is the page chunks, the chapter outline and the lesson sequence.
+- Endpoints: `workstreams/contracts-spec.md` §15 and `/api/openapi.json`.
 
 ## Out of scope for the teacher UI
 

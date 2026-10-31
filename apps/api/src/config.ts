@@ -12,6 +12,8 @@ const schema = z.object({
   API_PORT: z.coerce.number().int().default(4000),
   API_HOST: z.string().default("0.0.0.0"),
   MONGODB_URI: z.string().default("mongodb://localhost:27017/mento"),
+  /** Optional. Without it the database named in MONGODB_URI is used; an Atlas URI with none falls back to `mento` (never `test`). */
+  MONGODB_DB: z.string().optional(),
   WEB_ORIGIN: z.string().default("http://localhost:3000"),
   LOG_LEVEL: z.string().default("info"),
   DEMO_MODE: z.enum(["live", "fixture"]).default("live"),
@@ -31,6 +33,11 @@ const schema = z.object({
   IMAGE_MODEL: z.string().default("gemini-3.1-flash-lite-image"),
   VOYAGE_API_KEY: z.string().default(""),
   PROMPTS_DIR: z.string().default(fileURLToPath(new URL("../../../prompts", import.meta.url))),
+  /** Lab conversations (not stored in MongoDB yet). Default: fixtures/analysis-lab/conversations.json */
+  CONVERSATIONS_FILE: z.string().optional(),
+  /** Where uploaded PDFs are stored. Default: data/uploads at the repo root (git-ignored). */
+  UPLOAD_DIR: z.string().optional(),
+  UPLOAD_MAX_MB: z.coerce.number().positive().default(200),
 });
 
 export type Config = z.infer<typeof schema>;

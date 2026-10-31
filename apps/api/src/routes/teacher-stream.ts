@@ -1,7 +1,19 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
+import { openSse } from "../plugins/sse";
 
-// Owner: Person 1. Endpoints (docs/21-repo-structure.md §5): GET /stream/teacher (SSE live feed: insight_created, session_started, session_ended, material_status)
-// TODO: implement. Keep the route thin: parse with Zod (@mento/contracts), call a package, respond.
-const plugin: FastifyPluginAsyncZod = async (_app) => {};
+// Owner: Person 1. GET /stream/teacher (SSE live feed): `analysis_status`, `insight_created`, `material_status`.
+// The UI keeps a 5 s polling fallback.
+const plugin: FastifyPluginAsyncZod = async (app) => {
+  app.get("/stream/teacher", async (request, reply) => {
+    const sse = openSse(request, reply);
+    sse.send("hello", { ok: true });
+    const unsubscribe = app.container.bus.subscribe((event) => sse.send(event.type, event));
+    await new Promise<void>((resolve) => {
+      sse.signal.addEventListener("abort", () => resolve());
+    });
+    unsubscribe();
+    sse.close();
+  });
+};
 
 export default plugin;
