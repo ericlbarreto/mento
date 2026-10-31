@@ -30,6 +30,8 @@ export interface LlmRequest {
   tools: ToolDef[];
   messages: LlmMessage[];
   max_tokens: number;
+  /** Force the model to call one tool (used by the judge). Changing it invalidates the message cache only. */
+  tool_choice?: { type: "tool"; name: string };
   signal?: AbortSignal;
 }
 

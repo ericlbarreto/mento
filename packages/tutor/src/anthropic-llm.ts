@@ -10,6 +10,17 @@ export function toLlmError(err: unknown): LlmError {
   return new LlmError(message, status, retryable);
 }
 
+export function requestParams(req: Omit<LlmRequest, "signal">) {
+  return {
+    model: req.model,
+    max_tokens: req.max_tokens,
+    system: req.system,
+    tools: req.tools,
+    messages: req.messages,
+    ...(req.tool_choice ? { tool_choice: req.tool_choice } : {}),
+  };
+}
+
 export interface AnthropicLlmOptions {
   apiKey: string;
   baseURL?: string;
@@ -24,23 +35,13 @@ export class AnthropicLlm implements LlmClient {
     this.client = new Anthropic({ apiKey: opts.apiKey, baseURL: opts.baseURL, maxRetries: 0 });
   }
 
-  private params(req: Omit<LlmRequest, "signal">) {
-    return {
-      model: req.model,
-      max_tokens: req.max_tokens,
-      system: req.system,
-      tools: req.tools,
-      messages: req.messages,
-    };
-  }
-
   async *stream(req: LlmRequest): AsyncGenerator<LlmEvent> {
     const assembler = new ToolBlockAssembler();
     let first = false;
     let stop_reason = "end_turn";
     const usage: NonNullable<Extract<LlmEvent, { type: "stop" }>["usage"]> = {};
     try {
-      const stream = this.client.messages.stream(this.params(req) as unknown as Anthropic.MessageStreamParams, { signal: req.signal });
+      const stream = this.client.messages.stream(requestParams(req) as unknown as Anthropic.MessageStreamParams, { signal: req.signal });
       for await (const event of stream) {
         const ev = event as unknown as RawStreamEvent & {
           message?: { usage?: Record<string, number> };
@@ -67,7 +68,7 @@ export class AnthropicLlm implements LlmClient {
 
   async prewarm(req: Omit<LlmRequest, "signal" | "max_tokens">): Promise<void> {
     try {
-      await this.client.messages.create(this.params({ ...req, max_tokens: 0 }) as unknown as Anthropic.MessageCreateParamsNonStreaming);
+      await this.client.messages.create(requestParams({ ...req, max_tokens: 0 }) as unknown as Anthropic.MessageCreateParamsNonStreaming);
     } catch (err) {
       throw toLlmError(err);
     }
