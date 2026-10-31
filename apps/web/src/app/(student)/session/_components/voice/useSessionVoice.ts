@@ -165,17 +165,23 @@ export function useSessionVoice({
 
   const status: MicStatus = micStatus({ permission, unavailable, sttState, userMuted });
 
-  /** Orb click / mic indicator: mute ↔ listen. */
+  /** Orb click / mic indicator: mute ↔ listen. Unmuting while the tutor talks silences the tutor at once. */
   const toggleMic = useCallback(() => {
     if (!enabled || status === "denied" || status === "unavailable" || status === "asking" || status === "connecting") return;
     if (status === "off" || status === "error") {
       void start();
       return;
     }
-    setUserMuted(status === "listening");
-  }, [enabled, start, status]);
+    if (status === "listening") {
+      setUserMuted(true);
+      return;
+    }
+    setUserMuted(false);
+    if (shouldBargeIn(floor, speakingId)) latest.current.onBargeIn();
+  }, [enabled, floor, speakingId, start, status]);
 
   const interim = stt.caption?.kind === "interim" && status === "listening" ? stt.caption.text.trim() : "";
+  // Interim words cut the tutor only through judgeCaption above (an interim copied from the tutor is echo).
 
   return {
     gate,
