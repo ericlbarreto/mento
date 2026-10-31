@@ -15,3 +15,5 @@ export * from "./turn-runtime";
 export * from "./images/gemini-image";
 export * from "./images/image-store";
 export * from "./images/draw-pipeline";
+export * from "./judge/evidence";
+export * from "./judge/claude-judge";
