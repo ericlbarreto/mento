@@ -136,17 +136,18 @@ describe("resolveDiagram: function graph", () => {
   it("maps data units into the plot area, y up", () => {
     // x = 0 is the middle of the x axis; the y axis crosses there.
     expect(axes.y_axis.x1).toBeCloseTo((axes.x_axis.x1 + axes.x_axis.x2) / 2, 1);
-    const first = curve.points[0]!;
-    const middle = curve.points[6]!;
-    expect(first[1]).toBeLessThan(middle[1]); // f(-3) = 9 is higher on screen than f(0) = 0
-    expect(curve.points.map((p) => p[0])).toEqual([...curve.points.map((p) => p[0])].sort((a, b) => a - b));
+    const [, firstY] = curve.points[0] as [number, number];
+    const [, middleY] = curve.points[6] as [number, number];
+    expect(firstY).toBeLessThan(middleY); // f(-3) = 9 is higher on screen than f(0) = 0
+    const xs = curve.points.map((p) => p[0] as number);
+    expect(xs).toEqual([...xs].sort((a, b) => a - b));
     expect(curve.smooth).toBe(true);
   });
 
   it("puts the point on the curve and labels the ticks", () => {
-    const at2 = curve.points[10]!; // x = 2
-    expect(point.x).toBeCloseTo(at2[0], 1);
-    expect(point.y).toBeCloseTo(at2[1], 1);
+    const [x2, y2] = curve.points[10] as [number, number]; // x = 2
+    expect(point.x).toBeCloseTo(x2, 1);
+    expect(point.y).toBeCloseTo(y2, 1);
     expect(axes.ticks.filter((t) => t.axis === "x").map((t) => t.label.text)).toEqual(["−3", "−2", "−1", "1", "2", "3"]);
     expect(axes.x_label?.text).toBe("x");
     expect(axes.y_label?.text).toBe("f(x)");
