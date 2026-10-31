@@ -7,7 +7,7 @@
 ## Prompt (verbatim)
 
 ```text
-Eu quero que você crie uma branch a partir da minha. O Mateus fez alguns PRs lá na questão de insight.  É o seguinte: toda vez eu quero que você desenvolva dois endpoints:  
+Eu quero que você crie uma branch a partir da minha. O Mateus fez alguns PRs lá na questão de insight.  É o seguinte: toda vez eu quero que você desenvolva dois endpoints:
 
 - O endpoint de encerrar sessão (`/finish` ou alguma coisa do tipo). O `finish` vai chamar o endpoint que o Matheus fez, que é o endpoint para gerar os insights. Toda vez que eu for fazer um `finish` eu vou chamar esse endpoint e gerar os insights.
 
