@@ -6,10 +6,10 @@
 
 | Item | Where |
 |---|---|
-| Open PR | https://github.com/ericlbarreto/mento/pull/8, branch `feat/whiteboard-history` (PR #5 with the whole back-end is already merged into `main`) |
+| Code | **`main`**: PR #5 (whole back-end) and PR #8 (MongoDB conversations, history, Haiku tutor, teaching loop) are merged. Start new work on a new branch from `main` |
 | Commit style | `feat(whiteboard): <what you did>`, **no co-author lines** (founder's rule) |
-| Prompt log | `prompts/sessions/03-whiteboard-backend/` (one file per founder prompt, verbatim, plus `log.md`) |
-| Decisions | `docs/10-decisions.md` D48–D55 are this lane's |
+| Prompt log | `prompts/sessions/03-whiteboard-backend/`: `all-prompts.md` (every founder prompt of the session, verbatim, in order), numbered entries with what was done, `log.md` index |
+| Decisions | `docs/10-decisions.md` D48–D56 are this lane's |
 | Front-end guide | `docs/frontend-integration.md` (every route, SSE message, history, voice) |
 | Teacher-side data guide | `docs/teacher-data-integration.md` |
 | Model latency research | `docs/superpowers/research/2026-10-30-tutor-model-latency.md` |
@@ -80,3 +80,12 @@ Measured result: see §6.
 - Take the ~0.8 s Voyage query embedding off the critical path (first action p50 is 1.8 s; target 1.5 s).
 - If Haiku still writes thin lessons after the prompt change, try Sonnet 5.5 with `TUTOR_THINKING=between_tools` (~2 s to the first action, fuller scripts) and compare in `/dev/conversation`.
 - `getClassContext` and `getLearnerSummary` in `MongoTurnRepository` still return defaults: Person 1 owns the class and learner data.
+
+## 8. Continuing with another AI tool
+
+1. `git checkout main && git pull && pnpm install`. Copy `.env` from the founder (never commit it; names in `.env.example`).
+2. Read, in order: `AGENTS.md` (repo rules), this file, `workstreams/03-whiteboard-backend.md`, the spec, `docs/10-decisions.md` D48–D56.
+3. Run `pnpm test`, `pnpm dev`, then `/dev/conversation` (§3) to see the current state.
+4. Keep the rules of this lane: repo files in English, product text in pt-BR; commits `feat(whiteboard): …` with no co-author lines; log every founder prompt verbatim in `prompts/sessions/03-whiteboard-backend/` (new numbered entry + a row in `log.md`); update `docs/10-decisions.md` when a decision changes.
+5. Where to change the tutor: behaviour in `prompts/base.md` and `prompts/subjects/*.md` (loaded at API start: restart the API after editing); reply continuation and validation in `packages/tutor/src/turn-engine.ts`; model settings in `.env` (`TUTOR_MODEL`, `TUTOR_THINKING`, `TUTOR_EFFORT`).
+
