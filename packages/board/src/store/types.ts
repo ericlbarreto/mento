@@ -18,9 +18,12 @@ export type Author = "tutor" | "student";
 export type HighlightColor = z.infer<typeof HighlightArgs>["color"];
 export type CircleColor = z.infer<typeof CircleAnnotateArgs>["color"];
 
-/** `shape_id`: the annotation targets one shape of a diagram instead of the whole element / a text match. */
+/**
+ * `text_to_match` on a highlight: only that passage is marked (several passages coexist); without it the whole
+ * block is.
+ * `shape_id`: the annotation targets one shape of a diagram instead of the whole element / a text match. */
 export type Annotation =
-  | { kind: "highlight"; color: HighlightColor; action_id: string; shape_id?: string }
+  | { kind: "highlight"; color: HighlightColor; action_id: string; shape_id?: string; text_to_match?: string }
   | { kind: "circle"; color: CircleColor; text_to_match: string; action_id: string; shape_id?: string };
 
 /** `draw` placeholder and its late result share one shape; `type` is image (url) or svg (streamed). */

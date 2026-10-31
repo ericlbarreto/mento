@@ -79,9 +79,11 @@ export function applyAction(state: BoardState, action: BoardAction, ctx: ApplyCo
       const el = state.elements.get(action.args.target_id);
       if (!el) return (warn(`unknown target "${action.args.target_id}"`), state);
       const shape = action.args.shape_id ? { shape_id: action.args.shape_id } : {};
+      // Passage highlight (read loosely until `highlight.text_to_match` lands in @mento/contracts).
+      const passage = action.name === "highlight" ? passageOf(action.args) : undefined;
       const annotation: Annotation =
         action.name === "highlight"
-          ? { kind: "highlight", color: action.args.color, action_id: action.id, ...shape }
+          ? { kind: "highlight", color: action.args.color, action_id: action.id, ...shape, ...(passage ? { text_to_match: passage } : {}) }
           : { kind: "circle", color: action.args.color, text_to_match: action.args.text_to_match, action_id: action.id, ...shape };
       return replace(state, { ...el, annotations: [...el.annotations, annotation] });
     }
@@ -100,6 +102,21 @@ export function applyAction(state: BoardState, action: BoardAction, ctx: ApplyCo
       );
     }
   }
+}
+
+function passageOf(args: object): string | undefined {
+  const t = (args as { text_to_match?: unknown }).text_to_match;
+  return typeof t === "string" && t.trim().length > 0 && t.length <= 120 ? t : undefined;
+}
+
+/**
+ * The highlights drawn on a block's text: the latest whole-block marker, then every passage marker (they
+ * coexist, each in its color). Diagram-shape highlights are drawn by the diagram itself.
+ */
+export function visibleHighlights(annotations: readonly Annotation[]): Extract<Annotation, { kind: "highlight" }>[] {
+  const marks = annotations.filter((a): a is Extract<Annotation, { kind: "highlight" }> => a.kind === "highlight" && !a.shape_id);
+  const whole = marks.findLast((a) => !a.text_to_match);
+  return [...(whole ? [whole] : []), ...marks.filter((a) => a.text_to_match)];
 }
 
 /** Replays a list of actions from an empty or given board (used by tests and session resume). */

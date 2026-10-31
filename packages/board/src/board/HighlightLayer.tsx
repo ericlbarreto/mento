@@ -4,6 +4,7 @@ import { type RefObject, useLayoutEffect, useState } from "react";
 import type { HighlightColor } from "../store";
 import { useBoardWriter } from "./context";
 import { type Box, groupLines } from "./handwriting";
+import { findTextRange } from "./textMatch";
 
 // Marker hues from docs/frontend-rendering-guide.md §4.5; multiplied over the paper so the ink stays on top.
 const marker: Record<HighlightColor, string> = {
@@ -16,8 +17,12 @@ const marker: Record<HighlightColor, string> = {
 const ragged =
   "polygon(2px 6%, calc(100% - 1px) 0, 100% 38%, calc(100% - 2px) 72%, calc(100% - 0.5px) 100%, 1px 94%, 0 58%, 1.5px 26%)";
 
-/** Line boxes of the element's text, in the frame's (untransformed) coordinates. Falls back to the whole content. */
-function measureLines(content: HTMLElement, frame: HTMLElement): Box[] {
+/**
+ * Line boxes of the element's text (or only of the `passage`, matched like circle_annotate: case/accent-insensitive,
+ * across inline tags), in the frame's (untransformed) coordinates. The whole text falls back to the whole content;
+ * a passage that is not found marks nothing.
+ */
+export function measureLines(content: HTMLElement, frame: HTMLElement, passage?: string): Box[] {
   const f = frame.getBoundingClientRect();
   const scale = frame.offsetWidth > 0 ? f.width / frame.offsetWidth : 1;
   const local = (r: DOMRect): Box => ({
@@ -27,6 +32,11 @@ function measureLines(content: HTMLElement, frame: HTMLElement): Box[] {
     right: (r.right - f.left) / scale,
   });
   const target = content.querySelector<HTMLElement>("[data-board-write]") ?? content;
+  if (passage) {
+    const range = findTextRange(target, passage);
+    const rects = range ? [...range.getClientRects()].filter((r) => r.width > 0).map(local) : [];
+    return rects.length > 0 ? groupLines(rects).lines : [];
+  }
   const walker = target.ownerDocument.createTreeWalker(target, 4 /* NodeFilter.SHOW_TEXT */);
   const range = target.ownerDocument.createRange();
   const rects: Box[] = [];
@@ -40,18 +50,22 @@ function measureLines(content: HTMLElement, frame: HTMLElement): Box[] {
 }
 
 /**
- * `highlight` as a marker swept line by line under the ink (lower 60% of each line). The board's pen animates the
- * sweep; it renders swept already when restored, at mount or with reduced motion.
+ * `highlight` as a marker swept line by line under the ink (lower 60% of each line): the whole text, or only the
+ * matched passage. The board's pen animates the sweep; it renders swept already when restored, at mount or with
+ * reduced motion.
  */
 export function HighlightLayer({
   contentRef,
   action_id,
   color,
+  textToMatch,
   version,
 }: {
   contentRef: RefObject<HTMLElement | null>;
   action_id: string;
   color: HighlightColor;
+  /** Only this passage (highlight.text_to_match). */
+  textToMatch?: string;
   version: unknown;
 }) {
   const writer = useBoardWriter();
@@ -61,13 +75,13 @@ export function HighlightLayer({
     const content = contentRef.current;
     const frame = content?.offsetParent as HTMLElement | null | undefined;
     if (!content || !frame) return;
-    const measure = () => setLines(measureLines(content, frame));
+    const measure = () => setLines(measureLines(content, frame, textToMatch));
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(content);
     void document.fonts?.ready.then(measure);
     return () => ro.disconnect();
-  }, [contentRef, version]);
+  }, [contentRef, version, textToMatch]);
 
   const pending = writer?.isMarkPending(action_id) ?? false;
   return (

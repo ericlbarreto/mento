@@ -2,7 +2,7 @@
 
 import { type ComponentType, memo, useLayoutEffect, useMemo, useRef } from "react";
 import type { RendererMap, RendererProps } from "../renderers";
-import { type Annotation, type BoardStore, useBoardElement } from "../store";
+import { type Annotation, type BoardStore, useBoardElement, visibleHighlights } from "../store";
 import { CircleLayer } from "./CircleLayer";
 import { useBoardWriter } from "./context";
 import { useBoardEditor, useIsSelected } from "./editing/context";
@@ -45,8 +45,8 @@ export const ElementFrame = memo(function ElementFrame({
   );
   if (!element) return null;
   const Renderer = renderers[element.type] as ComponentType<RendererProps> | undefined;
-  // The latest highlight is the marker on the element (a shape_id highlight is drawn inside the diagram).
-  const highlight = element.annotations.findLast((a) => a.kind === "highlight" && !a.shape_id);
+  // The latest whole-block marker plus every passage marker (each in its color).
+  const highlights = visibleHighlights(element.annotations);
   // Touching a block that is being written finishes the writing (click-and-ask sees the whole text anyway).
   const finish = () => {
     if (writer?.isWriting(element.id)) writer.finishAll();
@@ -68,15 +68,16 @@ export const ElementFrame = memo(function ElementFrame({
       {/* Plan F: the selected block gets an outline (not the focus ring) and its toolbar. */}
       {selected && editor && <SelectedToolbar editor={editor} id={element.id} />}
       <div ref={contentRef}>{Renderer ? <Renderer element={element} /> : null}</div>
-      {highlight?.kind === "highlight" && (
+      {highlights.map((h) => (
         <HighlightLayer
-          key={highlight.action_id}
+          key={h.action_id}
           contentRef={contentRef}
-          action_id={highlight.action_id}
-          color={highlight.color}
+          action_id={h.action_id}
+          color={h.color}
+          textToMatch={h.text_to_match}
           version={element.data}
         />
-      )}
+      ))}
       <CircleLayer contentRef={contentRef} circles={circles} version={element.data} />
       {element.outside_material && (
         <span className="mt-1 inline-flex rounded-(--radius-sm) bg-(--accent-soft) px-2 py-0.5 text-xs font-bold text-(--accent-ink) transition-opacity duration-200 group-data-writing:opacity-0">
