@@ -2,7 +2,8 @@
 
 // Client side of the whiteboard: mounts the board and plays the tutor's turns from the API.
 // Captions, chat and the orb are later tracks; this shows a plain caption line and the error state.
-import { Board, type TurnRequest, useTurnPlayer } from "@mento/board";
+import type { TurnRequest } from "@mento/contracts";
+import { Board, useTurnPlayer } from "@mento/board";
 import { Button } from "@mento/ui";
 import { useEffect, useRef, useState } from "react";
 import { API_URL, MOCK_API, streamTurn } from "@/lib/api";

@@ -1,40 +1,37 @@
 "use client";
 
-// Owner: Person 2. End-of-conversation lifecycle (workstreams/02 "Start screen and session lifecycle"):
-// manual end, idle timeout and tab close (sendBeacon). Ends a session at most once per mount.
+// Owner: Person 2. End-of-conversation lifecycle (decision D63): the student ends it explicitly, or the tab is
+// closed. There is no client idle timer; the server ends a session after 60 min idle. Ends at most once per mount.
 import { useCallback, useEffect, useRef } from "react";
-import type { SessionEndReason } from "@mento/board";
+import type { SessionEndReason } from "@mento/contracts";
 import { endSession as apiEndSession } from "@/lib/api";
 
 export type EndSessionFn = typeof apiEndSession;
 
-/** Window events that count as student activity for the idle timeout. */
-const ACTIVITY_EVENTS = ["pointerdown", "pointermove", "keydown", "input", "wheel", "touchstart"] as const;
-
 export function useEndSession({
   sessionId,
-  idleMs,
-  paused = false,
   onEnded,
   end = apiEndSession,
 }: {
   sessionId: string;
-  idleMs: number;
-  /** True while the tutor streams or speaks: the idle timer stops and restarts from zero when it turns false. */
-  paused?: boolean;
-  /** Called after a manual or idle end succeeds (not after the tab-close beacon). */
+  /** Called after an explicit end succeeds (not after the tab-close request). */
   onEnded: (reason: SessionEndReason) => void;
   /** Injected for the dev demo page; defaults to the API client. */
   end?: EndSessionFn;
 }) {
+  /** Ended explicitly: nothing else is sent from this mount. */
   const ended = useRef(false);
-  // Latest callbacks without re-subscribing the window listeners on every render.
+  /** The tab-close request went out for the current hidden period. */
+  const closeSent = useRef(false);
+  /** A navigation started by this app is in progress (not a tab close). */
+  const navigating = useRef(false);
+  // Latest callbacks without re-subscribing the document listeners on every render.
   const latest = useRef({ onEnded, end });
   useEffect(() => {
     latest.current = { onEnded, end };
   });
 
-  /** Ends the session once. Throws (and allows a retry) if a non-beacon call fails. */
+  /** Ends the session once. Throws (and allows a retry) if the call fails. */
   const endOnce = useCallback(
     async (reason: SessionEndReason) => {
       if (ended.current) return;
@@ -50,52 +47,39 @@ export function useEndSession({
     [sessionId],
   );
 
-  // Idle timeout: one timer that re-arms itself for the remaining time instead of resetting on every event.
+  // Tab close: the page turns hidden. A refresh also unloads the page, and until resume after end (D62) lands
+  // that would end the session too, so the request goes only on visibilitychange → hidden while this app is not
+  // navigating. It uses fetch keepalive (reason "beacon"), which outlives the page.
   useEffect(() => {
-    if (paused) return;
-    let lastActivity = Date.now();
-    let timer: ReturnType<typeof setTimeout>;
-    const markActive = () => {
-      lastActivity = Date.now();
-    };
-    const check = () => {
-      const idleFor = Date.now() - lastActivity;
-      if (idleFor >= idleMs) {
-        endOnce("idle_timeout").catch(() => {
-          // Network hiccup: keep watching; the next idle window tries again.
-          lastActivity = Date.now();
-          timer = setTimeout(check, idleMs);
-        });
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        // Back on the tab (or from the bfcache): a later close must be able to fire again.
+        navigating.current = false;
+        closeSent.current = false;
         return;
       }
-      timer = setTimeout(check, idleMs - idleFor);
+      if (ended.current || closeSent.current || navigating.current) return;
+      closeSent.current = true;
+      void latest.current.end(sessionId, "beacon", { keepalive: true }).catch(() => undefined);
     };
-    timer = setTimeout(check, idleMs);
-    for (const type of ACTIVITY_EVENTS) window.addEventListener(type, markActive, { passive: true, capture: true });
+    // Same-origin link clicks are navigations within the app, not a tab close.
+    const onClick = (e: MouseEvent) => {
+      const link = e.target instanceof Element ? e.target.closest("a[href]") : null;
+      if (link instanceof HTMLAnchorElement && link.origin === window.location.origin && !link.target) navigating.current = true;
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    document.addEventListener("click", onClick, { capture: true });
     return () => {
-      clearTimeout(timer);
-      for (const type of ACTIVITY_EVENTS) window.removeEventListener(type, markActive, { capture: true });
-    };
-  }, [idleMs, paused, endOnce]);
-
-  // Tab close / navigation away: fire-and-forget beacon, skipped if the session already ended.
-  useEffect(() => {
-    const onPageHide = () => {
-      if (ended.current) return;
-      ended.current = true;
-      void latest.current.end(sessionId, "beacon", { beacon: true });
-    };
-    // Back from the bfcache: the page is live again, so a later close or idle end must be able to fire.
-    const onPageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) ended.current = false;
-    };
-    window.addEventListener("pagehide", onPageHide);
-    window.addEventListener("pageshow", onPageShow);
-    return () => {
-      window.removeEventListener("pagehide", onPageHide);
-      window.removeEventListener("pageshow", onPageShow);
+      document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener("click", onClick, { capture: true });
     };
   }, [sessionId]);
 
-  return { endNow: () => endOnce("user_left") };
+  return {
+    endNow: (reason: SessionEndReason = "user_left") => endOnce(reason),
+    /** Call before a programmatic navigation (router.push, window.location) so it is not taken for a tab close. */
+    markNavigating: () => {
+      navigating.current = true;
+    },
+  };
 }

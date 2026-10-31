@@ -1,5 +1,5 @@
 // Default action handlers (docs/16 §3.3). Later tracks override one by passing `handlers` to the queue.
-import type { Action } from "../protocol";
+import type { Action } from "@mento/contracts";
 import type { HandlerContext, HandlerMap } from "./types";
 
 /** Apply to the board, then wait for the action's reveal animation (if one is registered). */
@@ -13,8 +13,17 @@ export const defaultHandlers: HandlerMap = {
   speak: async (action, ctx) => {
     const { text, style, sources, outside_material, purpose, audio_url } = action.args;
     ctx.setCaption({ action_id: action.id, text, sources, outside_material, purpose });
-    if (audio_url && ctx.audio) await ctx.audio.play(audio_url, ctx.signal);
-    else await ctx.speech.speak(text, { style });
+    if (audio_url && ctx.audio) {
+      try {
+        await ctx.audio.play(audio_url, ctx.signal);
+        return;
+      } catch (err) {
+        if (ctx.signal.aborted) return;
+        // Audio missing or TTS down (404/503, e.g. fixture turns): keep the pace with the text clock instead.
+        ctx.warn(`audio for ${action.id} failed (${err instanceof Error ? err.message : String(err)}); text clock`);
+      }
+    }
+    await ctx.speech.speak(text, { style });
   },
   write_text: applyAndReveal,
   write_timeline: applyAndReveal,

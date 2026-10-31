@@ -3,7 +3,7 @@
 // Glue between the turn stream and the board: one store + one action queue per session.
 // `streamTurn` is injected (same signature as apps/web/src/lib/api.ts) so the dev page can replay fixtures.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { SpeechPlayer, StreamMessage, TurnRequest, WordTiming } from "../protocol";
+import type { Action, SpeechPlayer, StreamMessage, TurnRequest, WordTiming } from "@mento/contracts";
 import {
   type ActionQueue,
   type Caption,
@@ -16,11 +16,16 @@ import {
 import { type SpeechClock, TextSpeechPlayer } from "../speech";
 import { type BoardStore, createBoardStore } from "../store";
 
+/**
+ * Streams one turn, calling `onMessage` for each message; resolves when the stream ends. On abort it resolves
+ * quietly; other failures reject (before the stream starts too, e.g. an HTTP error).
+ */
 export type StreamTurn = (
   session_id: string,
   req: TurnRequest,
+  onMessage: (message: StreamMessage) => void,
   opts?: { signal?: AbortSignal },
-) => AsyncIterable<StreamMessage>;
+) => Promise<void>;
 
 export interface UseTurnPlayerOptions {
   sessionId: string;
@@ -53,6 +58,11 @@ export interface TurnPlayer {
   resume(): void;
   /** Interrupts and empties the board (dev / new topic). */
   clear(): void;
+  /**
+   * Redraws a reopened session without animation or audio (actions from replayEvents) and remembers its last
+   * turn id for the next interruption.
+   */
+  restore(actions: readonly Action[], lastTurnId: string | null): void;
 }
 
 /** One streamed turn. `detached`: superseded after script_done; it only delivers late drawings now. */
@@ -124,19 +134,20 @@ export function useTurnPlayer({ sessionId, streamTurn, speech, audio, handlers, 
       run.current = r;
       setError(null);
       queue.beginTurn();
-      try {
-        for await (const msg of streamRef.current(sessionId, body, { signal: r.ac.signal })) {
-          if (r.ac.signal.aborted) return;
-          if (!r.detached) {
-            queue.push(msg);
-            continue;
-          }
-          // Superseded turn: apply late drawings to placeholders still on the board, nothing else.
-          if (msg.type === "action" && msg.action.name === "draw_result") {
-            if (store.getElement(msg.action.args.element_id)?.status === "placeholder") store.dispatch(msg.action);
-          }
-          if (msg.type === "turn_done") return;
+      const onMessage = (msg: StreamMessage) => {
+        if (r.ac.signal.aborted) return;
+        if (!r.detached) {
+          queue.push(msg);
+          return;
         }
+        // Superseded turn: apply late drawings to placeholders still on the board, nothing else.
+        if (msg.type === "action" && msg.action.name === "draw_result") {
+          if (store.getElement(msg.action.args.element_id)?.status === "placeholder") store.dispatch(msg.action);
+        }
+        if (msg.type === "turn_done") r.ac.abort();
+      };
+      try {
+        await streamRef.current(sessionId, body, onMessage, { signal: r.ac.signal });
         if (!r.detached && !r.ac.signal.aborted) queue.endTurn();
       } catch (err) {
         if (r.ac.signal.aborted || r.detached) return;
@@ -160,6 +171,14 @@ export function useTurnPlayer({ sessionId, streamTurn, speech, audio, handlers, 
     setError(null);
     setWarnings([]);
   }, [cut, store]);
+
+  const restore = useCallback(
+    (actions: readonly Action[], lastTurnId: string | null) => {
+      for (const action of actions) store.dispatch(action);
+      queue.setLastTurnId(lastTurnId);
+    },
+    [queue, store],
+  );
 
   // Stop everything on unmount. Deferred one tick so StrictMode's simulated unmount/remount in dev
   // (which re-runs this effect right away) does not abort the first turn.
@@ -189,5 +208,6 @@ export function useTurnPlayer({ sessionId, streamTurn, speech, audio, handlers, 
     pause: queue.pause,
     resume: queue.resume,
     clear,
+    restore,
   };
 }

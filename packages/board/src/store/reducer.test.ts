@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { FIXTURE_TURNS } from "../mock";
-import type { Action } from "../protocol";
+import type { Action } from "@mento/contracts";
 import { applyAction, applyActions, applySvg } from "./reducer";
 import { createBoardStore } from "./store";
 import { emptyBoard } from "./types";
@@ -17,26 +17,17 @@ describe("applyAction with the Rome fixtures", () => {
   it("builds the expected board, in order, without warnings", () => {
     const onWarning = vi.fn();
     let s = applyActions(emptyBoard(), actionsOf("rome-intro"), { onWarning, now: 1 });
-    expect(types(s)).toEqual([
-      "title:text",
-      "colosseum:image",
-      "timeline_rome:timeline",
-      "republic_end:text",
-      "q_republic_end:question",
-    ]);
-    expect(s.columns.main).toEqual(["title", "timeline_rome", "republic_end", "q_republic_end"]);
-    expect(s.elements.get("q_republic_end")?.data).toMatchObject({ verification_id: "ver_1", kind: "explain" });
+    expect(types(s)).toEqual(["title:text", "colosseum:image", "tl_republica:timeline"]);
+    expect(s.columns.main).toEqual(["title", "tl_republica"]);
     expect(s.columns.visuals).toEqual(["colosseum"]);
-    expect(s.elements.get("title")?.annotations).toEqual([{ kind: "highlight", color: "yellow", action_id: "act_intro_2" }]);
-    expect(s.elements.get("timeline_rome")?.annotations[0]).toMatchObject({ kind: "circle", text_to_match: "27 a.C.", color: "red" });
-    expect(s.elements.get("republic_end")?.sources?.[0]?.page).toBe(12);
+    expect(s.elements.get("tl_republica")?.annotations).toEqual([{ kind: "circle", color: "red", text_to_match: "27 a.C.", action_id: "act_6" }]);
 
-    for (const name of ["click-and-ask", "wrong-answer", "outside-material"] as const) {
-      s = applyActions(s, actionsOf(name), { onWarning });
-    }
-    expect(s.columns.side).toEqual(["side_27bc", "outside_colosseum"]);
-    expect(s.columns.main).toContain("reexplain");
-    expect(s.elements.get("timeline_rome")?.annotations).toHaveLength(2);
+    s = applyActions(s, actionsOf("click-and-ask"), { onWarning });
+    expect(s.columns.side).toEqual(["nota_augusto"]);
+    expect(s.columns.main).toEqual(["title", "tl_republica", "q_augusto"]);
+    expect(s.elements.get("nota_augusto")?.sources?.[0]?.page).toBe(12);
+    expect(s.elements.get("q_augusto")?.data).toMatchObject({ verification_id: "ver_1", kind: "explain" });
+    expect(s.elements.get("tl_republica")?.annotations).toHaveLength(2);
     expect(onWarning).not.toHaveBeenCalled();
   });
 
@@ -48,7 +39,7 @@ describe("applyAction with the Rome fixtures", () => {
     const placeholder = s1.elements.get("colosseum");
     expect(placeholder).toMatchObject({ type: "image", status: "placeholder", data: { max_dimensions: { w: 500, h: 400 } } });
     const s2 = applyAction(s1, result);
-    expect(s2.elements.get("colosseum")).toMatchObject({ type: "image", status: "ready", data: { url: "/brand/mascot.png" } });
+    expect(s2.elements.get("colosseum")).toMatchObject({ type: "image", status: "ready", data: { url: "/files/gen/colosseum.jpg" } });
 
     const svg = applySvg(s1, "colosseum", "<svg></svg>");
     expect(svg.elements.get("colosseum")).toMatchObject({ type: "svg", status: "ready", data: { svg: "<svg></svg>" } });

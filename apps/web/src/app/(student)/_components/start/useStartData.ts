@@ -1,20 +1,22 @@
 "use client";
 
-// Owner: Person 2. Loads the start screen lists (students + ready materials) with one silent retry.
+// Owner: Person 2. Loads the start screen lists (students + subjects) with one silent retry.
+// No students route yet (404): the mock students are used and flagged as simulated (AGENTS.md rule 4).
 import { useCallback, useEffect, useState } from "react";
-import type { MaterialSummary, StudentSummary } from "@mento/board";
-import { listMaterials, listStudents } from "@/lib/api";
+import type { SubjectSummary } from "@mento/contracts";
+import { MOCK_STUDENTS, type StudentSummary } from "@mento/board";
+import { listStudents, listSubjects } from "@/lib/api";
 
 export type StartData =
   | { status: "loading" }
   | { status: "error" }
-  | { status: "ready"; students: StudentSummary[]; materials: MaterialSummary[] };
+  | { status: "ready"; students: StudentSummary[]; simulatedStudents: boolean; subjects: SubjectSummary[] };
 
 const RETRY_DELAY_MS = 800;
 
 async function loadOnce() {
-  const [students, materials] = await Promise.all([listStudents(), listMaterials({ ready_only: true })]);
-  return { students, materials };
+  const [students, subjects] = await Promise.all([listStudents(), listSubjects()]);
+  return { students: students ?? MOCK_STUDENTS, simulatedStudents: students === null, subjects };
 }
 
 export function useStartData(): { data: StartData; retry: () => void } {
