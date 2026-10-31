@@ -1,4 +1,5 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { StreamMessage } from "@mento/contracts";
 
 export interface Sse {
   /** Send one SSE message: `event: <name>` + JSON `data`. */
@@ -43,4 +44,13 @@ export function openSse(request: FastifyRequest, reply: FastifyReply, keepAliveM
       if (!raw.writableEnded) raw.end();
     },
   };
+}
+
+/**
+ * Send one validated turn-stream message: `event: <type>` and `data: <message JSON>`.
+ * Throws if the message breaks the contract, so a bad message never reaches the front-end.
+ */
+export function sendStreamMessage(sse: Sse, message: StreamMessage): void {
+  const valid = StreamMessage.parse(message);
+  sse.send(valid.type, valid);
 }
