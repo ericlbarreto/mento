@@ -27,6 +27,10 @@ export interface BoardStore {
   applyEdit(edit: BoardEdit): void;
   /** Undo of the last student delete. */
   restoreRemoved(removed: RemovedElement): void;
+  /** Pinned element ids (plan G), in stacking order. */
+  getFree(): readonly string[];
+  /** Pins or attachments changed (plan G). */
+  subscribeFree(listener: Listener): () => void;
   reset(): void;
   /**
    * Runs `fn` with animations off: what it dispatches appears at once (session restore). Listeners read
@@ -61,6 +65,7 @@ export function createBoardStore(opts: BoardStoreOptions = {}): BoardStore {
   const byColumn = new Map<Column, Set<Listener>>();
   const added = new Set<(id: string) => void>();
   const layout = new Set<(change: LayoutChange) => void>();
+  const free = new Set<Listener>();
   /** Announces a layout change unless it is part of a restore, and only when it will change something. */
   const beforeLayout = (change: LayoutChange, next: BoardState) => {
     if (instantDepth === 0 && next !== state) layout.forEach((l) => l(change));
@@ -89,6 +94,7 @@ export function createBoardStore(opts: BoardStoreOptions = {}): BoardStore {
       if (prev.columns[column] === next.columns[column]) continue;
       byColumn.get(column)?.forEach((l) => l());
     }
+    if (prev.free !== next.free || prev.attached !== next.attached) free.forEach((l) => l());
     for (const id of next.elements.keys()) {
       if (!prev.elements.has(id)) added.forEach((l) => l(id));
     }
@@ -102,6 +108,7 @@ export function createBoardStore(opts: BoardStoreOptions = {}): BoardStore {
     dispatch(action) {
       const next = applyAction(state, action, { onWarning: opts.onWarning });
       if (action.name === "move_element") beforeLayout({ kind: "move", id: action.args.id, by: "tutor" }, next);
+      else if (action.name === "place_element") beforeLayout({ kind: "place", id: action.args.id, by: "tutor" }, next);
       else if (action.name === "remove_element") beforeLayout({ kind: "remove", id: action.args.id, by: "tutor" }, next);
       commit(next);
     },
@@ -125,6 +132,11 @@ export function createBoardStore(opts: BoardStoreOptions = {}): BoardStore {
       } finally {
         instantDepth--;
       }
+    },
+    getFree: () => state.free,
+    subscribeFree: (listener) => {
+      free.add(listener);
+      return () => free.delete(listener);
     },
     reset: () => commit(emptyBoard()),
     instant(fn) {

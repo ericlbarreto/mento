@@ -6,6 +6,7 @@ import {
   DrawArgs,
   HighlightArgs,
   MoveElementArgs,
+  PlaceElementArgs,
   RemoveElementArgs,
   SpeakBase,
   UpdateElementArgs,
@@ -103,8 +104,14 @@ export function modelTools(): ToolDef[] {
     {
       name: "move_element",
       description:
-        "Tidy the board: move an existing element to a column, right after after_id (an element already in that column), or to the top with after_id null. Use it sparingly, e.g. to put a block next to the one it extends or a side note in side, and say it aloud.",
+        "Reorder the board: move an existing element into a column, right after after_id (an element already in that column) or to the top with after_id null. On screen the columns are side by side: main = left, visuals = middle, side = right. Use it for \"embaixo de Y\" (after_id: Y, Y's column), \"lá em cima\" (after_id null), \"no lado direito do quadro\" (column side), and to put a block that was placed elsewhere back into a column (\"volta pro lugar\", \"organiza\"). A move that changes nothing is rejected.",
       input_schema: jsonSchema(MoveElementArgs),
+    },
+    {
+      name: "place_element",
+      description:
+        "Put an existing element right beside another one: side right / left (\"lado a lado\", \"ao lado de\", \"do lado direito/esquerdo de\", \"junta esses dois\" = id on the right of next_to) or below / above it. The two stay together when moved. Do not use it for order inside a column (move_element). \"esse\"/\"isso\" in the student's message is the block in the \"Sobre:\" chip.",
+      input_schema: jsonSchema(PlaceElementArgs),
     },
     {
       name: "ask_verification",

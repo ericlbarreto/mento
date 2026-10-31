@@ -110,6 +110,7 @@ export function buildUserMessage(input: UserMessageInput): string {
       }
     } else {
       lines.push(`The student answered the question ${a.element_id} (${a.verification_id}): "${a.answer}"`);
+      lines.push("If this is not an attempt to answer but a request (for example to move, place or delete something on the board) or another question, do what it asks with the tools and leave the question for later.");
     }
   }
   if (input.interrupted) {

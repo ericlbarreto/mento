@@ -39,6 +39,7 @@ export const defaultHandlers: HandlerMap = {
   draw_result: applyAndReveal,
   // The tutor reorganizes the board (the board animates the reflow).
   move_element: applyAndReveal,
+  place_element: applyAndReveal,
   // Drawn stroke by stroke by its renderer (live only: a replayed or restored diagram appears whole).
   draw_diagram: async (action, ctx) => {
     markDiagramLive(action.args.id);

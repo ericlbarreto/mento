@@ -74,4 +74,12 @@ describe("ClaudeJudge", () => {
     await c.judge.start(input(c.session_id));
     expect(c.evidence.items).toEqual([]);
   });
+
+  it("records no evidence when the student did not try to answer (a board request, another topic)", async () => {
+    const llm = new ScriptedLlm([[toolEvent("record_judgment", { result: "not_an_answer", rationale: "Pediu para mover um bloco." }), stopEvent("tool_use")]]);
+    const { judge, session_id, evidence, repo } = await setup(llm);
+    await judge.start(input(session_id));
+    expect(evidence.items).toEqual([]);
+    expect((await repo.listEvents(session_id)).some((e) => e.type === "evidence_recorded")).toBe(false);
+  });
 });

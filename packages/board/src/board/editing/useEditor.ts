@@ -1,11 +1,13 @@
 "use client";
 
-// The student's board editing (plan F): select a block, delete it (deferred send, undo), move it with the handle
-// or the keyboard. DOM listeners on the viewport and direct DOM writes for the drag (ghost, insertion bar), like the
-// camera: no React render per pointer move.
+// The student's board editing (plans F and G): select a block, delete it (deferred send, undo), drag it with the
+// handle to any spot of the board (plan G: it is pinned there), or reorder it in the columns with the keyboard.
+// "Arrumar" puts every pinned block back in its column. DOM listeners on the viewport and direct DOM writes for the
+// drag (ghost, insertion bar), like the camera: no React render per pointer move.
 import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import type { Column } from "@mento/contracts";
 import { type BoardStore, type LayoutChange, anchorOf } from "../../store";
+import { clearTop, pinnedBoxes } from "../layout";
 import type { CanvasControls } from "../useCanvasCamera";
 import type { BoardWriter } from "../writer";
 import { type BoardEditingEnv, type BoardEditor, createSelection } from "./context";
@@ -15,8 +17,6 @@ import {
   type MoveKey,
   editPermissions,
   isSamePlace,
-  pickColumn,
-  slotAt,
   slotLabel,
   stepTarget,
 } from "./model";
@@ -30,6 +30,9 @@ const EDGE_MAX_PX = 12;
 /** Half the gap between blocks (gap-5): the insertion bar sits in the middle of it. */
 const HALF_GAP_PX = 10;
 const BAR_PX = 3;
+/** A dropped block snaps to this grid (the paper's dots are a multiple of it). */
+export const SNAP_PX = 8;
+const snap = (v: number) => Math.max(0, Math.round(v / SNAP_PX) * SNAP_PX);
 
 const INTERACTIVE =
   "input, textarea, select, button, a, label, [contenteditable], [data-board-control]";
@@ -47,6 +50,7 @@ function cloneFrame(frame: HTMLElement): HTMLElement {
   const clone = frame.cloneNode(true) as HTMLElement;
   for (const a of [
     "data-element-id",
+    "data-board-block",
     "tabindex",
     "data-dragging",
     "data-selected",
@@ -64,6 +68,8 @@ interface Move {
   via: "pointer" | "keyboard";
   origin: DropTarget;
   target: DropTarget;
+  /** Pointer drag (plan G): the block's top-left in world px where it would be pinned. */
+  at?: { x: number; y: number };
 }
 
 export function useEditor({
@@ -103,9 +109,8 @@ export function useEditor({
     const scaleOf = (w: HTMLElement) =>
       w.offsetWidth > 0 ? w.getBoundingClientRect().width / w.offsetWidth : 1;
     const frameOf = (id: string) =>
-      world()?.querySelector<HTMLElement>(
-        `[data-column] > [data-element-id="${CSS.escape(id)}"]`,
-      ) ?? null;
+      world()?.querySelector<HTMLElement>(`[data-board-block][data-element-id="${CSS.escape(id)}"]`) ??
+      null;
 
     const permissions = (id: string) => {
       const env = latest.current.editing;
@@ -137,7 +142,7 @@ export function useEditor({
       if (!env || !allowed(id, "remove") || frame?.dataset.removing !== undefined) return;
       const siblings = frame
         ? [
-            ...(frame.parentElement?.querySelectorAll<HTMLElement>(":scope > [data-element-id]") ??
+            ...(frame.closest("[data-column]")?.querySelectorAll<HTMLElement>("[data-board-block]") ??
               []),
           ]
         : [];
@@ -238,6 +243,35 @@ export function useEditor({
       bar.style.top = `${y - BAR_PX / 2}px`;
     };
 
+    /** Where a dropped block lands: snapped to the grid, then stepped down until it clears the other pinned blocks. */
+    const landing = (id: string, at: { x: number; y: number }) => {
+      const w = world();
+      const frame = frameOf(id);
+      const x = snap(at.x);
+      const y = snap(at.y);
+      if (!w || !frame) return { x, y };
+      const host = frame.closest<HTMLElement>("[data-pinned]")?.dataset.pinned ?? id;
+      const top = clearTop(y, x, x + frame.offsetWidth, frame.offsetHeight, pinnedBoxes(w, host));
+      return { x, y: Math.ceil(top / SNAP_PX) * SNAP_PX };
+    };
+
+    /** "Arrumar": every pinned or attached block goes back to the end of its column, in the order they were placed. */
+    const tidy = () => {
+      const env = latest.current.editing;
+      if (!env || move) return;
+      const state = store.getState();
+      for (const id of [...state.free, ...state.attached]) {
+        const el = store.getElement(id);
+        if (!el) continue;
+        const column = store.getColumn(el.column);
+        const edit = { op: "move" as const, element_id: id, column: el.column, after_id: column[column.length - 1] ?? null };
+        store.applyEdit(edit);
+        env.outbox.send({ ...edit, edit_id: newEditId() });
+      }
+      latest.current.camera.hold();
+      announce("Quadro arrumado: os blocos voltaram para as colunas.");
+    };
+
     const end = (commit: boolean) => {
       const m = move;
       if (!m) return;
@@ -251,7 +285,12 @@ export function useEditor({
       if (frame) delete frame.dataset.dragging;
       const env = latest.current.editing;
       const state = store.getState();
-      if (commit && env && state.elements.has(m.id) && !isSamePlace(state, m.id, m.target)) {
+      if (commit && env && m.via === "pointer" && m.at && state.elements.has(m.id)) {
+        const edit = { op: "place" as const, element_id: m.id, ...landing(m.id, m.at) };
+        store.applyEdit(edit);
+        env.outbox.send({ ...edit, edit_id: newEditId() });
+        announce("Bloco colocado no quadro.");
+      } else if (commit && env && m.via === "keyboard" && state.elements.has(m.id) && !isSamePlace(state, m.id, m.target)) {
         const edit = {
           op: "move" as const,
           element_id: m.id,
@@ -262,6 +301,7 @@ export function useEditor({
         env.outbox.send({ ...edit, edit_id: newEditId() });
         announce(`Bloco movido para ${columnLabel[m.target.column]}.`);
       } else if (m.via === "keyboard") announce("Movimento cancelado.");
+      else if (commit) announce("Bloco no mesmo lugar.");
       setDragging(false);
       latest.current.camera.hold();
       if (m.via === "keyboard") focusFrame(m.id);
@@ -326,17 +366,8 @@ export function useEditor({
       const y = (pointer.y - wr.top) / scale;
       const ghost = ghostRef.current?.firstElementChild as HTMLElement | null | undefined;
       if (ghost) ghost.style.transform = `translate(${x - grab.x}px, ${y - grab.y}px) rotate(1deg)`;
-      const columns = [...w.querySelectorAll<HTMLElement>("[data-column]")].map((s) => {
-        const r = s.getBoundingClientRect();
-        return {
-          column: s.dataset.column as Column,
-          left: (r.left - wr.left) / scale,
-          right: (r.right - wr.left) / scale,
-        };
-      });
-      const column = pickColumn(m.target.column, x, columns);
-      m.target = { column, after_id: slotAt(y, spansOf(w, column, m.id).spans) };
-      showBar(m.target, m.id);
+      // Plan G: the block lands where the ghost is (snapped on drop); no columns, no insertion bar.
+      m.at = { x: x - grab.x, y: y - grab.y };
       raf = requestAnimationFrame(tick);
     };
     const startPointerDrag = (id: string) => {
@@ -350,6 +381,7 @@ export function useEditor({
         // A copy of the block follows the pointer (0.6 opacity, tilted 1°); reduced motion keeps only the bar.
         const clone = frame.cloneNode(true) as HTMLElement;
         clone.removeAttribute("data-element-id");
+        clone.removeAttribute("data-board-block");
         clone.removeAttribute("tabindex");
         clone.removeAttribute("data-dragging");
         clone
@@ -398,14 +430,14 @@ export function useEditor({
 
     // --- Viewport listeners: click selects, keys delete / move, Ctrl/⌘+Z undoes.
     const blockOf = (t: EventTarget | null) =>
-      t instanceof HTMLElement && t.dataset.elementId && t.parentElement?.matches("[data-column]")
+      t instanceof HTMLElement && t.dataset.elementId && t.dataset.boardBlock !== undefined
         ? t.dataset.elementId
         : null;
     const onClick = (e: MouseEvent) => {
       if (!latest.current.editing || move) return;
       const t = e.target instanceof Element ? e.target : null;
       if (!t || t.closest(INTERACTIVE)) return;
-      const frame = t.closest<HTMLElement>("[data-column] > [data-element-id]");
+      const frame = t.closest<HTMLElement>("[data-board-block]");
       select(frame?.dataset.elementId ?? null);
     };
     const onKeyDown = (e: KeyboardEvent) => {
@@ -501,6 +533,7 @@ export function useEditor({
       undo,
       startDrag,
       enterMoveMode,
+      tidy,
       attach,
     };
     return api;

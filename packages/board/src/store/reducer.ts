@@ -1,6 +1,5 @@
 // Pure board reducer: one Action in, next BoardState out. Never throws on bad targets:
 // unknown ids are ignored and reported through `onWarning` (the model can reference stale ids).
-import type { Column } from "@mento/contracts";
 import type { Annotation, BoardAction, BoardEdit, BoardState, ElementState, RemovedElement } from "./types";
 
 export interface ApplyContext {
@@ -74,6 +73,19 @@ export function applyAction(state: BoardState, action: BoardAction, ctx: ApplyCo
       return applyEdit(state, { op: "move", element_id: id, column, after_id }, { onWarning: (m) => warn(m) });
     }
 
+    case "place_element": {
+      const { id, next_to, side } = action.args;
+      const el = state.elements.get(id);
+      if (!el) return (warn(`unknown element "${id}"`), state);
+      const host = state.elements.get(next_to);
+      if (next_to === id || !host) return (warn(`unknown anchor "${next_to}"`), state);
+      if (host.near) return (warn(`"${next_to}" is attached to another block; no chains`), state);
+      // Blocks attached to `id` move over to the new host's side (no chains).
+      let next = pin(state, el, { near: { id: next_to, side } });
+      for (const child of attachedTo(next, id)) next = pin(next, next.elements.get(child)!, { near: { id: next_to, side } });
+      return next;
+    }
+
     case "highlight":
     case "circle_annotate": {
       const el = state.elements.get(action.args.target_id);
@@ -139,7 +151,8 @@ function finishDrawing(state: BoardState, element_id: string, result: { url?: st
 
 /**
  * A student edit (plan F): remove drops the element and its annotations and remembers the id; move takes it out
- * of its column and puts it in `column` right after `after_id` (null = top; an anchor no longer there = the end).
+ * of its column (or off its free spot) and puts it in `column` right after `after_id` (null = top; an anchor no longer
+ * there = the end); place (plan G) pins it at a free spot, out of the column flow.
  */
 export function applyEdit(state: BoardState, edit: BoardEdit, ctx: ApplyContext = {}): BoardState {
   const warn = (message: string) => ctx.onWarning?.(`board ${edit.op} (${edit.element_id}): ${message}`);
@@ -152,14 +165,44 @@ export function applyEdit(state: BoardState, edit: BoardEdit, ctx: ApplyContext 
     const next = drop(state, el);
     return { ...next, removed: new Set(state.removed).add(el.id) };
   }
+  if (edit.op === "place") return pin(state, el, { pos: { x: Math.round(edit.x), y: Math.round(edit.y) } });
   if (edit.after_id === el.id) return (warn("anchored to itself"), state);
+  const pinned = isPinned(el);
   const columns = { ...state.columns, [el.column]: state.columns[el.column].filter((x) => x !== el.id) };
   const target = insertAfter(columns[edit.column], el.id, edit.after_id);
-  const same = el.column === edit.column && target.every((x, i) => x === state.columns[el.column][i]);
+  const same = !pinned && el.column === edit.column && target.every((x, i) => x === state.columns[el.column][i]);
   if (same) return state;
   const elements = new Map(state.elements);
-  if (el.column !== edit.column) elements.set(el.id, { ...el, column: edit.column });
-  return { ...state, elements, columns: { ...columns, [edit.column]: target } };
+  if (el.column !== edit.column || pinned) elements.set(el.id, unpinned({ ...el, column: edit.column }));
+  const free = pinned ? state.free.filter((x) => x !== el.id) : state.free;
+  const attached = pinned ? state.attached.filter((x) => x !== el.id) : state.attached;
+  return { ...state, elements, free, attached, columns: { ...columns, [edit.column]: target } };
+}
+
+const isPinned = (el: ElementState) => el.pos !== undefined || el.near !== undefined;
+
+function unpinned(el: ElementState): ElementState {
+  const { pos: _p, near: _n, ...rest } = el;
+  return rest as ElementState;
+}
+
+/** Out of the column flow (if there) and off any spot: then pinned at `pos` or attached `near` another block. */
+function pin(state: BoardState, el: ElementState, at: Pick<ElementState, "pos" | "near">): BoardState {
+  const elements = new Map(state.elements);
+  elements.set(el.id, { ...unpinned(el), ...at } as ElementState);
+  const without = (ids: readonly string[]) => ids.filter((x) => x !== el.id);
+  return {
+    ...state,
+    elements,
+    columns: { ...state.columns, [el.column]: without(state.columns[el.column]) },
+    free: at.pos ? [...without(state.free), el.id] : without(state.free),
+    attached: at.near ? [...without(state.attached), el.id] : without(state.attached),
+  };
+}
+
+/** The ids attached to `host` (plan G), in order. */
+export function attachedTo(state: BoardState, host: string): string[] {
+  return state.attached.filter((id) => state.elements.get(id)?.near?.id === host);
 }
 
 /** Undo of a student delete: the element comes back right after its old neighbour (or on top). */
@@ -169,8 +212,11 @@ export function restoreRemoved(state: BoardState, { element, after_id }: Removed
   removed.delete(element.id);
   const elements = new Map(state.elements);
   elements.set(element.id, element);
+  if (element.pos) return { ...state, elements, removed, free: [...state.free, element.id] };
+  if (element.near && state.elements.has(element.near.id)) return { ...state, elements, removed, attached: [...state.attached, element.id] };
+  if (element.near) elements.set(element.id, unpinned(element));
   const anchor = after_id !== null && state.columns[element.column].includes(after_id) ? after_id : null;
-  return { elements, removed, columns: { ...state.columns, [element.column]: insertAfter(state.columns[element.column], element.id, anchor) } };
+  return { ...state, elements, removed, columns: { ...state.columns, [element.column]: insertAfter(state.columns[element.column], element.id, anchor) } };
 }
 
 /** The id right above `id` in its column (null = first, or not on the board). */
@@ -191,8 +237,22 @@ function insertAfter(ids: readonly string[], id: string, after_id: string | null
 function drop(state: BoardState, el: ElementState): BoardState {
   const elements = new Map(state.elements);
   elements.delete(el.id);
-  const column: Column = el.column;
-  return { ...state, elements, columns: { ...state.columns, [column]: state.columns[column].filter((x) => x !== el.id) } };
+  let columns = { ...state.columns, [el.column]: state.columns[el.column].filter((x) => x !== el.id) };
+  // Blocks attached to it go back to the end of their own column.
+  const children = attachedTo(state, el.id);
+  for (const id of children) {
+    const child = state.elements.get(id)!;
+    elements.set(id, unpinned(child));
+    columns = { ...columns, [child.column]: [...columns[child.column], id] };
+  }
+  const gone = new Set([el.id, ...children]);
+  return {
+    ...state,
+    elements,
+    columns,
+    free: state.free.filter((x) => x !== el.id),
+    attached: state.attached.filter((x) => !gone.has(x)),
+  };
 }
 
 function replace(state: BoardState, el: ElementState): BoardState {
@@ -206,7 +266,7 @@ function upsert(state: BoardState, el: ElementState, warn: (m: string) => void):
   const prev = state.elements.get(el.id);
   if (prev) {
     warn(`id "${el.id}" already on the board; replaced`);
-    return replace(state, { ...el, column: prev.column, created_at: prev.created_at, annotations: prev.annotations } as ElementState);
+    return replace(state, { ...el, column: prev.column, created_at: prev.created_at, annotations: prev.annotations, pos: prev.pos, near: prev.near } as ElementState);
   }
   const elements = new Map(state.elements);
   elements.set(el.id, el);
