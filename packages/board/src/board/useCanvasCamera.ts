@@ -41,10 +41,19 @@ export interface CanvasControls {
   recenter(): void;
   /** Resume following now (the "Voltar para a aula" pill). */
   resume(): void;
+  /** Pans by screen pixels (drag auto-scroll); counts as a manual move. */
+  panBy(dx: number, dy: number): void;
+  /** Suspends the follow camera for the next 4 s (a block is being dragged). */
+  hold(): void;
+  /** Called after every camera change (the edit toolbar keeps its place on screen). */
+  subscribe(listener: () => void): () => void;
 }
 
+/** Below this zoom the block toolbar is hidden (too small to aim at). */
+export const TOOLBAR_MIN_SCALE = 0.6;
+
 type Point = { x: number; y: number };
-type Engine = CanvasControls;
+type Engine = Omit<CanvasControls, "subscribe">;
 
 const isEditable = (t: EventTarget | null) =>
   t instanceof Element && !!t.closest("input, textarea, select, button, a, [contenteditable]");
@@ -55,6 +64,7 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number, writer?: B
   const worldRef = useRef<HTMLDivElement>(null);
   const paperRef = useRef<HTMLDivElement>(null);
   const engine = useRef<Engine | null>(null);
+  const [cameraListeners] = useState(() => new Set<() => void>());
   // False after a manual pan/zoom until the camera follows again: shows the "Voltar para a aula" pill.
   const [following, setFollowing] = useState(true);
 
@@ -92,6 +102,11 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number, writer?: B
       const tile = PAPER_TILE_PX * cam.scale;
       paper.style.backgroundSize = `${tile}px ${tile}px`;
       paper.style.backgroundPosition = `${cam.x}px ${cam.y}px`;
+      // Screen-sized overlays inside the world (the block toolbar) divide by this.
+      viewport.style.setProperty("--board-scale", String(cam.scale));
+      if (cam.scale < TOOLBAR_MIN_SCALE) viewport.dataset.zoomedOut = "";
+      else delete viewport.dataset.zoomedOut;
+      cameraListeners.forEach((l) => l());
     };
     const set = (next: Camera) => {
       cam = clampCamera(next, vp(), worldSize());
@@ -182,6 +197,11 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number, writer?: B
       zoomOut: () => zoomBy(1 / ZOOM_STEP),
       recenter,
       resume,
+      panBy(dx, dy) {
+        markManual();
+        set({ ...cam, x: cam.x + dx, y: cam.y + dy });
+      },
+      hold: markManual,
     };
 
     // --- Pointer: drag to pan, two fingers to pinch, fling on release.
@@ -483,13 +503,19 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number, writer?: B
       window.removeEventListener("keyup", onWindowKeyUp);
       window.removeEventListener("blur", releaseSpace);
     };
-  }, [store, mainWidth, writer]);
+  }, [store, mainWidth, writer, cameraListeners]);
 
   const controls: CanvasControls = {
     zoomIn: () => engine.current?.zoomIn(),
     zoomOut: () => engine.current?.zoomOut(),
     recenter: () => engine.current?.recenter(),
     resume: () => engine.current?.resume(),
+    panBy: (dx, dy) => engine.current?.panBy(dx, dy),
+    hold: () => engine.current?.hold(),
+    subscribe: (listener) => {
+      cameraListeners.add(listener);
+      return () => cameraListeners.delete(listener);
+    },
   };
   return { viewportRef, worldRef, paperRef, following, controls };
 }

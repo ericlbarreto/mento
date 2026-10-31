@@ -2,8 +2,8 @@
 
 // Owner: Person 2. The tutoring session (Stitch S2 loading, S3 board + chat, S4 chat closed): composes the shared
 // chrome, the PR #6 board, captions, orb, controls and chat around useSessionController. Plan 2026-10-30-2330 §3.
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { Board, MOCK_STUDENTS, type StudentSummary } from "@mento/board";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { Board, type BoardEditingEnv, MOCK_STUDENTS, type StudentSummary, createEditOutbox } from "@mento/board";
 import { Footer, Orb, TopBar, type TopBarNavItem } from "@mento/ui";
 import { API_URL, MOCK_API, apiUrl, getSession, getVoiceToken, listSessions, listStudents, streamTurn } from "@/lib/api";
 import { CaptionBar } from "../_components/caption/CaptionBar";
@@ -15,6 +15,7 @@ import { HistoryDrawer } from "../_components/history/HistoryDrawer";
 import { SessionErrorCard, SessionLoading } from "../_components/loading/SessionLoading";
 import { SessionPauseModal } from "../_components/pause/SessionPauseModal";
 import { type SessionStats, sessionStats } from "../_components/pause/sessionStats";
+import { editBoard } from "../_components/editBoardShim";
 import { createSessionAudio } from "../_components/sessionAudio";
 import { makeSelection, readStudentId } from "../_components/sessionModel";
 import { useEndSession } from "../_components/useEndSession";
@@ -53,8 +54,25 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
         opts,
       )) as typeof streamTurn,
   }));
-  const c = useSessionController({ sessionId, api, audio, holdVoiceOpening: !MOCK_API });
+  // Plan F: the student's deletes and moves. A delete waits out its undo window (or the next turn, or pagehide).
+  const warnRef = useRef<(m: string) => void>(() => undefined);
+  const [outbox] = useState(() =>
+    createEditOutbox({
+      send: (edit, opts) => editBoard(sessionId, edit, opts),
+      onError: (edit, err) => warnRef.current(`board ${edit.op} (${edit.element_id}) not saved: ${err instanceof Error ? err.message : String(err)}`),
+    }),
+  );
+  const c = useSessionController({ sessionId, api, audio, holdVoiceOpening: !MOCK_API, flushEdits: () => outbox.flush() });
   const { player, session, setSelection, releaseOpening } = c;
+  useEffect(() => {
+    warnRef.current = player.warn;
+  }, [player.warn]);
+  // Registered before useEndSession's listener: the held delete leaves before the end request.
+  useEffect(() => {
+    const onPageHide = () => void outbox.flush({ keepalive: true });
+    window.addEventListener("pagehide", onPageHide);
+    return () => window.removeEventListener("pagehide", onPageHide);
+  }, [outbox]);
 
   // The spoken conversation: mic + STT, turn-taking, barge-in. Final captions go out like typed messages, so a
   // board selection ("Sobre: …" chip) turns the spoken question into click-and-ask.
@@ -143,8 +161,9 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
     requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
   }, []);
 
-  // Click-and-ask: a click (or a text selection) on a board element sets the "Sobre: …" chip.
-  const selectFrom = (target: EventTarget | null) => {
+  // Click-and-ask: a click (or a text selection) on a board element sets the "Sobre: …" chip. A tap does not focus
+  // the chat (no keyboard popping up): the student types or speaks when ready.
+  const selectFrom = (target: EventTarget | null, touch = false) => {
     if (!(target instanceof Element) || target.closest("[data-board-control], input, textarea, button, a")) return false;
     const el = target.closest<HTMLElement>("[data-element-id]");
     const id = el?.dataset.elementId;
@@ -152,11 +171,13 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
     const sel = window.getSelection();
     const selected = sel && !sel.isCollapsed && sel.anchorNode && el.contains(sel.anchorNode) ? sel.toString() : "";
     setSelection(makeSelection(id, el.innerText || el.textContent || "", selected));
-    focusChat();
+    if (touch) setChatOpen(true);
+    else focusChat();
     return true;
   };
   const onBoardClick = (e: MouseEvent) => {
-    selectFrom(e.target);
+    const native = e.nativeEvent as globalThis.MouseEvent & { pointerType?: string };
+    selectFrom(e.target, native.pointerType === "touch" || native.pointerType === "pen");
   };
   const onBoardKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.dataset.elementId && selectFrom(e.target)) e.preventDefault();
@@ -176,6 +197,19 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
     ro.observe(overlay);
     return () => ro.disconnect();
   }, []);
+
+  const selectionId = c.selection?.element_id;
+  const editing = useMemo<BoardEditingEnv>(
+    () => ({
+      outbox,
+      lockedIds: c.lockedIds,
+      // Deleting the block the chip points at clears the chip.
+      onRemoved: (id) => {
+        if (selectionId === id) setSelection(null);
+      },
+    }),
+    [outbox, c.lockedIds, selectionId, setSelection],
+  );
 
   const verification = { openElementId: c.openQuestion?.element_id ?? null, answered: c.answered, onAnswer: c.answerQuestion };
 
@@ -229,6 +263,7 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
               assetBaseUrl={assetBaseUrl}
               onWarning={player.warn}
               verification={verification}
+              editing={editing}
               className={`min-h-0 [&_[data-element-id]]:cursor-pointer ${dotted}`}
             />
             <div ref={overlayRef} className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 px-6 pb-5">

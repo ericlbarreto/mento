@@ -5,6 +5,8 @@ import type { RendererMap, RendererProps } from "../renderers";
 import { type Annotation, type BoardStore, useBoardElement } from "../store";
 import { CircleLayer } from "./CircleLayer";
 import { useBoardWriter } from "./context";
+import { useBoardEditor, useIsSelected } from "./editing/context";
+import { SelectedToolbar } from "./editing/EditToolbar";
 import { HighlightLayer } from "./HighlightLayer";
 
 /**
@@ -24,6 +26,8 @@ export const ElementFrame = memo(function ElementFrame({
   const element = useBoardElement(store, id);
   const contentRef = useRef<HTMLDivElement>(null);
   const writer = useBoardWriter();
+  const editor = useBoardEditor();
+  const selected = useIsSelected(editor, id);
   const data = element?.data;
   // Before paint: a block the pen has not written yet starts hidden.
   useLayoutEffect(() => {
@@ -33,7 +37,10 @@ export const ElementFrame = memo(function ElementFrame({
   }, [writer, id, data]);
   const annotations = element?.annotations;
   const circles = useMemo(
-    () => (annotations ?? []).filter((a): a is Extract<Annotation, { kind: "circle" }> => a.kind === "circle"),
+    () =>
+      (annotations ?? []).filter(
+        (a): a is Extract<Annotation, { kind: "circle" }> => a.kind === "circle",
+      ),
     [annotations],
   );
   if (!element) return null;
@@ -44,6 +51,7 @@ export const ElementFrame = memo(function ElementFrame({
   const finish = () => {
     if (writer?.isWriting(element.id)) writer.finishAll();
   };
+
   return (
     <div
       data-element-id={element.id}
@@ -53,8 +61,12 @@ export const ElementFrame = memo(function ElementFrame({
       tabIndex={0}
       onPointerDownCapture={finish}
       onFocus={finish}
-      className="group relative rounded-(--radius-sm) px-2 py-1 outline-none transition-[box-shadow] duration-(--dur-slow) ease-(--ease-out) focus-visible:shadow-(--focus-ring) data-queued:opacity-0"
+      data-selected={selected ? "" : undefined}
+      className="group relative rounded-(--radius-sm) px-2 py-1 outline-none transition-[box-shadow] duration-(--dur-slow) ease-(--ease-out) focus-visible:shadow-(--focus-ring) data-queued:opacity-0 data-dragging:opacity-30"
+      style={selected ? { outline: "2px solid var(--mento-blue)", outlineOffset: 4 } : undefined}
     >
+      {/* Plan F: the selected block gets an outline (not the focus ring) and its toolbar. */}
+      {selected && editor && <SelectedToolbar editor={editor} id={element.id} />}
       <div ref={contentRef}>{Renderer ? <Renderer element={element} /> : null}</div>
       {highlight?.kind === "highlight" && (
         <HighlightLayer
