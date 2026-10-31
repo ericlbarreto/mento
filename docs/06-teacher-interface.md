@@ -55,9 +55,9 @@ Form: **name**. The student then appears in the student picker of the whiteboard
 
 ## Tab 2 — Materials ("Materiais")
 
-- **Upload a PDF** (e.g., a book): title (defaults to the file name) and **subject** (História, Matemática, Ciências, Português, Geografia, Outro). The subject selects the tutor's **subject profile** (`03-tutor-and-prompts.md`).
+- **Upload a PDF** (e.g., a book): only the **title** (defaults to the file name). In the prototype a teacher has **one subject** (D67), so the UI sends that subject's `subject_id` (D64) without asking; the subject selects the tutor's **subject profile** (`03-tutor-and-prompts.md`).
 - **Processing status** per material: *Na fila → Processando (n/N páginas) → Pronto / Falhou*. Processing runs in the background; the tab polls for status.
-- **List** of materials: title, subject, pages, status, date; open the PDF.
+- **List** of materials: title, pages, status, date; open the PDF.
 - Delete/rename/re-process: nice-to-have.
 - Details of ingestion and retrieval: `04-knowledge-and-sources.md`.
 

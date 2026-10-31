@@ -1,0 +1,303 @@
+// Owner: Person 1. Fictional data for the teacher UI until the teacher API (PR #7) is wired in.
+// Every student is simulated, so the UI shows the "Dados simulados" badge.
+import type { ClassContext, ClassInsight, Gap, Intervention, Material, SessionItem, Student } from "./types";
+
+const CLASS = { class_name: "8º B", grade_level: "8º ano" as const, is_simulated: true };
+
+export const MOCK_STUDENTS: Student[] = [
+  { id: "stu_maya", name: "Maya Pereira", ...CLASS },
+  { id: "stu_jordan", name: "Jordan Lima", ...CLASS },
+  { id: "stu_ana", name: "Ana Souza", ...CLASS },
+  { id: "stu_pedro", name: "Pedro Alves", ...CLASS },
+  { id: "stu_beatriz", name: "Beatriz Costa", ...CLASS },
+  { id: "stu_lucas", name: "Lucas Martins", ...CLASS },
+];
+
+const ROME = "História Geral: Roma Antiga";
+
+export const MOCK_SESSIONS: SessionItem[] = [
+  {
+    id: "ses_maya_1",
+    student_id: "stu_maya",
+    topic: "Patrícios e plebeus",
+    material_title: ROME,
+    lesson_title: "A República",
+    started_at: "2026-10-20T10:05:00-03:00",
+    summary: "Explicou a diferença entre patrícios e plebeus com as próprias palavras depois de uma dica.",
+  },
+  {
+    id: "ses_maya_2",
+    student_id: "stu_maya",
+    topic: "Crise da República",
+    material_title: ROME,
+    lesson_title: "Crise da República",
+    started_at: "2026-10-27T09:40:00-03:00",
+    summary: "Confundiu a ordem dos acontecimentos ao contar os anos antes de Cristo.",
+  },
+  {
+    id: "ses_maya_3",
+    student_id: "stu_maya",
+    topic: "República e Império",
+    material_title: ROME,
+    lesson_title: "O Império",
+    started_at: "2026-10-30T14:20:00-03:00",
+    summary:
+      "Entende que Augusto virou imperador, mas ainda diz que o Senado continuou mandando em Roma.",
+  },
+  {
+    id: "ses_jordan_1",
+    student_id: "stu_jordan",
+    topic: "A fundação de Roma",
+    material_title: ROME,
+    lesson_title: "A fundação de Roma",
+    started_at: "2026-10-23T11:00:00-03:00",
+    summary: "Respondeu sem dicas às perguntas sobre a monarquia romana.",
+  },
+  {
+    id: "ses_jordan_2",
+    student_id: "stu_jordan",
+    topic: "República e Império",
+    material_title: ROME,
+    lesson_title: "O Império",
+    started_at: "2026-10-29T15:10:00-03:00",
+    summary: "Explicou a perda de poder do Senado sem ajuda.",
+  },
+  {
+    id: "ses_ana_1",
+    student_id: "stu_ana",
+    topic: "O Império",
+    material_title: ROME,
+    lesson_title: "O Império",
+    started_at: "2026-10-28T10:30:00-03:00",
+    summary: "Descreveu a política do pão e circo apenas como diversão, sem o objetivo político.",
+  },
+  {
+    id: "ses_ana_2",
+    student_id: "stu_ana",
+    topic: "Pão e circo",
+    material_title: ROME,
+    lesson_title: "O Império",
+    started_at: "2026-10-30T09:15:00-03:00",
+    summary: "Precisou de duas dicas para ligar o pão e circo ao controle da população.",
+  },
+  {
+    id: "ses_pedro_1",
+    student_id: "stu_pedro",
+    topic: "República e Império",
+    material_title: ROME,
+    lesson_title: "O Império",
+    started_at: "2026-10-26T16:00:00-03:00",
+    summary: "Disse que na República já existia um imperador. Errou a mesma ideia três vezes.",
+  },
+  {
+    id: "ses_beatriz_1",
+    student_id: "stu_beatriz",
+    topic: "A fundação de Roma",
+    material_title: ROME,
+    lesson_title: "A fundação de Roma",
+    started_at: "2026-10-29T08:50:00-03:00",
+    summary: "Disse que não sabe a diferença entre República e Império.",
+  },
+];
+
+const open = { status: "open" as const };
+
+export const MOCK_GAPS: Gap[] = [
+  {
+    ...open,
+    id: "gap_maya_senate",
+    student_id: "stu_maya",
+    session_id: "ses_maya_3",
+    concept: "Papel do Senado no Império",
+    title: "Acha que o Senado continuou governando",
+    description: "Sabe que Augusto virou imperador, mas atribui ao Senado o poder de decisão que ele perdeu no Império.",
+    severity: "critical",
+    origin: "inferred",
+    evidence: [
+      { event_id: "ev_1", quote: "o senado ainda decidia as leis, o imperador só comandava o exército" },
+      { event_id: "ev_2", quote: "acho que o imperador tinha que pedir pro senado" },
+    ],
+    attempts: 4,
+    confidence: 0.8,
+    material_ref: { pages: [4, 4] },
+    created_at: "2026-10-30T14:40:00-03:00",
+  },
+  {
+    ...open,
+    id: "gap_maya_dates",
+    student_id: "stu_maya",
+    session_id: "ses_maya_2",
+    concept: "Datas antes de Cristo",
+    title: "Se perde na ordem das datas a.C.",
+    description: "Disse no chat que se confunde com as datas antes de Cristo e colocou 27 a.C. antes de 44 a.C.",
+    severity: "medium",
+    origin: "stated",
+    evidence: [
+      { event_id: "ev_3", quote: "eu me perco nessas datas com a.C., nunca sei qual vem primeiro" },
+      { event_id: "ev_4", quote: "27 vem antes de 44 porque é um número menor" },
+    ],
+    attempts: 2,
+    confidence: 0.6,
+    material_ref: { pages: [3, 3] },
+    created_at: "2026-10-27T10:00:00-03:00",
+  },
+  {
+    ...open,
+    id: "gap_ana_senate",
+    student_id: "stu_ana",
+    session_id: "ses_ana_1",
+    concept: "Papel do Senado no Império",
+    title: "Acha que Senado e imperador decidiam juntos",
+    description: "Diz que o poder no Império era dividido entre o Senado e o imperador.",
+    severity: "medium",
+    origin: "inferred",
+    evidence: [{ event_id: "ev_5", quote: "o senado e o augusto mandavam juntos eu acho" }],
+    attempts: 2,
+    confidence: 0.5,
+    material_ref: { pages: [4, 4] },
+    created_at: "2026-10-28T11:00:00-03:00",
+  },
+  {
+    ...open,
+    id: "gap_ana_bread",
+    student_id: "stu_ana",
+    session_id: "ses_ana_2",
+    concept: "Pão e circo",
+    title: "Vê o pão e circo só como diversão",
+    description: "Ainda não liga a distribuição de trigo e os espetáculos ao controle da população de Roma.",
+    severity: "medium",
+    origin: "inferred",
+    evidence: [{ event_id: "ev_6", quote: "era pra o povo se divertir no coliseu" }],
+    attempts: 3,
+    confidence: 0.6,
+    material_ref: { pages: [4, 4] },
+    created_at: "2026-10-30T09:40:00-03:00",
+  },
+  {
+    ...open,
+    id: "gap_pedro_republic",
+    student_id: "stu_pedro",
+    session_id: "ses_pedro_1",
+    concept: "República e Império",
+    title: "Confunde República e Império",
+    description: "Falou que confunde os dois períodos e colocou um imperador governando durante a República.",
+    severity: "critical",
+    origin: "stated",
+    evidence: [
+      { event_id: "ev_7", quote: "eu confundo muito república e império" },
+      { event_id: "ev_8", quote: "na república o imperador era eleito pelo povo" },
+    ],
+    attempts: 3,
+    confidence: 0.85,
+    material_ref: { pages: [2, 2] },
+    created_at: "2026-10-26T16:30:00-03:00",
+  },
+  {
+    ...open,
+    id: "gap_pedro_dates",
+    student_id: "stu_pedro",
+    session_id: "ses_pedro_1",
+    concept: "Datas antes de Cristo",
+    title: "Ordena datas a.C. como números comuns",
+    description: "Coloca 509 a.C. depois de 44 a.C. na linha do tempo.",
+    severity: "medium",
+    origin: "inferred",
+    evidence: [{ event_id: "ev_9", quote: "509 é depois porque é maior" }],
+    attempts: 2,
+    confidence: 0.55,
+    material_ref: { pages: [3, 3] },
+    created_at: "2026-10-26T16:40:00-03:00",
+  },
+  {
+    ...open,
+    id: "gap_beatriz_republic",
+    student_id: "stu_beatriz",
+    session_id: "ses_beatriz_1",
+    concept: "República e Império",
+    title: "Não sabe a diferença entre República e Império",
+    description: "Disse no chat que não sabe diferenciar os dois períodos. Ainda são poucas respostas para ver onde está a dúvida.",
+    severity: "medium",
+    origin: "stated",
+    evidence: [{ event_id: "ev_10", quote: "não sei a diferença de república pra império" }],
+    attempts: 1,
+    confidence: 0.4,
+    material_ref: { pages: [2, 2] },
+    created_at: "2026-10-29T09:05:00-03:00",
+  },
+];
+
+export const MOCK_INSIGHTS: ClassInsight[] = [
+  {
+    id: "ins_power",
+    title: "A passagem da República para o Império é o principal nó da turma",
+    body: "Quatro alunos mostram dúvida sobre quem decidia em Roma depois de Augusto (em um caso, com só uma resposta até agora): alguns acham que o Senado ainda governava, outros misturam os dois períodos. Dois disseram isso com as próprias palavras.",
+    gap_ids: ["gap_maya_senate", "gap_ana_senate", "gap_pedro_republic", "gap_beatriz_republic"],
+    created_at: "2026-10-30T15:00:00-03:00",
+  },
+  {
+    id: "ins_dates",
+    title: "Contar os anos antes de Cristo atrapalha a linha do tempo",
+    body: "Dois alunos ordenam datas a.C. como números comuns. Isso pode estar por trás da confusão entre os períodos.",
+    gap_ids: ["gap_maya_dates", "gap_pedro_dates"],
+    created_at: "2026-10-30T15:00:00-03:00",
+  },
+  {
+    id: "ins_bread",
+    title: "O sentido político do pão e circo ainda não apareceu",
+    body: "Uma aluna descreve o pão e circo só como diversão. É um caso só: vale observar se outros alunos pensam igual antes de mudar a aula.",
+    gap_ids: ["gap_ana_bread"],
+    created_at: "2026-10-30T15:00:00-03:00",
+  },
+];
+
+export const MOCK_INTERVENTIONS: Intervention[] = [
+  {
+    id: "int_timeline",
+    title: "Linha do tempo: quem decidia em Roma?",
+    duration_min: 15,
+    goal: "Separar República e Império pela pergunta “quem decidia?” e treinar a ordem das datas a.C.",
+    steps: [
+      "Desenhe no quadro uma linha do tempo com 753 a.C., 509 a.C., 44 a.C. e 27 a.C. e peça para a turma ordenar as datas.",
+      "Em cada período, pergunte quem tomava as decisões: o rei, o Senado ou o imperador.",
+      "Feche com o Império: o Senado continua existindo, mas quem decide é o imperador.",
+    ],
+    insight_ids: ["ins_power", "ins_dates"],
+    material_ref: { pages: [2, 4] },
+    status: "suggested",
+  },
+  {
+    id: "int_bread",
+    title: "Pergunta disparadora sobre o pão e circo",
+    duration_min: 5,
+    goal: "Ver se a turma entende o objetivo político do pão e circo.",
+    steps: ["Pergunte: “Por que o governo de Roma pagaria pelos espetáculos?” e compare as respostas no quadro."],
+    insight_ids: ["ins_bread"],
+    material_ref: { pages: [4, 4] },
+    status: "suggested",
+  },
+];
+
+export const MOCK_MATERIALS: Material[] = [
+  {
+    id: "mat_activities",
+    title: "Caderno de Atividades: Roma Antiga",
+    pages: 3,
+    status: "ready",
+    created_at: "2026-10-29T17:20:00-03:00",
+    file_url: "/mock/caderno-atividades-roma.pdf",
+  },
+  {
+    id: "mat_rome",
+    title: ROME,
+    pages: 4,
+    status: "ready",
+    created_at: "2026-10-02T09:00:00-03:00",
+    file_url: "/mock/roma-antiga-amostra.pdf",
+  },
+];
+
+export const MOCK_CLASS_CONTEXT: ClassContext = {
+  grade_level: "8º ano",
+  description:
+    "Turma de 8º ano, nível de leitura mediano, gostam de jogos e vídeos curtos, dificuldade com datas e linha do tempo.",
+};

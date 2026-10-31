@@ -16,6 +16,18 @@ export type CreateSessionResponse = z.infer<typeof CreateSessionResponse>;
 export const EndSessionRequest = z.object({ reason: z.enum(["user_left", "idle_timeout", "beacon", "manual"]) });
 export type EndSessionRequest = z.infer<typeof EndSessionRequest>;
 
+export const FinishSessionResponse = z.object({
+  ok: z.literal(true),
+  transition: z.enum(["finished", "already_finished"]),
+});
+export type FinishSessionResponse = z.infer<typeof FinishSessionResponse>;
+
+export const ResumeSessionResponse = z.object({
+  ok: z.literal(true),
+  transition: z.enum(["resumed", "already_active"]),
+});
+export type ResumeSessionResponse = z.infer<typeof ResumeSessionResponse>;
+
 /** A conversation as the history list shows it. `subject` null = free whiteboard. */
 export const SessionSummary = z.object({
   id: z.string().min(1),
