@@ -21,7 +21,6 @@ interface TeacherStore {
   classContext: ClassContext;
   rows: StudentRow[];
   overview: { students: number; conversations: number; gaps: number; insights: number };
-  addStudent(name: string): Student; // POST /students
   setInsightStatus(id: string, status: InsightStatus): void; // PATCH /insights/:id
   saveClassContext(next: ClassContext): void; // PUT /class-context
   uploadMaterial(input: { title: string; subject: string; file: File }): Promise<Material>; // POST /materials
@@ -40,7 +39,7 @@ async function countPages(file: File) {
 }
 
 export function TeacherStoreProvider({ children }: { children: React.ReactNode }) {
-  const [students, setStudents] = useState(MOCK_STUDENTS);
+  const students = MOCK_STUDENTS;
   const [insights, setInsights] = useState(MOCK_INSIGHTS);
   const [materials, setMaterials] = useState(MOCK_MATERIALS);
   const [classContext, setClassContext] = useState(MOCK_CLASS_CONTEXT);
@@ -68,11 +67,6 @@ export function TeacherStoreProvider({ children }: { children: React.ReactNode }
         conversations: sessions.length,
         gaps: insights.filter((i) => i.kind === "gap" && i.status !== "dismissed").length,
         insights: insights.length,
-      },
-      addStudent(name) {
-        const student: Student = { id: `stu_${Date.now()}`, name, is_simulated: true, class_name: "8º B", grade_level: classContext.grade_level };
-        setStudents((list) => [...list, student]);
-        return student;
       },
       setInsightStatus(id, status) {
         setInsights((list) => list.map((i) => (i.id === id ? { ...i, status } : i)));

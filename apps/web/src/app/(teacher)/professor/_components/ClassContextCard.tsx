@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTeacher } from "../_lib/store";
 import type { GradeLevel } from "../_lib/types";
-import { IconPencil } from "./icons";
+import { IconBook, IconFile, IconPencil } from "./icons";
 import { Button, Card, Modal, inputClass } from "./ui";
 
 const GRADES: GradeLevel[] = ["7º ano", "8º ano", "9º ano"];
@@ -20,20 +20,28 @@ export function ClassContextCard() {
   };
 
   return (
-    <Card className="mb-8 p-6">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-bold">Sobre a turma</h2>
-          <span className="rounded-full bg-[var(--blue-tint)] px-3 py-1 text-[13px] font-semibold text-[var(--mento-blue)]">
-            {classContext.grade_level} · Ensino Fundamental II
+    <Card className="mb-10 p-6 md:p-8">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="flex items-center gap-1.5 rounded-full bg-[var(--blue-tint)] px-3 py-1.5 text-[13px] font-bold text-[var(--mento-blue)]">
+            <IconBook size={15} /> {classContext.grade_level} · Ensino Fundamental II
           </span>
+          <h2 className="font-[family-name:var(--font-board)] text-[28px] leading-8 text-[var(--accent-ink)]">Notas sobre a turma</h2>
         </div>
-        <Button variant="ghost" onClick={edit} className="px-3 py-1.5 text-sm">
+        <Button variant="secondary" onClick={edit} className="px-4 py-2 text-sm">
           <IconPencil size={16} /> Editar
         </Button>
       </div>
-      <p className="font-[family-name:var(--font-board)] text-[22px] leading-8">“{classContext.description}”</p>
-      <p className="mt-3 text-[13px] text-[var(--ink-soft)]">O tutor usa esta descrição para ajustar vocabulário, exemplos e ritmo em todas as conversas.</p>
+      <div className="flex gap-4 rounded-2xl bg-[var(--paper-2)] p-5">
+        <span className="mt-1 text-[var(--mento-blue)]" aria-hidden="true">
+          <IconFile size={20} />
+        </span>
+        <div>
+          <p className="text-[12px] font-bold uppercase tracking-[0.06em] text-[var(--ink-soft)]">Como a turma é</p>
+          <p className="mt-1 text-[18px] leading-7">“{classContext.description}”</p>
+        </div>
+      </div>
+      <p className="mt-3 text-[13px] text-[var(--ink-soft)]">O tutor usa estas notas para ajustar vocabulário, exemplos e ritmo em todas as conversas.</p>
 
       <Modal open={open} onClose={() => setOpen(false)} title="Sobre a turma" description="Vale para todas as conversas dos alunos com o tutor.">
         <form

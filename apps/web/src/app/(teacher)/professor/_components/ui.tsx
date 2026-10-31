@@ -116,3 +116,50 @@ export function Modal({ open, onClose, title, description, children }: { open: b
 
 export const inputClass =
   "w-full rounded-xl border-[1.5px] border-[var(--line)] bg-[var(--card)] px-4 py-3 text-base text-[var(--ink)] placeholder:text-[var(--ink)]/40 focus:border-[var(--mento-blue)] focus:outline-none focus:ring-4 focus:ring-[var(--blue-tint)]";
+
+const ICON_TONES: Record<Tone, string> = {
+  neutral: "bg-[var(--paper-2)] text-[var(--ink)]",
+  blue: "bg-[var(--blue-tint)] text-[var(--mento-blue)]",
+  danger: "bg-[var(--danger-soft)] text-[var(--danger)]",
+  warn: "bg-[var(--warn-soft)] text-[var(--warn)]",
+  ok: "bg-[var(--ok-soft)] text-[var(--ok)]",
+};
+
+/** Count card: label and icon on top, big number with its unit, a handwritten note below. */
+export function MetricCard({ label, value, unit, note, icon, tone = "blue" }: { label: string; value: number; unit: string; note: string; icon: React.ReactNode; tone?: Tone }) {
+  return (
+    <Card className="flex flex-col gap-3 p-5">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[12px] font-bold uppercase tracking-[0.06em] text-[var(--ink-soft)]">{label}</p>
+        <span className={cx("flex size-9 shrink-0 items-center justify-center rounded-full", ICON_TONES[tone])} aria-hidden="true">
+          {icon}
+        </span>
+      </div>
+      <p className="flex items-baseline gap-2">
+        <span className={cx("text-[40px] font-extrabold leading-none tracking-[-0.02em]", tone === "danger" && "text-[var(--danger)]")}>{value}</span>
+        <span className="text-[14px] font-bold text-[var(--ink-soft)]">{unit}</span>
+      </p>
+      <p className={cx("font-[family-name:var(--font-board)] text-[19px] leading-6", tone === "danger" ? "text-[var(--danger)]" : "text-[var(--mento-blue)]")}>{note}</p>
+    </Card>
+  );
+}
+
+/** Section title with an optional handwritten aside, as in the Stitch screens. */
+export function SectionTitle({ icon, title, aside, badge, id }: { icon?: React.ReactNode; title: string; aside?: string; badge?: React.ReactNode; id?: string }) {
+  return (
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        {icon && (
+          <span className="flex size-9 items-center justify-center rounded-full bg-[var(--blue-tint)] text-[var(--mento-blue)]" aria-hidden="true">
+            {icon}
+          </span>
+        )}
+        <h2 id={id} className="text-[22px] font-bold leading-7">
+          {title}
+        </h2>
+        {badge}
+      </div>
+      {aside && <p className="font-[family-name:var(--font-board)] text-[20px] text-[var(--accent-ink)]">{aside}</p>}
+    </div>
+  );
+}

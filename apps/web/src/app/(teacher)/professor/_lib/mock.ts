@@ -257,7 +257,53 @@ export const MOCK_INSIGHTS: Insight[] = [
   },
 ];
 
+
+// More students share the same gaps, so the class-wide cards group several students.
+MOCK_INSIGHTS.push(
+  {
+    ...base,
+    id: "ins_ana_senate",
+    student_id: "stu_ana",
+    session_id: "ses_ana_1",
+    kind: "gap",
+    severity: "medium",
+    concept: "Papel do Senado no Império",
+    title: "Hesita sobre quem decidia no Império",
+    body: "Às vezes diz que o Senado e o imperador decidiam juntos, sem perceber que o Senado perdeu o poder.",
+    confidence: 0.5,
+    evidence: [{ event_id: "ev_9", quote: "o senado e o augusto mandavam juntos eu acho" }],
+    material_ref: { lesson_id: "l4", pages: [45, 48] },
+    metrics: { attempts: 2 },
+    created_at: "2026-10-28T11:00:00-03:00",
+  },
+  {
+    ...base,
+    id: "ins_pedro_dates",
+    student_id: "stu_pedro",
+    session_id: "ses_pedro_1",
+    kind: "gap",
+    severity: "medium",
+    concept: "Contagem de anos antes de Cristo",
+    title: "Ordena datas a.C. como se fossem d.C.",
+    body: "Coloca 509 a.C. depois de 44 a.C. na linha do tempo.",
+    confidence: 0.55,
+    evidence: [{ event_id: "ev_10", quote: "509 é depois porque é maior" }],
+    material_ref: { lesson_id: "l3", pages: [38, 40] },
+    metrics: { attempts: 2 },
+    created_at: "2026-10-26T16:40:00-03:00",
+  },
+);
+
 export const MOCK_MATERIALS: Material[] = [
+  {
+    id: "mat_activities",
+    title: "Caderno de Atividades: Roma Antiga",
+    subject: "História",
+    pages: 3,
+    status: "ready",
+    created_at: "2026-10-29T17:20:00-03:00",
+    file_url: "/mock/caderno-atividades-roma.pdf",
+  },
   {
     id: "mat_rome",
     title: ROME,

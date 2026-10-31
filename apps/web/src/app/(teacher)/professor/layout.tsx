@@ -1,6 +1,7 @@
 // Owner: Person 1. Teacher shell: sidebar with the tabs Alunos / Materiais and the mock workspace store.
 import { Caveat, Nunito_Sans } from "next/font/google";
 import { Sidebar } from "./_components/Sidebar";
+import { TopBar } from "./_components/TopBar";
 import { TeacherStoreProvider } from "./_lib/store";
 import "./teacher.css";
 
@@ -15,9 +16,12 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         style={{ "--font-board": "var(--font-hand), cursive" } as React.CSSProperties}
       >
         <Sidebar />
-        <main className="min-w-0 flex-1 px-4 py-8 md:px-10 md:py-10">
-          <div className="mx-auto max-w-[1120px]">{children}</div>
-        </main>
+        <div className="min-w-0 flex-1">
+          <TopBar />
+          <main className="px-4 py-8 md:px-10 md:py-10">
+            <div className="mx-auto max-w-[1180px]">{children}</div>
+          </main>
+        </div>
       </div>
     </TeacherStoreProvider>
   );
