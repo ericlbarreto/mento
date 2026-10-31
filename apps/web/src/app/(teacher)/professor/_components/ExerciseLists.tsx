@@ -14,16 +14,32 @@ import { Button, Card, Chip, buttonClass, cx } from "./ui";
 
 function Downloads({ list }: { list: ExerciseList }) {
   const [files, setFiles] = useState<{ forTeacher: boolean; url: string; name: string }[]>([]);
+  const [failed, setFailed] = useState(false);
   // Created and revoked in the same effect, so a re-run (Strict Mode, new list) never leaves a dead link.
   useEffect(() => {
-    const next = ([true, false] as const).map((forTeacher) => ({
-      forTeacher,
-      url: URL.createObjectURL(exercisePdf(list, { forTeacher, subject: SUBJECT })),
-      name: exerciseFileName(list, forTeacher),
-    }));
-    setFiles(next);
-    return () => next.forEach((f) => URL.revokeObjectURL(f.url));
+    let alive = true;
+    let made: { url: string }[] = [];
+    setFailed(false);
+    Promise.all(
+      ([true, false] as const).map(async (forTeacher) => ({
+        forTeacher,
+        url: URL.createObjectURL(await exercisePdf(list, { forTeacher, subject: SUBJECT })),
+        name: exerciseFileName(list, forTeacher),
+      })),
+    ).then(
+      (next) => {
+        made = next;
+        if (alive) setFiles(next);
+        else next.forEach((f) => URL.revokeObjectURL(f.url));
+      },
+      () => alive && setFailed(true),
+    );
+    return () => {
+      alive = false;
+      made.forEach((f) => URL.revokeObjectURL(f.url));
+    };
   }, [list]);
+  if (failed) return <p className="text-[14px] font-semibold text-[var(--danger)]">Não foi possível montar os PDFs. Recarregue a página.</p>;
   return (
     <div className="flex flex-wrap gap-3">
       {files.map((f) => (
