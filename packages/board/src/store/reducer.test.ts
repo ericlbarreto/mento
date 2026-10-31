@@ -57,6 +57,15 @@ describe("applyAction with the Rome fixtures", () => {
     expect(s.columns.side).toEqual([]);
   });
 
+  it("settles a drawing placeholder as failed when the server could not generate it", () => {
+    const onWarning = vi.fn();
+    let s = applyAction(emptyBoard(), { id: "d1", name: "draw", args: { id: "pic", column: "visuals", prompt: "um navio", is_structured: false } } as Action);
+    expect(s.elements.get("pic")?.status).not.toBe("ready");
+    s = applyAction(s, { id: "d1_caption", name: "update_element", args: { id: "pic", html: "<p>x</p>" } }, { onWarning });
+    expect(s.elements.get("pic")).toMatchObject({ type: "image", status: "ready", data: { url: undefined } });
+    expect(onWarning).not.toHaveBeenCalled();
+  });
+
   it("warns (never throws) on unknown targets and leaves the board unchanged", () => {
     const onWarning = vi.fn();
     const s = applyAction(emptyBoard(), { id: "a0", name: "write_text", args: { id: "title", column: "main", html: "<h1>x</h1>" } });

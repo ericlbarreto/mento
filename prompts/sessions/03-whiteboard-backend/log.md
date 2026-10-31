@@ -29,3 +29,4 @@
 | 2026-10-31 | Async images, speakers without headphones, visual tutor | images, voice, prompts | [2026-10-31-22-async-images-speakers-visual-tutor.md](2026-10-31-22-async-images-speakers-visual-tutor.md) | see git log |
 | 2026-10-31 | Illustrate on your own (more images) | prompts | [2026-10-31-23-illustrate-on-your-own.md](2026-10-31-23-illustrate-on-your-own.md) | see git log |
 | 2026-10-31 | More images, correct circles, merge main | prompts, merge | [2026-10-31-24-more-images-correct-circles-merge-main.md](2026-10-31-24-more-images-correct-circles-merge-main.md) | see git log |
+| 2026-10-31 | Drawing not generated (Gemini credits, stuck placeholder) | images, board | [2026-10-31-29-drawing-not-generated.md](2026-10-31-29-drawing-not-generated.md) | see git log |
