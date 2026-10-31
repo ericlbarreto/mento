@@ -24,3 +24,4 @@
 | 2026-10-30 | Push the prompts, voice end-to-end test | testing | [2026-10-30-18-push-prompts-and-voice-e2e.md](2026-10-30-18-push-prompts-and-voice-e2e.md) | see git log |
 | 2026-10-30 | Voice test feedback, teaching tutor, hand-off doc | prompts, handoff | [2026-10-30-19-teaching-tutor.md](2026-10-30-19-teaching-tutor.md) | see git log |
 | 2026-10-30 | Export every prompt, merge PR #8, hand-off for another tool | handoff | [2026-10-30-20-export-prompts-and-merge.md](2026-10-30-20-export-prompts-and-merge.md) · [all-prompts.md](all-prompts.md) | see git log |
+| 2026-10-30 | Front-end rendering guide | handoff, front-end | [2026-10-30-21-frontend-rendering-guide.md](2026-10-30-21-frontend-rendering-guide.md) | see git log |

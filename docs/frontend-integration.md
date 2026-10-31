@@ -1,5 +1,6 @@
 # Front-end integration guide (whiteboard)
 
+> **How to draw all of this on the screen (board, speech queue, captions, orb, mic, history):** see `docs/frontend-rendering-guide.md`.
 > For Person 2 (whiteboard front-end). Last updated 2026-10-30.
 > **Source of truth in code:** `@mento/contracts` (Zod schemas + TypeScript types). Import them in `apps/web` instead of re-typing shapes: every name in `monospace` below is exported from `@mento/contracts`.
 > Machine-readable list of routes: `GET http://localhost:4000/api/openapi.json`.
