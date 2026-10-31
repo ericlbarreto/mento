@@ -169,6 +169,49 @@ describe("TurnEngine: voice, drawing and search", () => {
   });
 });
 
+describe("TurnEngine: subject of the session", () => {
+  const catalog = [
+    { material_id: "m1", title: "História de Roma", subject: "history", subject_id: "subj_hist", chapters: ["O Império"] },
+    { material_id: "m9", title: "Álgebra", subject: "math", subject_id: "subj_math", chapters: [] },
+  ];
+  function spyRetriever() {
+    const queries: unknown[] = [];
+    const retriever: Retriever = { searchChunks: async (q) => (queries.push(q), [passage]), validateCitation: async () => false };
+    return { retriever, queries };
+  }
+
+  it("searches only the subject's materials, before the call and in the search round, and names the subject in the prompt", async () => {
+    const { retriever, queries } = spyRetriever();
+    const repo = new InMemoryTurnRepository({ catalog });
+    const llm = new ScriptedLlm([
+      [toolEvent("search_materials", { query: "Augusto", material_id: "m9" }, "toolu_s"), stopEvent("tool_use")],
+      [toolEvent("speak", { text: "Achei." }), stopEvent()],
+    ]);
+    const engine = new TurnEngine({ llm, repo, retriever, tts: null, prompts, models: { tutor: "m" } });
+    const { id } = await repo.createSession({ student_id: "stu_1", modality: "text", subject: { id: "subj_hist", name: "História", key: "history" } });
+    await run(engine, id, say("Quem foi Augusto?"));
+    expect(queries).toEqual([
+      { query: "Quem foi Augusto?", k: 6, material_ids: ["m1"] },
+      { query: "Augusto", k: 6, material_id: "m9", material_ids: ["m1"], subject: undefined },
+    ]);
+    const system = llm.calls[0]!.system;
+    expect(system[0]!.text).toContain("História (history)");
+    expect(system[1]!.text).toContain("m1 | História de Roma");
+    expect(system[1]!.text).not.toContain("Álgebra");
+  });
+
+  it("searches every material on a free whiteboard (no subject)", async () => {
+    const { retriever, queries } = spyRetriever();
+    const repo = new InMemoryTurnRepository({ catalog });
+    const engine = new TurnEngine({ llm: new ScriptedLlm([[stopEvent()]]), repo, retriever, tts: null, prompts, models: { tutor: "m" } });
+    const { id } = await repo.createSession({ student_id: "stu_1", modality: "text", subject: null });
+    await run(engine, id, say("Quem foi Augusto?"));
+    expect(queries).toEqual([{ query: "Quem foi Augusto?", k: 6, material_ids: undefined }]);
+    const events = await repo.listEvents(id);
+    expect(events[0]).toMatchObject({ type: "session_started", payload: { subject_id: null } });
+  });
+});
+
 describe("TurnEngine: failures", () => {
   it("retries once on a retryable error before any action, without telling the client", async () => {
     const { engine, session, llm } = await setup([[toolEvent("speak", { text: "Voltei." }), stopEvent()]], {}, { failFirst: new LlmError("overloaded", 529, true) });

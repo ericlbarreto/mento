@@ -13,7 +13,14 @@ export interface CatalogEntry {
   material_id: string;
   title: string;
   subject: string;
+  subject_id?: string;
   chapters: string[];
+}
+/** The subject (matéria) a session was started from; null for a free whiteboard. */
+export interface SessionSubject {
+  id: string;
+  name: string;
+  key: string;
 }
 export interface SystemBlock {
   type: "text";
@@ -30,8 +37,9 @@ export function buildSystem(input: {
   classContext: ClassContext;
   summary: LearnerSummary;
   catalog: CatalogEntry[];
+  subject?: SessionSubject | null;
 }): SystemBlock[] {
-  const { prompts, classContext, summary, catalog } = input;
+  const { prompts, classContext, summary, catalog, subject = null } = input;
   const profiles = Object.entries(prompts.subjects)
     .map(([key, text]) => `### ${key}\n${text}`)
     .join("\n\n");
@@ -46,6 +54,9 @@ export function buildSystem(input: {
     prompts.base.trim(),
     `## Subject profiles\nApply the profile that matches the topic being taught.\n\n${profiles}`,
     `## Class\nGrade level: ${classContext.grade_level}\nTeacher's description (guidance, not fact): ${classContext.description || "(none)"}`,
+    subject
+      ? `## Subject of this session\n${subject.name} (${subject.key})\nThe student chose this subject. Teach it from the materials in the catalog (they are this subject's books) and apply the "${subject.key}" subject profile when it exists.`
+      : "## Subject of this session\nNo subject was chosen: this is a free whiteboard. Follow the student's interest; the catalog lists every material.",
     `## This student\nOpen gaps (reuse these labels in ask_verification):\n${gaps}\n\nRecent progress:\n${progress}`,
   ].join("\n\n");
 

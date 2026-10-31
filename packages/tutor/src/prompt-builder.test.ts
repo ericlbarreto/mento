@@ -29,6 +29,13 @@ describe("buildSystem", () => {
     expect(blocks[1]!.text).toContain("m1 | História de Roma | history | A República; O Império");
   });
 
+  it("names the subject of the session, or says the whiteboard is free", () => {
+    const withSubject = buildSystem({ prompts, classContext: { grade_level: "8º ano", description: "" }, summary, catalog, subject: { id: "s1", name: "História", key: "history" } });
+    expect(withSubject[0]!.text).toContain("## Subject of this session\nHistória (history)");
+    const free = buildSystem({ prompts, classContext: { grade_level: "8º ano", description: "" }, summary, catalog, subject: null });
+    expect(free[0]!.text).toContain("No subject was chosen");
+  });
+
   it("says so when there are no gaps and no materials", () => {
     const empty = buildSystem({ prompts, classContext: { grade_level: "7º ano", description: "" }, summary: { open_gaps: [], recent_progress: [] }, catalog: [] });
     expect(empty[0]!.text).toContain("No open gaps recorded yet.");

@@ -3,7 +3,7 @@ import type { LlmClient, LlmContentBlock, LlmMessage } from "./llm";
 import { LlmError } from "./llm";
 import { commitAction, prepareAction } from "./action-pipeline";
 import { noopDraw, noopJudge, type DrawPipeline, type Judge, type TtsStarter } from "./hooks";
-import { buildSystem, buildUserMessage, formatPassages, historyFromEvents } from "./prompt-builder";
+import { buildSystem, buildUserMessage, formatPassages, historyFromEvents, type CatalogEntry, type SessionSubject } from "./prompt-builder";
 import type { PromptSet } from "./prompts";
 import type { TurnRepository } from "./repository";
 import { retrievalQuery } from "./retrieval-step";
@@ -51,6 +51,8 @@ interface TurnState {
   actionSeq: number;
   emitted: number;
   passages: Chunk[];
+  /** The subject's materials (undefined on a free whiteboard): every search is limited to them. */
+  material_ids?: string[];
   pending: Promise<unknown>[];
   ttsActions: string[];
 }
@@ -109,6 +111,11 @@ export class TurnEngine {
     await Promise.all([...this.queues.values()].map((q) => q.flush()));
   }
 
+  private async catalogFor(rt: Runtime, subject: SessionSubject | null): Promise<CatalogEntry[]> {
+    rt.catalog ??= await this.deps.repo.getCatalog(subject?.id);
+    return rt.catalog;
+  }
+
   forget(session_id: string): void {
     this.runtimes.delete(session_id);
     this.queues.delete(session_id);
@@ -119,8 +126,10 @@ export class TurnEngine {
     const { repo, llm, prompts, models } = this.deps;
     const session = await repo.getSession(session_id);
     if (!session || !llm.prewarm) return;
-    const [classContext, summary, catalog] = await Promise.all([repo.getClassContext(), repo.getLearnerSummary(session.student_id), repo.getCatalog()]);
-    await llm.prewarm({ model: models.tutor, system: buildSystem({ prompts, classContext, summary, catalog }), tools: modelTools(), messages: [{ role: "user", content: "." }] });
+    const rt = await this.runtime(session_id);
+    const [classContext, summary, catalog] = await Promise.all([repo.getClassContext(), repo.getLearnerSummary(session.student_id), this.catalogFor(rt, session.subject)]);
+    const system = buildSystem({ prompts, classContext, summary, catalog, subject: session.subject });
+    await llm.prewarm({ model: models.tutor, system, tools: modelTools(), messages: [{ role: "user", content: "." }] });
   }
 
   async run(session_id: string, req: TurnRequest, emit: (m: StreamMessage) => void, signal: AbortSignal): Promise<{ turn_id: string }> {
@@ -135,12 +144,14 @@ export class TurnEngine {
     const persist = (e: { type: EventType; payload: unknown }) => queue.enqueue(() => repo.appendEvent(session_id, e));
 
     const query = retrievalQuery(req.appended, rt.lastTopic);
-    const [classContext, summary, catalog, events, passages] = await Promise.all([
+    // With a subject, only its books are searched (and listed); a free whiteboard searches everything.
+    const catalog = await this.catalogFor(rt, session.subject);
+    const material_ids = session.subject ? catalog.map((m) => m.material_id) : undefined;
+    const [classContext, summary, events, passages] = await Promise.all([
       repo.getClassContext(),
       repo.getLearnerSummary(session.student_id),
-      repo.getCatalog(),
       repo.listEvents(session_id),
-      query ? retriever.searchChunks({ query, k: 6 }) : Promise.resolve([] as Chunk[]),
+      query ? retriever.searchChunks({ query, k: 6, material_ids }) : Promise.resolve([] as Chunk[]),
     ]);
 
     // Record what the student did this turn (after reading the history, so it is not counted twice).
@@ -157,12 +168,12 @@ export class TurnEngine {
     }
 
     const state: TurnState = {
-      session_id, student_id: session.student_id, modality: req.modality, turn_id, rt, emit, signal, persist, t0,
+      session_id, student_id: session.student_id, modality: req.modality, turn_id, rt, emit, signal, persist, t0, material_ids,
       timing: { context_ready_ms: Math.round(this.now() - t0) },
       order: 0, actionSeq: 0, emitted: 0, passages: [...passages], pending: [], ttsActions: [],
     };
 
-    const system = buildSystem({ prompts, classContext, summary, catalog });
+    const system = buildSystem({ prompts, classContext, summary, catalog, subject: session.subject });
     const userText = buildUserMessage({
       modality: req.modality,
       history: historyFromEvents(events),
@@ -334,7 +345,13 @@ export class TurnEngine {
         out.set(block.id, "invalid arguments for search_materials");
         continue;
       }
-      const chunks = await this.deps.retriever.searchChunks({ query: args.data.query, k: args.data.k ?? 6, material_id: args.data.material_id, subject: args.data.subject });
+      const chunks = await this.deps.retriever.searchChunks({
+        query: args.data.query,
+        k: args.data.k ?? 6,
+        material_id: args.data.material_id,
+        material_ids: state.material_ids,
+        subject: args.data.subject,
+      });
       state.passages.push(...chunks);
       out.set(block.id, formatPassages(chunks));
     }

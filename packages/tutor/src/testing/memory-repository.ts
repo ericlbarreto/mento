@@ -1,5 +1,5 @@
 import type { Event, EventType } from "@mento/contracts";
-import type { CatalogEntry, ClassContext, LearnerSummary } from "../prompt-builder";
+import type { CatalogEntry, ClassContext, LearnerSummary, SessionSubject } from "../prompt-builder";
 import type { SessionInfo, TurnRepository } from "../repository";
 
 export interface MemorySeed {
@@ -20,11 +20,15 @@ export class InMemoryTurnRepository implements TurnRepository {
     return (++this.seq).toString(16).padStart(24, "0");
   }
 
-  async createSession(input: { student_id: string; modality: "text" | "voice"; topic?: string }): Promise<{ id: string }> {
+  async createSession(input: { student_id: string; modality: "text" | "voice"; topic?: string; subject?: SessionSubject | null }): Promise<{ id: string }> {
     const id = this.nextId();
-    this.sessions.set(id, { id, student_id: input.student_id, modality: input.modality });
+    const subject = input.subject ?? null;
+    this.sessions.set(id, { id, student_id: input.student_id, modality: input.modality, subject });
     this.events.set(id, []);
-    await this.appendEvent(id, { type: "session_started", payload: { student_id: input.student_id, modality: input.modality, topic: input.topic } });
+    await this.appendEvent(id, {
+      type: "session_started",
+      payload: { student_id: input.student_id, modality: input.modality, topic: input.topic, subject_id: subject?.id ?? null },
+    });
     return { id };
   }
 
@@ -56,7 +60,8 @@ export class InMemoryTurnRepository implements TurnRepository {
     return this.seed.summary ?? { open_gaps: [], recent_progress: [] };
   }
 
-  async getCatalog(): Promise<CatalogEntry[]> {
-    return this.seed.catalog ?? [];
+  async getCatalog(subject_id?: string): Promise<CatalogEntry[]> {
+    const catalog = this.seed.catalog ?? [];
+    return subject_id ? catalog.filter((m) => m.subject_id === subject_id) : catalog;
   }
 }

@@ -1,10 +1,12 @@
 import type { Event, EventType } from "@mento/contracts";
-import type { CatalogEntry, ClassContext, LearnerSummary } from "./prompt-builder";
+import type { CatalogEntry, ClassContext, LearnerSummary, SessionSubject } from "./prompt-builder";
 
 export interface SessionInfo {
   id: string;
   student_id: string;
   modality: "text" | "voice";
+  /** The subject the session was started from; null for a free whiteboard. */
+  subject: SessionSubject | null;
 }
 
 /**
@@ -12,7 +14,7 @@ export interface SessionInfo {
  * implements it; `InMemoryTurnRepository` (testing) is used until then and in tests.
  */
 export interface TurnRepository {
-  createSession(input: { student_id: string; modality: "text" | "voice"; topic?: string }): Promise<{ id: string }>;
+  createSession(input: { student_id: string; modality: "text" | "voice"; topic?: string; subject?: SessionSubject | null }): Promise<{ id: string }>;
   getSession(session_id: string): Promise<SessionInfo | null>;
   appendEvent(session_id: string, event: { type: EventType; payload: unknown }): Promise<Event>;
   listEvents(session_id: string): Promise<Event[]>;
@@ -20,5 +22,6 @@ export interface TurnRepository {
   endSession(session_id: string, reason: string): Promise<void>;
   getClassContext(): Promise<ClassContext>;
   getLearnerSummary(student_id: string): Promise<LearnerSummary>;
-  getCatalog(): Promise<CatalogEntry[]>;
+  /** Ready materials; only those of `subject_id` when it is given. */
+  getCatalog(subject_id?: string): Promise<CatalogEntry[]>;
 }

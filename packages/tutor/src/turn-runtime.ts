@@ -1,5 +1,6 @@
 import { Action, type Event } from "@mento/contracts";
 import { Board } from "./board";
+import type { CatalogEntry } from "./prompt-builder";
 
 /** What the server remembers about one session between turns (rebuilt from events after a restart). */
 export interface Runtime {
@@ -8,6 +9,8 @@ export interface Runtime {
   verSeq: number;
   lastTopic: string;
   openVerification?: { verification_id: string; concept_key: string };
+  /** The session's catalog (its subject's materials, or all), loaded once per session. */
+  catalog?: CatalogEntry[];
 }
 
 export function restoreRuntime(events: Event[]): Runtime {
