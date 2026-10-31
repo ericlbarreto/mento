@@ -3,7 +3,6 @@
 // Owner: Person 2. The tutoring session (Stitch S2 loading, S3 board + chat, S4 chat closed): composes the shared
 // chrome, the PR #6 board, captions, orb, controls and chat around useSessionController. Plan 2026-10-30-2330 §3.
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { useRouter } from "next/navigation";
 import { Board, MOCK_STUDENTS, type StudentSummary } from "@mento/board";
 import { Footer, Orb, SimulatedDataBadge, TopBar, type TopBarNavItem } from "@mento/ui";
 import { API_URL, MOCK_API, apiUrl, getSession, getVoiceToken, listSessions, listStudents, streamTurn } from "@/lib/api";
@@ -11,7 +10,9 @@ import { CaptionBar } from "../_components/caption/CaptionBar";
 import { ChatPanel } from "../_components/chat/ChatPanel";
 import { InputControls, PlaybackControls } from "../_components/controls/SessionControls";
 import { SessionHeader } from "../_components/header/SessionHeader";
+import { HistoryDrawer } from "../_components/history/HistoryDrawer";
 import { SessionErrorCard, SessionLoading } from "../_components/loading/SessionLoading";
+import { SessionOptions } from "../_components/menu/SessionOptions";
 import { createSessionAudio } from "../_components/sessionAudio";
 import { makeSelection, readStudentId } from "../_components/sessionModel";
 import { useEndSession } from "../_components/useEndSession";
@@ -33,7 +34,6 @@ const API = { getSession, streamTurn };
 const dotted = "bg-[radial-gradient(color-mix(in_srgb,var(--ink-soft)_45%,transparent)_1.2px,transparent_1.2px)] bg-size-[24px_24px]";
 
 export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; onOpenHistory?: () => void }) {
-  const router = useRouter();
   // Tutor voice when the API serves `speak.audio_url` (none in mock mode).
   const [audio] = useState(() => (MOCK_API ? undefined : createSessionAudio(apiUrl)));
   // Voice sessions hold the opening turn until the audio is unlocked (or the student picks text only).
@@ -60,8 +60,8 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
   // "Continuar por texto" closes the mic notice and opens the chat (the notice comes back if the mic state changes).
   const [noticeClosedFor, setNoticeClosedFor] = useState<string | null>(null);
 
-  // Tab close / reload ends the lesson (keepalive, reason "beacon"). The explicit end (endNow) is for track N2's menu.
-  useEndSession({ sessionId, onEnded: () => router.push("/") });
+  // Tab close / reload ends the lesson (keepalive, reason "beacon"). The options menu ends it explicitly (endNow).
+  const { endNow } = useEndSession({ sessionId, onEnded: () => undefined });
 
   // Generated images come from the API; in mock mode the fixtures point at this app's own origin.
   const [assetBaseUrl, setAssetBaseUrl] = useState(MOCK_API ? "" : API_URL);
@@ -98,6 +98,7 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
     };
   }, [studentId, session, subjectId]);
 
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
   const [captionsOn, setCaptionsOn] = useState(true);
   const [muted, setMuted] = useState(false);
@@ -153,9 +154,10 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
               subjectName={subjectName}
               title={title}
               historyCount={historyCount}
-              onOpenHistory={onOpenHistory}
+              onOpenHistory={onOpenHistory ?? (() => setHistoryOpen(true))}
               chatOpen={chatOpen}
               onOpenChat={focusChat}
+              options={<SessionOptions controller={c} endNow={endNow} topic={`${subjectName}: ${title}`} />}
             />
           </div>
           {/* Click-and-ask listens here (bubbling from the board elements); Enter on a focused element does the same. */}
@@ -234,6 +236,14 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
         {voice.needsTap && <VoiceStartGate onStart={() => void voice.start()} onTextOnly={voice.continueWithText} busy={voice.gate === "unlocking"} />}
       </div>
       <Footer />
+      <HistoryDrawer
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        studentId={studentId}
+        subject={session?.subject ?? null}
+        currentSessionId={sessionId}
+        modality={session?.modality}
+      />
     </div>
   );
 }
