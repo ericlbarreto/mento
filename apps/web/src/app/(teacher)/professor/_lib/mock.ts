@@ -232,7 +232,7 @@ export const MOCK_MATERIALS: Material[] = [
   {
     id: "mat_historia_brasil",
     title: "História do Brasil — Da crise colonial ao Segundo Reinado",
-    pages: 0,
+    pages: 30,
     status: "ready",
     created_at: "2026-10-31T10:00:00-03:00",
     file_url: "/materials/historia-brasil-8ano.pdf",
