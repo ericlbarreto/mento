@@ -31,3 +31,14 @@ export type ListSubjectsResponse = z.infer<typeof ListSubjectsResponse>;
 
 export const CreateSubjectRequest = z.object({ name: z.string().min(1).max(60), key: SubjectKey });
 export type CreateSubjectRequest = z.infer<typeof CreateSubjectRequest>;
+
+/** Storage of subjects. Implemented by `MongoSubjectStore` in @mento/db. */
+export interface SubjectStore {
+  /** Every subject with its ready materials, sorted by name. */
+  list(): Promise<SubjectSummary[]>;
+  get(id: string): Promise<SubjectSummary | null>;
+  /** Throws `SubjectKeyTakenError` when the key already exists. */
+  create(input: CreateSubjectRequest): Promise<Subject>;
+  /** Returns the subject with this key, creating it with `name` if needed (used by the ingestion script). */
+  upsertByKey(key: string, name: string): Promise<Subject>;
+}

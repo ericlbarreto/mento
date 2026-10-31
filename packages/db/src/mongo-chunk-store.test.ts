@@ -27,3 +27,17 @@ describe("textPipeline", () => {
     expect(textPipeline("x", 5, { subject: "history" })[1]).toEqual({ $match: { subject: "history" } });
   });
 });
+
+describe("filtering by a list of materials (the books of a subject)", () => {
+  it("pre-filters the vector search with $in", () => {
+    const stage = vectorPipeline([1], 5, { material_ids: ["m1", "m2"] })[0] as { $vectorSearch: Record<string, unknown> };
+    expect(stage.$vectorSearch.filter).toEqual({ material_id: { $in: ["m1", "m2"] } });
+    const both = vectorPipeline([1], 5, { material_ids: ["m1"], subject: "history" })[0] as { $vectorSearch: Record<string, unknown> };
+    expect(both.$vectorSearch.filter).toEqual({ $and: [{ material_id: { $in: ["m1"] } }, { subject: { $eq: "history" } }] });
+  });
+
+  it("matches the text search results against the list", () => {
+    expect(textPipeline("x", 5, { material_ids: ["m1", "m2"] })[1]).toEqual({ $match: { material_id: { $in: ["m1", "m2"] } } });
+  });
+});
+

@@ -26,9 +26,12 @@ const toChunk = (d: ChunkDoc): Chunk => ({
   score: d.score,
 });
 
-const equalities = (f: ChunkFilter): Record<string, { $eq: string }>[] => {
-  const out: Record<string, { $eq: string }>[] = [];
+type Condition = Record<string, { $eq: string } | { $in: string[] }>;
+
+const equalities = (f: ChunkFilter): Condition[] => {
+  const out: Condition[] = [];
   if (f.material_id) out.push({ material_id: { $eq: f.material_id } });
+  if (f.material_ids) out.push({ material_id: { $in: f.material_ids } });
   if (f.subject) out.push({ subject: { $eq: f.subject } });
   return out;
 };
@@ -53,8 +56,9 @@ export function vectorPipeline(vector: number[], limit: number, filter: ChunkFil
 
 /** Atlas Search full-text query on the passage text; material/subject are applied right after. */
 export function textPipeline(query: string, limit: number, filter: ChunkFilter): Record<string, unknown>[] {
-  const match: Record<string, string> = {};
+  const match: Record<string, unknown> = {};
   if (filter.material_id) match.material_id = filter.material_id;
+  if (filter.material_ids) match.material_id = { $in: filter.material_ids };
   if (filter.subject) match.subject = filter.subject;
   return [
     { $search: { index: TEXT_INDEX, text: { query, path: "text" } } },
@@ -66,11 +70,13 @@ export function textPipeline(query: string, limit: number, filter: ChunkFilter):
 
 export class MongoChunkStore implements ChunkStore {
   async vectorSearch(vector: number[], limit: number, filter: ChunkFilter): Promise<Chunk[]> {
+    if (filter.material_ids?.length === 0) return [];
     const docs = await ChunkModel.aggregate<ChunkDoc>(vectorPipeline(vector, limit, filter) as never);
     return docs.map(toChunk);
   }
 
   async textSearch(query: string, limit: number, filter: ChunkFilter): Promise<Chunk[]> {
+    if (filter.material_ids?.length === 0) return [];
     const docs = await ChunkModel.aggregate<ChunkDoc>(textPipeline(query, limit, filter) as never);
     return docs.map(toChunk);
   }
@@ -96,11 +102,17 @@ export class MongoChunkStore implements ChunkStore {
     await MaterialModel.findByIdAndUpdate(id, patch);
   }
 
-  async listCatalog(): Promise<CatalogRecord[]> {
-    const docs = await MaterialModel.find({ status: "ready" })
+  async listCatalog(subject_id?: string): Promise<CatalogRecord[]> {
+    const docs = await MaterialModel.find({ status: "ready", ...(subject_id ? { subject_id } : {}) })
       .sort({ createdAt: 1 })
-      .lean<{ _id: unknown; title: string; subject: string; chapters?: { title: string }[] }[]>();
-    return docs.map((d) => ({ material_id: String(d._id), title: d.title, subject: d.subject, chapters: (d.chapters ?? []).map((c) => c.title) }));
+      .lean<{ _id: unknown; title: string; subject: string; subject_id?: string | null; chapters?: { title: string }[] }[]>();
+    return docs.map((d) => ({
+      material_id: String(d._id),
+      title: d.title,
+      subject: d.subject,
+      ...(d.subject_id ? { subject_id: d.subject_id } : {}),
+      chapters: (d.chapters ?? []).map((c) => c.title),
+    }));
   }
 }
 

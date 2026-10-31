@@ -10,6 +10,8 @@ const materialSchema = new Schema(
   {
     title: { type: String, required: true },
     subject: { type: String, required: true, index: true },
+    /** The subject (matéria) document this material belongs to. */
+    subject_id: { type: String, index: true },
     chapters: { type: [chapterSchema], default: [] },
     pages: { type: Number, required: true },
     status: { type: String, enum: ["processing", "ready", "failed"], default: "processing" },

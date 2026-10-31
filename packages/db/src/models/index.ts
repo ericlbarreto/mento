@@ -2,3 +2,4 @@
 // Each person creates the models of their own area (see README.md in this folder).
 export * from "./material.model";
 export * from "./chunk.model";
+export * from "./subject.model";

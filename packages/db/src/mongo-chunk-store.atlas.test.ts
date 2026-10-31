@@ -1,6 +1,9 @@
 import mongoose from "mongoose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { MongoChunkStore, deleteMaterialsByTitle, ensureChunkIndexes } from "./mongo-chunk-store";
+import { MongoSubjectStore } from "./mongo-subject-store";
+import { MaterialModel } from "./models/material.model";
+import { SubjectModel } from "./models/subject.model";
 import { connectMongo, disconnectMongo } from "./connection";
 
 // Runs only against a real Atlas cluster: ATLAS_TEST_URI=mongodb+srv://... pnpm --filter @mento/db test
@@ -58,4 +61,21 @@ describe.skipIf(!uri)("MongoChunkStore on Atlas", () => {
     expect(await store.getPagePassages(id, 1)).toEqual([]);
     expect(await deleteMaterialsByTitle(title)).toEqual({ materials: 0, chunks: 0 });
   }, 60_000);
+
+  it("lists subjects with their ready materials, and the catalog of one subject", async () => {
+    const subjects = new MongoSubjectStore();
+    const key = `t${Date.now()}`;
+    const subj = await subjects.upsertByKey(key, "Teste");
+    expect(await subjects.upsertByKey(key, "Teste")).toEqual(subj); // idempotent
+    const { id: ready } = await store.createMaterial({ title: "Livro A", subject: key, chapters: [], pages: 10, status: "ready", subject_id: subj.id });
+    await store.createMaterial({ title: "Livro B", subject: key, chapters: [], pages: 3, status: "failed", subject_id: subj.id });
+    const summary = await subjects.get(subj.id);
+    expect(summary).toMatchObject({ id: subj.id, name: "Teste", key, material_count: 1, materials: [{ id: ready, title: "Livro A", pages: 10, status: "ready" }] });
+    expect((await subjects.list()).some((s) => s.id === subj.id)).toBe(true);
+    expect((await store.listCatalog(subj.id)).map((m) => m.material_id)).toEqual([ready]);
+    expect(await subjects.get("000000000000000000000000")).toBeNull();
+    await MaterialModel.deleteMany({ subject_id: subj.id });
+    await SubjectModel.deleteOne({ _id: subj.id });
+  }, 60_000);
 });
+
