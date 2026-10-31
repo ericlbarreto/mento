@@ -25,7 +25,7 @@ describe("createRetriever.searchChunks", () => {
     const { store, seen } = fakeStore();
     const out = await createRetriever({ store, embed }).searchChunks({ query: "fim da república", k: 2, subject: "history" });
     expect(out.map((x) => x.id)).toEqual(["b", "a"]);
-    expect(seen.vector).toEqual({ v: [1, 0.5], limit: 10, filter: { material_id: undefined, subject: "history" } });
+    expect(seen.vector).toEqual({ v: [1, 0.5], limit: 10, filter: { material_id: undefined, material_ids: undefined, subject: "history" } });
     expect(seen.text?.q).toBe("fim da república");
   });
 
@@ -41,6 +41,23 @@ describe("createRetriever.searchChunks", () => {
     const none = fakeStore({ vectorSearch: async () => { throw new Error("a"); }, textSearch: async () => { throw new Error("b"); } }).store;
     expect(await createRetriever({ store: none, embed, log }).searchChunks({ query: "x", k: 5 })).toEqual([]);
     expect(logs.filter((l) => l.includes("failed"))).toHaveLength(4);
+  });
+});
+
+describe("createRetriever with a subject's materials", () => {
+  it("passes the material list to both searches", async () => {
+    const { store, seen } = fakeStore();
+    await createRetriever({ store, embed }).searchChunks({ query: "x", k: 3, material_ids: ["m1", "m2"] });
+    expect(seen.vector?.filter).toEqual({ material_id: undefined, material_ids: ["m1", "m2"], subject: undefined });
+    expect(seen.text?.filter).toEqual({ material_id: undefined, material_ids: ["m1", "m2"], subject: undefined });
+  });
+
+  it("answers nothing at once for a subject without materials", async () => {
+    let touched = 0;
+    const { store } = fakeStore({ vectorSearch: async () => (touched++, []), textSearch: async () => (touched++, []) });
+    const r = createRetriever({ store, embed: async () => (touched++, [[1]]) });
+    expect(await r.searchChunks({ query: "x", k: 3, material_ids: [] })).toEqual([]);
+    expect(touched).toBe(0);
   });
 });
 

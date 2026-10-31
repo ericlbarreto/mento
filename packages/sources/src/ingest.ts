@@ -8,6 +8,8 @@ export interface IngestInput {
   data: Uint8Array;
   title: string;
   subject: string;
+  /** The subject (matéria) document the material belongs to. */
+  subject_id?: string;
   chapters?: MaterialRecord["chapters"];
   store: ChunkStore;
   embed: Embed;
@@ -26,10 +28,10 @@ export interface IngestReport {
 
 /** PDF → text per page → passages → embeddings → stored with the material. Marks the material failed on error. */
 export async function ingestPdf(input: IngestInput): Promise<IngestReport> {
-  const { data, title, subject, store, embed, log } = input;
+  const { data, title, subject, subject_id, store, embed, log } = input;
   const chapters = input.chapters ?? [];
   const pages = (await extractPdfPages(data)).map((p) => ({ page: p.page, text: cleanPageText(p.text) }));
-  const { id } = await store.createMaterial({ title, subject, chapters, pages: pages.length, status: "processing" });
+  const { id } = await store.createMaterial({ title, subject, ...(subject_id ? { subject_id } : {}), chapters, pages: pages.length, status: "processing" });
   try {
     const empty_pages = pages.filter((p) => p.text.replace(/\s/g, "").length < 20).map((p) => p.page);
     if (empty_pages.length) log?.(`${empty_pages.length} page(s) without a text layer: ${empty_pages.slice(0, 10).join(", ")}${empty_pages.length > 10 ? "…" : ""}`);

@@ -21,7 +21,8 @@ export function createRetriever(deps: RetrieverDeps): Retriever {
   return {
     async searchChunks(q: SearchQuery): Promise<Chunk[]> {
       if (!isAvailable()) return [];
-      const filter = { material_id: q.material_id, subject: q.subject };
+      if (q.material_ids?.length === 0) return []; // a subject without materials: nothing to search
+      const filter = { material_id: q.material_id, material_ids: q.material_ids, subject: q.subject };
       const fetchLimit = Math.max(q.k * 2, 10);
       const [vector, text] = await Promise.allSettled([
         embed([q.query], "query").then(([v]) => store.vectorSearch(v as number[], fetchLimit, filter)),

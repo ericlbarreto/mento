@@ -27,14 +27,14 @@ describe("ingestPdf", () => {
   it("extracts, chunks, embeds and stores passages with their chapter, then marks the material ready", async () => {
     const { store, materials, passages } = memoryStore();
     const chapters = [{ title: "A República", start_page: 1, end_page: 1 }, { title: "O Império", start_page: 2, end_page: 3 }];
-    const report = await ingestPdf({ data: pdf, title: "História de Roma", subject: "history", chapters, store, embed });
+    const report = await ingestPdf({ data: pdf, title: "História de Roma", subject: "history", subject_id: "subj1", chapters, store, embed });
     expect(report).toEqual({ material_id: "mat1", pages: 3, passages: 2, empty_pages: [2], toc_pages: [] });
     expect(passages.map((p) => [p.page, p.chapter, p.passage_idx, p.material_id, p.subject])).toEqual([
       [1, "A República", 0, "mat1", "history"],
       [3, "O Império", 0, "mat1", "history"],
     ]);
     expect(passages[0]!.embedding).toEqual([passages[0]!.text.length, 1]);
-    expect(materials["mat1"]).toMatchObject({ title: "História de Roma", pages: 3, status: "ready" });
+    expect(materials["mat1"]).toMatchObject({ title: "História de Roma", pages: 3, status: "ready", subject_id: "subj1" });
   });
 
   it("marks the material failed when embedding fails, and reports empty pages through the logger", async () => {
