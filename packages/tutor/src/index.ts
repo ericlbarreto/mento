@@ -12,3 +12,6 @@ export * from "./tool-assembler";
 export * from "./tools";
 export * from "./turn-engine";
 export * from "./turn-runtime";
+export * from "./images/gemini-image";
+export * from "./images/image-store";
+export * from "./images/draw-pipeline";
