@@ -59,7 +59,13 @@ interface ElementBase<T extends ElementType> {
   sources?: Citation[];
   outside_material?: boolean;
   annotations: Annotation[];
+  /** Pinned at a free spot of the board (plan G): px at zoom 1 from the world's top-left. Absent = in its column's flow. */
+  pos?: { x: number; y: number };
+  /** Attached by the tutor (`place_element`) to another block, drawn on that side of it and moved with it. */
+  near?: { id: string; side: PlaceSide };
 }
+
+export type PlaceSide = "right" | "left" | "below" | "above";
 
 export type ElementState = { [T in ElementType]: ElementBase<T> }[ElementType];
 export type ElementOf<T extends ElementType> = ElementBase<T>;
@@ -70,12 +76,17 @@ export interface BoardState {
   columns: Readonly<Record<Column, readonly string[]>>;
   /** Ids the student deleted (plan F): tutor actions on them are dropped, a late draw_result included. */
   removed: ReadonlySet<string>;
+  /** Pinned elements (plan G), out of the column flow, in stacking order (last on top). Replaced on change. */
+  free: readonly string[];
+  /** Elements attached to another one (`near`), out of the column flow. Replaced on change. */
+  attached: readonly string[];
 }
 
 /** A student board edit (BoardEditRequest without its edit_id). A move is absolute: into `column`, right after `after_id` (null = top). */
 export type BoardEdit =
   | { op: "remove"; element_id: string }
-  | { op: "move"; element_id: string; column: Column; after_id: string | null };
+  | { op: "move"; element_id: string; column: Column; after_id: string | null }
+  | { op: "place"; element_id: string; x: number; y: number };
 
 /** The tutor reorganizes the board with `move_element` (same absolute move as the student's). */
 export type MoveElementAction = Extract<Action, { name: "move_element" }>;
@@ -83,7 +94,7 @@ export type BoardAction = Action;
 
 /** A layout change the board animates (FLIP reflow), announced right before the store commits it. */
 export interface LayoutChange {
-  kind: "move" | "remove" | "restore";
+  kind: "move" | "remove" | "restore" | "place";
   id: string;
   by: Author;
 }
@@ -91,7 +102,7 @@ export interface LayoutChange {
 /** What undo needs to put a deleted element back where it was. */
 export interface RemovedElement {
   element: ElementState;
-  /** The element right above it in its column when it was deleted (null = it was the first). */
+  /** The element right above it in its column when it was deleted (null = it was the first; ignored when pinned). */
   after_id: string | null;
 }
 
@@ -101,4 +112,6 @@ export const emptyBoard = (): BoardState => ({
   elements: new Map(),
   columns: { main: [], visuals: [], side: [] },
   removed: new Set(),
+  free: [],
+  attached: [],
 });

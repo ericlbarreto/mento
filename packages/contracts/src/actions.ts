@@ -7,6 +7,8 @@ export type Column = z.infer<typeof Column>;
 
 /** Stable element id chosen by the model: short snake_case slug, unique per session. */
 export const ElementId = z.string().regex(/^[a-z][a-z0-9_]{0,40}$/, "element id must be a short snake_case slug");
+/** A free spot on the board (plan G): px at zoom 1 from the board's top-left, rounded. */
+export const BoardCoord = z.number().finite().min(0).max(20000);
 
 const Purpose = z.enum(["explain", "hint", "praise", "question", "transition"]);
 const HintLevel = z.union([z.literal(1), z.literal(2), z.literal(3)]);
@@ -88,6 +90,12 @@ export const UpdateElementArgs = z.object({ id: ElementId, html: z.string().min(
 export const RemoveElementArgs = z.object({ id: ElementId });
 /** The tutor tidies the board: element `id` goes to `column`, right after `after_id` (null = top of the column). */
 export const MoveElementArgs = z.object({ id: ElementId, column: Column, after_id: ElementId.nullable() });
+/**
+ * Plan G: attach element `id` to `next_to`, on its right/left or below/above it, wherever `next_to` is (a column or a
+ * free spot). The pair moves together; deleting `next_to` sends `id` back to its own column.
+ */
+export const PlaceSide = z.enum(["right", "left", "below", "above"]);
+export const PlaceElementArgs = z.object({ id: ElementId, next_to: ElementId, side: PlaceSide });
 
 /** What the model may send; the server adds `verification_id` and `concept_key`. */
 export const AskVerificationBase = z.object({
@@ -105,6 +113,7 @@ export const AskVerificationArgs = AskVerificationBase.extend({
 export const ActionName = z.enum([
   "speak", "write_text", "write_timeline", "highlight", "circle_annotate",
   "draw", "draw_result", "update_element", "remove_element", "ask_verification", "draw_diagram", "move_element",
+  "place_element",
 ]);
 export type ActionName = z.infer<typeof ActionName>;
 
@@ -124,5 +133,6 @@ export const Action = z.discriminatedUnion("name", [
   action("ask_verification", AskVerificationArgs),
   action("draw_diagram", DiagramArgs),
   action("move_element", MoveElementArgs),
+  action("place_element", PlaceElementArgs),
 ]);
 export type Action = z.infer<typeof Action>;

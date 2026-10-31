@@ -129,3 +129,49 @@ describe("tutor move_element", () => {
     ]);
   });
 });
+
+describe("free positioning (plan G)", () => {
+  const place = (target: string, next_to: string, side: "right" | "left" | "below" | "above"): Action => ({ id: `a${++n}`, name: "place_element", args: { id: target, next_to, side } });
+
+  it("place pins the element out of its column; a later move puts it back", () => {
+    let s = applyEdit(board(), { op: "place", element_id: "b", x: 224.4, y: 263.6 });
+    expect(s.columns.main).toEqual(["a", "c"]);
+    expect(s.free).toEqual(["b"]);
+    expect(s.elements.get("b")?.pos).toEqual({ x: 224, y: 264 });
+    s = applyEdit(s, { op: "move", element_id: "b", column: "main", after_id: "a" });
+    expect(s.columns.main).toEqual(["a", "b", "c"]);
+    expect(s.free).toEqual([]);
+    expect(s.elements.get("b")?.pos).toBeUndefined();
+  });
+
+  it("the tutor attaches a block beside another one, wherever that one is; no chains", () => {
+    const onWarning = vi.fn();
+    let s = applyActions(board(), [place("c", "a", "right")]);
+    expect(s.columns.main).toEqual(["a", "b"]);
+    expect(s.attached).toEqual(["c"]);
+    expect(s.elements.get("c")?.near).toEqual({ id: "a", side: "right" });
+    s = applyActions(s, [place("n", "c", "below")], { onWarning });
+    expect(onWarning.mock.calls[0]?.[0]).toMatch(/no chains/);
+    // Moving the host keeps its attachment.
+    s = applyEdit(s, { op: "place", element_id: "a", x: 400, y: 80 });
+    expect(s.elements.get("c")?.near?.id).toBe("a");
+  });
+
+  it("deleting a host sends its attached blocks back to their column; undo pins a pinned block again", () => {
+    let s = applyActions(board(), [place("n", "a", "below")]);
+    s = applyEdit(s, { op: "place", element_id: "a", x: 96, y: 40 });
+    const removed = { element: s.elements.get("a")!, after_id: null };
+    s = applyEdit(s, { op: "remove", element_id: "a" });
+    expect(s.attached).toEqual([]);
+    expect(s.columns.side).toEqual(["n"]);
+    expect(s.elements.get("n")?.near).toBeUndefined();
+    s = restoreRemoved(s, removed);
+    expect(s.free).toEqual(["a"]);
+  });
+
+  it("a replaced id keeps its spot", () => {
+    let s = applyEdit(board(), { op: "place", element_id: "b", x: 10, y: 10 });
+    s = applyActions(s, [text("b")]);
+    expect(s.elements.get("b")?.pos).toEqual({ x: 10, y: 10 });
+  });
+});

@@ -14,7 +14,7 @@ export function createFlip(getWorld: () => HTMLElement | null, reduced: () => bo
   let first: Map<string, DOMRect> | null = null;
   let expire: ReturnType<typeof setTimeout> | undefined;
   const frames = (world: HTMLElement) =>
-    world.querySelectorAll<HTMLElement>(":scope [data-column] > [data-element-id]");
+    world.querySelectorAll<HTMLElement>("[data-board-block]");
   return {
     capture() {
       const world = getWorld();

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Citation } from "./citation";
-import { Column, ElementId } from "./actions";
+import { BoardCoord, Column, ElementId } from "./actions";
 import { EvidenceResult } from "./evidence";
 
 /** contracts-spec §2–3: the only event taxonomy. `SessionEvent` is the typed form (payload per type, with `seq`) read by the analysis; `Event` in ./events is the loose envelope. `seq` (1-based, unique per session) gives the analysis a stable order. */
@@ -26,6 +26,7 @@ export const SessionEventTypes = [
   "session_resumed",
   "board_element_removed",
   "board_element_moved",
+  "board_element_placed",
 ] as const;
 export type SessionEventType = (typeof SessionEventTypes)[number];
 
@@ -119,6 +120,7 @@ export const SessionEvent = z.discriminatedUnion("type", [
   // Student board edits (plan F, D79). Never read by the analysis (rule 6).
   event("board_element_removed", z.object({ element_id: ElementId, edit_id: z.string() })),
   event("board_element_moved", z.object({ element_id: ElementId, column: Column, after_id: ElementId.nullable(), edit_id: z.string() })),
+  event("board_element_placed", z.object({ element_id: ElementId, x: BoardCoord, y: BoardCoord, edit_id: z.string() })),
 ]);
 export type SessionEvent = z.infer<typeof SessionEvent>;
 export type SessionEventOf<T extends SessionEventType> = Extract<SessionEvent, { type: T }>;

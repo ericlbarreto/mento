@@ -52,6 +52,8 @@ export interface BoardEditor {
   undo(): void;
   startDrag(e: PointerEvent, id: string, handle: HTMLElement): void;
   enterMoveMode(id: string): void;
+  /** "Arrumar" (plan G): every pinned or attached block back to its column. */
+  tidy(): void;
 }
 
 /** What the toolbar's rules depend on; a change re-renders the selected block's toolbar only. */

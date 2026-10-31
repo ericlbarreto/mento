@@ -142,13 +142,17 @@ The student deletes or moves a block. Body `BoardEditRequest`:
 ```json
 { "op": "remove", "edit_id": "1f6c…", "element_id": "titulo" }
 { "op": "move", "edit_id": "9a2b…", "element_id": "nota", "column": "main", "after_id": "titulo" }
+{ "op": "place", "edit_id": "c3d4…", "element_id": "nota", "x": 224, "y": 264 }
 ```
+
+- `place` (plan G, D82) pins the block at a free spot: `x`, `y` in board px at zoom 1 from the board's top-left (0–20000). A later `move` puts it back in a column ("Arrumar" sends one `move` per placed block).
 
 - `edit_id` is a client uuid (1–64 chars): resending the same edit answers `{ "ok": true, "result": "already_applied" }` and stores nothing. Retry freely.
 - A move is **absolute**: the element goes to `column`, right after `after_id` (`null` = top of the column). Anchor on the element above the drop slot, never send an index (the server may already hold tutor blocks the student has not seen). An `after_id` the server does not find in that column puts the element at the end.
 - Removing (or moving) an element that is already deleted answers 200 `already_removed`. 404 `element_not_found` only for an id that never existed in the session; 404 `session_not_found`; 400 for a bad body.
 - Works on ended sessions too (no resume needed).
-- Stored events: `board_element_removed { element_id, edit_id }` and `board_element_moved { element_id, column, after_id, edit_id }`, in `GET /api/sessions/:id`.
+- Stored events: `board_element_removed { element_id, edit_id }`, `board_element_moved { element_id, column, after_id, edit_id }` and `board_element_placed { element_id, x, y, edit_id }`, in `GET /api/sessions/:id`.
+- The tutor can attach a block to another one with `place_element { id, next_to, side }` (right, left, below, above); the board draws them together.
 - The tutor sees the result on its next round: each column in the student's order, deleted ids as tombstones (it cannot point at or re-create them; a late `draw_result` for a deleted picture is never sent), new blocks appended at the end of their column.
 - Undo has no event: hold the delete client-side for the 6 s toast and send it when the toast closes, on `pagehide` (`editBoard(id, edit, { keepalive: true })` in `apps/web/src/lib/api.ts`) and before sending any turn.
 - Never shown to the teacher or read by the analysis (rule 6). Mock mode (`NEXT_PUBLIC_MOCK_API=1`) stores the event in the in-memory session with the same answers; with `NEXT_PUBLIC_TURN_SOURCE=fixture` edits stay local (fixture turns are not stored).

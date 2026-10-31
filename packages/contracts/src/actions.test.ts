@@ -49,7 +49,7 @@ describe("Action", () => {
   it("lists every tool name", () => {
     expect(ActionName.options).toEqual([
       "speak", "write_text", "write_timeline", "highlight", "circle_annotate",
-      "draw", "draw_result", "update_element", "remove_element", "ask_verification", "draw_diagram", "move_element",
+      "draw", "draw_result", "update_element", "remove_element", "ask_verification", "draw_diagram", "move_element", "place_element",
     ]);
   });
 

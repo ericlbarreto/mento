@@ -1,5 +1,6 @@
 import {
   RULES_VERSION,
+  isBoardEditEvent,
   type AnalysisInput,
   type ClassContext,
   type Counters,
@@ -13,11 +14,10 @@ import {
 } from "@mento/contracts";
 
 /**
- * The student's board edits (plan F, D79): deleting or moving a block is not educational evidence, so the analysis and
+ * The student's board edits (plans F and G, D79, D82): deleting, moving or placing a block is not educational evidence, so the analysis and
  * every teacher view never see them, not even as counts (AGENTS.md rule 6).
  */
-const BOARD_EDIT_EVENTS: ReadonlySet<string> = new Set(["board_element_removed", "board_element_moved"]);
-export const withoutBoardEdits = <E extends { type: string }>(events: E[]): E[] => events.filter((e) => !BOARD_EDIT_EVENTS.has(e.type));
+export const withoutBoardEdits = <E extends { type: string }>(events: E[]): E[] => events.filter((e) => !isBoardEditEvent(e.type));
 
 const stripHtml = (html: string) => html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 

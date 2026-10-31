@@ -19,7 +19,8 @@ export const clipRationale = (text: string): string => {
 
 /** Only `result` decides the evidence: a too-long rationale is clipped and a malformed citation is dropped. */
 export const JudgmentSchema = z.object({
-  result: z.enum(["correct", "partial", "incorrect"]),
+  /** `not_an_answer`: the student asked or said something else (e.g. "coloca isso do lado"): no evidence. */
+  result: z.enum(["correct", "partial", "incorrect", "not_an_answer"]),
   rationale: z.string().trim().min(1).transform(clipRationale),
   citation: Citation.optional().catch(undefined),
 });
@@ -27,11 +28,11 @@ export const JudgmentSchema = z.object({
 const JUDGMENT_TOOL: ToolDef = {
   name: "record_judgment",
   description:
-    "Record your judgment of the student's answer. result: correct (fully right), partial (right in part or imprecise), incorrect. rationale: one or two short sentences (at most 300 characters) in Brazilian Portuguese about what the answer shows, about the answer only. citation: optional, a short exact quote from the passages that supports the judgment.",
+    "Record your judgment of the student's answer. result: correct (fully right), partial (right in part or imprecise), incorrect (an attempt that is wrong, or não sei), not_an_answer (the student did not try to answer: a request such as moving or deleting something on the board, a question, small talk, or another topic). rationale: one or two short sentences (at most 300 characters) in Brazilian Portuguese about what the answer shows, about the answer only. citation: optional, a short exact quote from the passages that supports the judgment.",
   input_schema: {
     type: "object",
     properties: {
-      result: { type: "string", enum: ["correct", "partial", "incorrect"] },
+      result: { type: "string", enum: ["correct", "partial", "incorrect", "not_an_answer"] },
       rationale: { type: "string", maxLength: 300 },
       citation: {
         type: "object",
@@ -93,6 +94,9 @@ export class ClaudeJudge implements Judge {
       const parsed = JudgmentSchema.safeParse(JSON.parse(raw));
       if (!parsed.success) return log?.("judge: invalid judgment", parsed.error.issues[0]);
       const judgment = parsed.data;
+      // A request or another topic sent while the question was open is not evidence about the concept.
+      if (judgment.result === "not_an_answer") return log?.("judge: not an answer, no evidence", input.verification_id);
+      const result = judgment.result;
 
       const citation = judgment.citation && (await retriever.validateCitation(judgment.citation)) ? judgment.citation : undefined;
       const independent = hints_used === 0;
@@ -101,7 +105,7 @@ export class ClaudeJudge implements Judge {
         student_id: input.student_id,
         concept: asked.concept,
         concept_key: asked.concept_key,
-        result: judgment.result,
+        result,
         independent,
         hints_used,
         rationale: judgment.rationale,
@@ -110,7 +114,7 @@ export class ClaudeJudge implements Judge {
       const { id } = await evidence.insertEvidence(row);
       await repo.appendEvent(input.session_id, {
         type: "evidence_recorded",
-        payload: { evidence_id: id, verification_id: input.verification_id, concept: asked.concept, concept_key: asked.concept_key, result: judgment.result, independent, hints_used, rationale: judgment.rationale, citation },
+        payload: { evidence_id: id, verification_id: input.verification_id, concept: asked.concept, concept_key: asked.concept_key, result, independent, hints_used, rationale: judgment.rationale, citation },
       });
     } catch (err) {
       log?.("judge failed", err);

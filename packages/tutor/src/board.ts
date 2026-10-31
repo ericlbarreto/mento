@@ -9,6 +9,10 @@ export interface BoardElement {
   text: string;
   /** Only diagrams: every shape id with its label (targets of highlight / circle_annotate with shape_id). */
   shapes?: { id: string; kind: string; label?: string }[];
+  /** Out of its column (plan G): "right of causas" (tutor) or "placed by the student" (free drag). */
+  placed?: string;
+  /** Attached by `place_element` to this element (moves with it). */
+  near?: string;
 }
 
 export type Validation = { ok: true } | { ok: false; reason: string };
@@ -54,7 +58,8 @@ function created(action: Action): BoardElement | null {
 /** A student's board edit (plan F, D79): delete an element, or move it to a column right after `after_id` (null = top). */
 export type BoardEdit =
   | { op: "remove"; element_id: string }
-  | { op: "move"; element_id: string; column: string; after_id: string | null };
+  | { op: "move"; element_id: string; column: string; after_id: string | null }
+  | { op: "place"; element_id: string; x: number; y: number };
 
 /** `not_found`: the id never existed in the session; `already_removed`: deleted (by the student or the tutor). */
 export type EditCheck = "ok" | "already_removed" | "not_found";
@@ -133,14 +138,37 @@ export class Board {
         const target = this.target(action.args.id);
         if ("reason" in target) return target;
         const after = action.args.after_id;
-        if (after === null) return OK;
+        if (after === null) return this.unchanged(action.args.id, action.args.column, null);
         if (after === action.args.id) return fail(`after_id cannot be the element itself: ${after}`);
         if (this.removed.has(after)) return fail(`${after}: ${DELETED}`);
-        return this.elements.get(after)?.column === action.args.column ? OK : fail(`after_id ${after} is not in column ${action.args.column}`);
+        if (this.elements.get(after)?.column !== action.args.column || this.elements.get(after)?.placed) {
+          return fail(`after_id ${after} is not in column ${action.args.column}`);
+        }
+        return this.unchanged(action.args.id, action.args.column, after);
+      }
+      case "place_element": {
+        const target = this.target(action.args.id);
+        if ("reason" in target) return target;
+        const { next_to } = action.args;
+        if (next_to === action.args.id) return fail(`next_to cannot be the element itself: ${next_to}`);
+        if (this.removed.has(next_to)) return fail(`${next_to}: ${DELETED}`);
+        const host = this.elements.get(next_to);
+        if (!host) return fail(`unknown next_to: ${next_to}`);
+        return host.near ? fail(`${next_to} is itself attached to ${host.near}; use next_to: ${host.near}`) : OK;
       }
       case "draw_result":
         return fail("draw_result is server-only");
     }
+  }
+
+  /** A move that changes nothing fails, so the reply cannot say it moved a block that stayed where it was. */
+  private unchanged(id: string, column: string, after_id: string | null): Validation {
+    const el = this.elements.get(id);
+    if (!el || el.placed || el.column !== column) return OK;
+    const ids = this.column(column);
+    const above = ids[ids.indexOf(id) - 1] ?? null;
+    if (above !== after_id) return OK;
+    return fail(`${id} is already there (no change). To put it beside another block use place_element; in a column, a different after_id`);
   }
 
   private target(id: string): { el: BoardElement } | { ok: false; reason: string } {
@@ -183,10 +211,14 @@ export class Board {
       if (target) target.text = stripTags(action.args.html);
     } else if (action.name === "remove_element") {
       const target = this.elements.get(action.args.id);
-      if (target) this.unlink(target);
-      this.elements.delete(action.args.id);
+      if (target) this.drop(target);
     } else if (action.name === "move_element") {
       this.place(action.args.id, action.args.column, action.args.after_id);
+    } else if (action.name === "place_element") {
+      const { id, next_to, side } = action.args;
+      const where = side === "below" || side === "above" ? `${side} ${next_to}` : `${side} of ${next_to}`;
+      for (const child of this.attachedTo(id)) this.pin(child.id, where, next_to);
+      this.pin(id, where, next_to);
     }
   }
 
@@ -201,19 +233,45 @@ export class Board {
     const el = this.elements.get(edit.element_id);
     if (!el) return;
     if (edit.op === "remove") {
-      this.unlink(el);
-      this.elements.delete(el.id);
+      this.drop(el);
       this.removed.set(el.id, el.type);
       return;
     }
+    if (edit.op === "place") return this.pin(el.id, "placed by the student at a free spot");
     this.place(el.id, edit.column, edit.after_id);
+  }
+
+  /** Out of its column, at a spot on the canvas or attached to `near` (plan G). */
+  private pin(id: string, where: string, near?: string): void {
+    const el = this.elements.get(id);
+    if (!el) return;
+    this.unlink(el);
+    el.placed = where;
+    el.near = near;
+  }
+
+  private attachedTo(id: string): BoardElement[] {
+    return [...this.elements.values()].filter((e) => e.near === id);
+  }
+
+  /** Deletes an element; blocks attached to it go back to the end of their own column. */
+  private drop(el: BoardElement): void {
+    this.unlink(el);
+    this.elements.delete(el.id);
+    for (const child of this.attachedTo(el.id)) {
+      child.placed = undefined;
+      child.near = undefined;
+      this.column(child.column).push(child.id);
+    }
   }
 
   /** Put an element in `column` right after `after_id` (null = top; not found in that column = end). */
   private place(id: string, column: string, after_id: string | null): void {
     const el = this.elements.get(id);
     if (!el) return;
-    this.unlink(el);
+    if (!el.placed) this.unlink(el);
+    el.placed = undefined;
+    el.near = undefined;
     el.column = column;
     const ids = this.column(column);
     const i = after_id === null ? -1 : ids.indexOf(after_id);
@@ -224,7 +282,8 @@ export class Board {
   /** Elements column by column (main, visuals, side), each in the student's order. */
   private ordered(): BoardElement[] {
     const names = [...COLUMNS, ...[...this.order.keys()].filter((c) => !COLUMNS.includes(c))];
-    return names.flatMap((c) => (this.order.get(c) ?? []).flatMap((id) => this.elements.get(id) ?? []));
+    const flow = names.flatMap((c) => (this.order.get(c) ?? []).flatMap((id) => this.elements.get(id) ?? []));
+    return [...flow, ...[...this.elements.values()].filter((e) => e.placed)];
   }
 
   /**
@@ -235,9 +294,10 @@ export class Board {
   snapshot(maxText = 120): string {
     const clip = (t: string) => (t.length > maxText ? `${t.slice(0, maxText - 1)}…` : t);
     const lines = this.ordered().map((e) => {
-      if (!e.shapes) return `${e.id} | ${e.type} | ${e.column} | ${clip(e.text)}`;
+      const where = e.placed ? `${e.column}, ${e.placed}` : e.column;
+      if (!e.shapes) return `${e.id} | ${e.type} | ${where} | ${clip(e.text)}`;
       const shapes = e.shapes.map((s) => `${s.id} (${s.kind}${s.label ? ` "${s.label}"` : ""})`).join(", ");
-      return `${e.id} | ${e.type} | ${e.column} | ${clip(e.text.split(" · ")[0] ?? "")} | shapes: ${shapes}`;
+      return `${e.id} | ${e.type} | ${where} | ${clip(e.text.split(" · ")[0] ?? "")} | shapes: ${shapes}`;
     });
     if (lines.length === 0) lines.push("(the board is empty)");
     if (this.removed.size > 0) {

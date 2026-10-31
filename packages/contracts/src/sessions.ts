@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Column, ElementId } from "./actions";
+import { BoardCoord, Column, ElementId } from "./actions";
 import { Event } from "./events";
 
 export const CreateSessionRequest = z.object({
@@ -70,13 +70,37 @@ export interface SessionHistory {
 /**
  * POST /api/sessions/:id/board — the student deletes or moves a board element (plan F, D79).
  * `edit_id` is a client uuid (dedupe). A move is absolute: the element goes to `column`, right after
- * `after_id` (null = top of the column), so a retry gives the same board.
+ * `after_id` (null = top of the column), so a retry gives the same board. A place (plan G) pins the element at a free
+ * spot of the canvas: `x`, `y` in board px at zoom 1 from the top-left of the board; a later move puts it back in a column.
  */
 export const BoardEditRequest = z.discriminatedUnion("op", [
   z.object({ op: z.literal("remove"), edit_id: z.string().min(1).max(64), element_id: ElementId }),
   z.object({ op: z.literal("move"), edit_id: z.string().min(1).max(64), element_id: ElementId, column: Column, after_id: ElementId.nullable() }),
+  z.object({ op: z.literal("place"), edit_id: z.string().min(1).max(64), element_id: ElementId, x: BoardCoord, y: BoardCoord }),
 ]);
 export type BoardEditRequest = z.infer<typeof BoardEditRequest>;
+
+/** Stored event type of each board edit op, and back (contracts-spec §18). */
+export const BOARD_EDIT_EVENTS = {
+  board_element_removed: "remove",
+  board_element_moved: "move",
+  board_element_placed: "place",
+} as const satisfies Record<string, BoardEditRequest["op"]>;
+export type BoardEditEventType = keyof typeof BOARD_EDIT_EVENTS;
+export const isBoardEditEvent = (type: string): type is BoardEditEventType => Object.hasOwn(BOARD_EDIT_EVENTS, type);
+
+/** The stored event of an applied edit: its type and payload (the request without `op`). */
+export function boardEditEvent(edit: BoardEditRequest): { type: BoardEditEventType; payload: Record<string, unknown> } {
+  const { op, ...payload } = edit;
+  const type = (Object.keys(BOARD_EDIT_EVENTS) as BoardEditEventType[]).find((t) => BOARD_EDIT_EVENTS[t] === op)!;
+  return { type, payload };
+}
+
+/** Parses a stored board edit event back into the request (null when malformed). */
+export function boardEditOf(type: BoardEditEventType, payload: unknown): BoardEditRequest | null {
+  const parsed = BoardEditRequest.safeParse({ ...(payload as object), op: BOARD_EDIT_EVENTS[type] });
+  return parsed.success ? parsed.data : null;
+}
 
 export const BoardEditResponse = z.object({ ok: z.literal(true), result: z.enum(["applied", "already_applied", "already_removed"]) });
 export type BoardEditResponse = z.infer<typeof BoardEditResponse>;
