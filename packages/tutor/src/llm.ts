@@ -24,6 +24,10 @@ export interface LlmMessage {
   content: string | LlmContentBlock[];
 }
 
+/** Up-front reasoning: Sonnet 5.5 accepts adaptive or between_tools, Haiku 5.5 also accepts disabled. */
+export type ThinkingSetting = { type: "adaptive" | "between_tools" | "disabled" };
+export type Effort = "low" | "medium" | "high";
+
 export interface LlmRequest {
   model: string;
   system: SystemBlock[];
@@ -32,6 +36,9 @@ export interface LlmRequest {
   max_tokens: number;
   /** Force the model to call one tool (used by the judge). Changing it invalidates the message cache only. */
   tool_choice?: { type: "tool"; name: string };
+  /** Keep thinking and effort fixed per session: changing them invalidates the prompt cache. */
+  thinking?: ThinkingSetting;
+  effort?: Effort;
   signal?: AbortSignal;
 }
 

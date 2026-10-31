@@ -18,6 +18,8 @@ export function requestParams(req: Omit<LlmRequest, "signal">) {
     tools: req.tools,
     messages: req.messages,
     ...(req.tool_choice ? { tool_choice: req.tool_choice } : {}),
+    ...(req.thinking ? { thinking: req.thinking } : {}),
+    ...(req.effort ? { output_config: { effort: req.effort } } : {}),
   };
 }
 

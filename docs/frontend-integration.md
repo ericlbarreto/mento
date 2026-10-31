@@ -90,6 +90,42 @@ What the subject changes on the server: the tutor is told the subject, the mater
 
 Body `EndSessionRequest`: `{ "reason": "user_left" | "idle_timeout" | "beacon" | "manual" }`. Call it when the student leaves (button), after ~5 min idle, and with `navigator.sendBeacon` on tab close. It triggers the teacher-side analysis. 404 `session_not_found`.
 
+### History: `GET /api/sessions` → 200 `ListSessionsResponse`
+
+Query `ListSessionsQuery`: `student_id?`, `subject_id?`, `limit?` (1–100, default 20). Newest activity first.
+
+```json
+{
+  "sessions": [
+    {
+      "id": "6ae54382ce3782e0372b0bb6",
+      "student_id": "demo",
+      "modality": "text",
+      "subject": { "id": "6ae53aef76bd0d7a98187cd2", "name": "História", "key": "history" },
+      "title": "O que foram as Guerras Púnicas?",
+      "started_at": "2026-10-30T22:10:01.000Z",
+      "last_activity_at": "2026-10-30T22:11:40.000Z",
+      "ended_at": "2026-10-30T22:11:41.000Z",
+      "end_reason": "manual",
+      "turn_count": 2
+    }
+  ]
+}
+```
+
+`subject` is null for a free whiteboard; `title` is the student's first message (≤ 80 chars), null until the student says something (show e.g. "Conversa sem título").
+
+### Re-open a session: `GET /api/sessions/:id` → 200 `SessionDetailResponse`
+
+`{ session: SessionSummary, events: Event[] }`, events in conversation order. To redraw the screen without the tutor speaking again:
+
+- **Board:** apply every `tutor_action` event's `payload` (`{ turn_id, action_id, order, name, args }`) in order with the same renderer as live actions, skipping animations and audio. `draw_result` actions are stored too, so images come back (`args.url`).
+- **Transcript:** student lines from `user_message.payload.text` and `verification_answered.payload.answer`; tutor lines from `tutor_action` with `name: "speak"` (`args.text`, `args.sources`).
+- **Open question:** the last `verification_asked` without a later `verification_answered` with the same `verification_id` is still open.
+- To **continue** the conversation, just send a new turn to the same `id` (sessions are stored in MongoDB and survive API restarts). Ended sessions (`ended_at` set) can still be shown; start a new session to continue studying.
+
+Errors: 404 `session_not_found`, 503 `database_unavailable`.
+
 ## 4. Turns: `POST /api/sessions/:id/turn` (Server-Sent Events)
 
 ### Request body: `TurnRequest`
@@ -171,7 +207,7 @@ const stt = useStt({
 // stt.start(), stt.stop(), stt.setMuted(true | false), stt.caption (SttCaption: interim/final text + word timings), stt.state
 ```
 
-`SttCaption` = `{ kind: "interim" | "final", text, words: [{ word, start_ms, end_ms, confidence }], speech_final }`: show the interim text live, send the final one. Mute the mic while the tutor speaks and unmute after `script_done` + the last `speak` (headphones recommended: the tutor's voice must not trigger `SpeechStarted`). Errors: 503 `voice_unavailable` (no Deepgram key). **Known issue (2026-10-30): the current Deepgram key cannot mint tokens (HTTP 403 → the API answers 500); it needs the Member role.**
+`SttCaption` = `{ kind: "interim" | "final", text, words: [{ word, start_ms, end_ms, confidence }], speech_final }`: show the interim text live, send the final one. Mute the mic while the tutor speaks and unmute after `script_done` + the last `speak` (headphones recommended: the tutor's voice must not trigger `SpeechStarted`). Errors: 503 `voice_unavailable` (no Deepgram key). Token minting works with a Deepgram key that has the Member role (verified 2026-10-30).
 
 ### Tutor speech (TTS): `GET /api/tts/:action_id`
 
@@ -246,6 +282,8 @@ Dev pages and tools: **`/dev/conversation`** (a full conversation test bench: pi
 | `GET /api/subjects/:id` | | 200 `SubjectSummary` | 404, 503 |
 | `POST /api/subjects` | `CreateSubjectRequest` | 201 `Subject` | 400, 409, 503 |
 | `POST /api/sessions` | `CreateSessionRequest` | 201 `CreateSessionResponse` | 400, 404, 503 |
+| `GET /api/sessions?student_id=&subject_id=&limit=` | | 200 `ListSessionsResponse` | 400, 503 |
+| `GET /api/sessions/:id` | | 200 `SessionDetailResponse` | 404, 503 |
 | `POST /api/sessions/:id/turn` | `TurnRequest` | 200 SSE of `StreamMessage` | 400, 404, 503 |
 | `POST /api/sessions/:id/end` | `EndSessionRequest` | 200 `{ ok: true }` | 400, 404 |
 | `POST /api/voice/token` | | 200 `VoiceTokenResponse` | 500, 503 |
@@ -260,5 +298,5 @@ Dev pages and tools: **`/dev/conversation`** (a full conversation test bench: pi
 
 - First tutor action arrives after ~1.5–3.5 s (target 1.5 s); show the orb "thinking" state as soon as the turn request is sent. A bridging line ("Deixa eu pensar um instante…") is spoken if nothing arrives within 3 s.
 - Images take ~5 s; the placeholder must not block anything.
-- Sessions live in memory on the API for now (a restart forgets them; subjects and materials are in MongoDB).
+- Every session route needs MongoDB: when it is not connected they answer 503 `database_unavailable`.
 - No ElevenLabs voice is configured yet, so `audio_url` is absent and `/api/tts` answers 503: text captions only until `ELEVENLABS_VOICE_ID` is set.

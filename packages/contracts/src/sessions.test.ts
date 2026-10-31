@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Chunk, SearchQuery } from "./retrieval";
-import { CreateSessionRequest, CreateSessionResponse, EndSessionRequest } from "./sessions";
+import { CreateSessionRequest, CreateSessionResponse, EndSessionRequest, ListSessionsQuery, ListSessionsResponse, SessionDetailResponse, SessionSummary } from "./sessions";
 
 describe("sessions", () => {
   it("creates a session from a student only (no material_id)", () => {
@@ -33,5 +33,37 @@ describe("retrieval", () => {
     expect(SearchQuery.safeParse({ query: "Augusto", k: 0 }).success).toBe(false);
     expect(SearchQuery.safeParse({ query: "", k: 6 }).success).toBe(false);
     expect(SearchQuery.safeParse({ query: "Augusto", k: 6, material_ids: ["m1", "m2"] }).success).toBe(true);
+  });
+});
+
+describe("session history", () => {
+  const summary = {
+    id: "6650f0c2a1b2c3d4e5f60799",
+    student_id: "demo",
+    modality: "voice",
+    subject: { id: "6650f0c2a1b2c3d4e5f60701", name: "História", key: "history" },
+    title: "Quero estudar os irmãos Graco",
+    started_at: "2026-10-30T21:00:00.000Z",
+    last_activity_at: "2026-10-30T21:05:00.000Z",
+    ended_at: null,
+    end_reason: null,
+    turn_count: 3,
+  };
+
+  it("describes a session for the history list (free whiteboard has subject null)", () => {
+    expect(SessionSummary.safeParse(summary).success).toBe(true);
+    expect(SessionSummary.safeParse({ ...summary, subject: null, title: null }).success).toBe(true);
+    expect(ListSessionsResponse.safeParse({ sessions: [summary] }).success).toBe(true);
+  });
+
+  it("returns a session with its events to re-render it", () => {
+    const event = { id: "e1", session_id: summary.id, ts: "2026-10-30T21:00:01.000Z", type: "tutor_action", payload: { name: "speak", args: { text: "Oi" } } };
+    expect(SessionDetailResponse.safeParse({ session: summary, events: [event] }).success).toBe(true);
+  });
+
+  it("bounds the history query", () => {
+    expect(ListSessionsQuery.parse({})).toEqual({ limit: 20 });
+    expect(ListSessionsQuery.parse({ limit: "5", student_id: "demo" })).toEqual({ limit: 5, student_id: "demo" });
+    expect(ListSessionsQuery.safeParse({ limit: "500" }).success).toBe(false);
   });
 });

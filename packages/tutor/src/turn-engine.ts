@@ -1,5 +1,5 @@
 import type { Chunk, EventType, StreamMessage, TurnRequest, TurnTiming } from "@mento/contracts";
-import type { LlmClient, LlmContentBlock, LlmMessage } from "./llm";
+import type { Effort, LlmClient, LlmContentBlock, LlmMessage, ThinkingSetting } from "./llm";
 import { LlmError } from "./llm";
 import { commitAction, prepareAction } from "./action-pipeline";
 import { noopDraw, noopJudge, type DrawPipeline, type Judge, type TtsStarter } from "./hooks";
@@ -27,7 +27,7 @@ export interface TurnEngineDeps {
   draw?: DrawPipeline;
   judge?: Judge;
   prompts: PromptSet;
-  models: { tutor: string };
+  models: { tutor: string; thinking?: ThinkingSetting; effort?: Effort };
   /** Speak a bridging line when no action was emitted after this many ms. Default 3000. */
   bridgeAfterMs?: number;
   maxTokens?: number;
@@ -61,6 +61,19 @@ interface RoundResult {
   searches: ToolBlock[];
   /** Every tool block of the round with the outcome the model should be told. */
   results: { block: ToolBlock; outcome: string; is_error: boolean }[];
+  stop_reason?: string;
+}
+
+/** Rounds per reply: the model often stops after one or two tool calls to wait for their results. */
+const MAX_ROUNDS = 4;
+const CONTINUE_TEXT = "Continue the same reply: explain what you just put on the board, then end with one question to the student.";
+
+/** The reply is complete when it asked a verification or its last successful action is a question. */
+function endsWithQuestion(result: RoundResult): boolean {
+  const ok = result.results.filter((r) => !r.is_error && r.block.name !== "search_materials");
+  if (ok.some((r) => r.block.name === "ask_verification")) return true;
+  const last = ok.at(-1);
+  return last?.block.name === "speak" && (safeJson(last.block.raw_input) as { purpose?: string } | null)?.purpose === "question";
 }
 
 const BRIDGE_TEXT = "Deixa eu pensar um instante…";
@@ -129,7 +142,7 @@ export class TurnEngine {
     const rt = await this.runtime(session_id);
     const [classContext, summary, catalog] = await Promise.all([repo.getClassContext(), repo.getLearnerSummary(session.student_id), this.catalogFor(rt, session.subject)]);
     const system = buildSystem({ prompts, classContext, summary, catalog, subject: session.subject });
-    await llm.prewarm({ model: models.tutor, system, tools: modelTools(), messages: [{ role: "user", content: "." }] });
+    await llm.prewarm({ model: models.tutor, thinking: models.thinking, effort: models.effort, system, tools: modelTools(), messages: [{ role: "user", content: "." }] });
   }
 
   async run(session_id: string, req: TurnRequest, emit: (m: StreamMessage) => void, signal: AbortSignal): Promise<{ turn_id: string }> {
@@ -185,12 +198,16 @@ export class TurnEngine {
     let messages: LlmMessage[] = [{ role: "user", content: userText }];
 
     try {
-      for (let round = 0; round < 2; round++) {
+      let searched = false;
+      for (let round = 0; ; round++) {
         const result = await this.streamWithRetry(state, models.tutor, system, messages);
         if (signal.aborted) break;
-        if (result.searches.length === 0 || round === 1) break;
+        const search: boolean = result.searches.length > 0 && !searched;
+        const unfinished = result.stop_reason === "tool_use" && result.results.length > 0 && !endsWithQuestion(result);
+        if ((!search && !unfinished) || round === MAX_ROUNDS - 1) break;
 
-        const found = await this.runSearches(state, result.searches);
+        const found = search ? await this.runSearches(state, result.searches) : new Map<string, string>();
+        searched ||= search;
         const assistant: LlmContentBlock[] = result.results.map((r) => ({ type: "tool_use", id: r.block.id, name: r.block.name, input: safeJson(r.block.raw_input) }));
         const toolResults: LlmContentBlock[] = result.results.map((r) => ({
           type: "tool_result",
@@ -198,6 +215,7 @@ export class TurnEngine {
           content: r.block.name === "search_materials" ? (found.get(r.block.id) ?? "(no results)") : r.outcome,
           is_error: r.is_error || undefined,
         }));
+        if (!search) toolResults.push({ type: "text", text: CONTINUE_TEXT });
         messages = [...messages, { role: "assistant", content: assistant }, { role: "user", content: toolResults }];
       }
     } catch (err) {
@@ -250,10 +268,12 @@ export class TurnEngine {
     }, this.deps.bridgeAfterMs ?? 3000);
 
     try {
-      for await (const ev of this.deps.llm.stream({ model, system, tools: modelTools(), messages, max_tokens: this.deps.maxTokens ?? 2048, signal: state.signal })) {
+      for await (const ev of this.deps.llm.stream({ model, thinking: this.deps.models.thinking, effort: this.deps.models.effort, system, tools: modelTools(), messages, max_tokens: this.deps.maxTokens ?? 2048, signal: state.signal })) {
         if (state.signal.aborted) break;
         if (ev.type === "first_token") {
           state.timing.llm_first_token_ms ??= Math.round(this.now() - state.t0);
+        } else if (ev.type === "stop") {
+          result.stop_reason = ev.stop_reason;
         } else if (ev.type === "tool_block") {
           if (ev.block.name === "search_materials") {
             result.searches.push(ev.block);
@@ -327,8 +347,17 @@ export class TurnEngine {
           .then((messages) => {
             if (state.signal.aborted) return;
             if (messages.length) state.timing.image_ready_ms = Math.round(this.now() - state.t0);
-            // Late actions join the same ordering as the rest of the script.
-            for (const m of messages) state.emit(m.type === "action" ? { ...m, order: state.order++ } : m);
+            // Late actions join the same ordering as the rest of the script, and are stored like the others
+            // (so a session re-opened from the history shows the image).
+            for (const m of messages) {
+              if (m.type !== "action") {
+                state.emit(m);
+                continue;
+              }
+              const order = state.order++;
+              state.emit({ ...m, order });
+              state.persist({ type: "tutor_action", payload: { turn_id: state.turn_id, action_id: m.action.id, order, name: m.action.name, args: m.action.args } });
+            }
           })
           .catch((err) => this.log("draw failed", err)),
       );

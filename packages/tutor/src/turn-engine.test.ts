@@ -128,13 +128,16 @@ describe("TurnEngine: voice, drawing and search", () => {
 
   it("starts the draw pipeline, delivers its late messages before turn_done and keeps the order increasing", async () => {
     const draw: DrawPipeline = { start: async (a) => [{ type: "action", order: 99, action: { id: "late", name: "draw_result", args: { element_id: a.args.id, url: "/api/gen/x.jpg" } } }] };
-    const { engine, session } = await setup([[toolEvent("draw", { id: "colosseum", column: "visuals", prompt: "Coliseu", is_structured: false, max_dimensions: { w: 500, h: 400 } }), stopEvent()]], { draw });
+    const { engine, session, repo } = await setup([[toolEvent("draw", { id: "colosseum", column: "visuals", prompt: "Coliseu", is_structured: false, max_dimensions: { w: 500, h: 400 } }), stopEvent()]], { draw });
     const { messages } = await run(engine, session, opening);
     expect(actionNames(messages)).toEqual(["draw", "draw_result"]);
     expect(types(messages).at(-1)).toBe("turn_done");
     expect(types(messages)).toContain("script_done");
     const orders = messages.flatMap((m) => (m.type === "action" ? [m.order] : []));
     expect(orders).toEqual([0, 1]); // the pipeline's own order (99) is replaced by the next number
+    // late actions are stored too, so a session re-opened from the history shows the image
+    const stored = (await repo.listEvents(session)).filter((e) => e.type === "tutor_action").map((e) => (e.payload as { name: string; order: number }));
+    expect(stored.map((p) => [p.name, p.order])).toEqual([["draw", 0], ["draw_result", 1]]);
   });
 
   it("answers a search_materials call with a second round, keeps real citations and drops fake ones", async () => {
@@ -245,6 +248,54 @@ describe("TurnEngine: failures", () => {
     expect(types(messages)).not.toContain("script_done");
     expect(types(messages)).not.toContain("turn_done");
     expect(cancelled).toEqual(["act_1_0"]);
+  });
+});
+
+describe("TurnEngine: continuing the reply", () => {
+  const speakEv = (text: string, purpose?: string) => toolEvent("speak", { text, ...(purpose ? { purpose } : {}) });
+  const writeEv = (id: string) => toolEvent("write_text", { id, column: "main", html: "<p>x</p>" });
+
+  it("asks the model to continue when it stopped for tool results before ending with a question", async () => {
+    const { engine, session, llm } = await setup([
+      [speakEv("Júlio César foi um general."), writeEv("cesar"), stopEvent("tool_use")],
+      [speakEv("Ele conquistou a Gália."), speakEv("Por que o Senado tinha medo dele?", "question"), stopEvent("tool_use")],
+      [speakEv("nunca"), stopEvent()],
+    ]);
+    const { messages } = await run(engine, session, say("Quem foi Júlio César?"));
+    expect(llm.calls).toHaveLength(2);
+    const second = llm.calls[1]!.messages;
+    expect(second[1]).toMatchObject({ role: "assistant" });
+    expect((second[2]!.content as { type: string }[]).map((b) => b.type)).toEqual(["tool_result", "tool_result", "text"]);
+    const spoken = messages.flatMap((m) => (m.type === "action" && m.action.name === "speak" ? [m.action.args.text] : []));
+    expect(spoken).toEqual(["Júlio César foi um general.", "Ele conquistou a Gália.", "Por que o Senado tinha medo dele?"]);
+    expect(types(messages).filter((x) => x === "script_done")).toHaveLength(1);
+  });
+
+  it("stops after an ask_verification, after end_turn, and after at most four rounds", async () => {
+    const verify = await setup([
+      [speakEv("Vamos ver."), toolEvent("ask_verification", { id: "q1", column: "main", concept: "César", question: "Explique com suas palavras.", kind: "explain" }), stopEvent("tool_use")],
+      [speakEv("nunca"), stopEvent()],
+    ]);
+    await run(verify.engine, verify.session, say("Quem foi César?"));
+    expect(verify.llm.calls).toHaveLength(1);
+
+    const ended = await setup([[speakEv("Oi"), stopEvent("end_turn")], [speakEv("nunca"), stopEvent()]]);
+    await run(ended.engine, ended.session, opening);
+    expect(ended.llm.calls).toHaveLength(1);
+
+    const endless = await setup([[speakEv("mais um passo"), stopEvent("tool_use")]]);
+    await run(endless.engine, endless.session, opening);
+    expect(endless.llm.calls).toHaveLength(4);
+  });
+});
+
+describe("TurnEngine: model settings", () => {
+  it("sends the same thinking and effort settings on every call and on the pre-warm (prompt cache)", async () => {
+    const { engine, session, llm } = await setup([[toolEvent("speak", { text: "Oi" }), stopEvent()]], { models: { tutor: "claude-haiku-5-5", thinking: { type: "disabled" }, effort: "medium" } });
+    await engine.prewarm(session);
+    await run(engine, session, opening);
+    expect(llm.calls[0]).toMatchObject({ model: "claude-haiku-5-5", thinking: { type: "disabled" }, effort: "medium" });
+    expect(llm.prewarmRequests[0]).toMatchObject({ thinking: { type: "disabled" }, effort: "medium" });
   });
 });
 

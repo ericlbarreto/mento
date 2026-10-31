@@ -35,6 +35,10 @@ export async function buildApp(config: Config, overrides: Partial<Container> = {
     if (hasZodFastifySchemaValidationErrors(error)) {
       return reply.status(400).send({ error: "validation_error", issues: error.validation });
     }
+    // Checked by name: route files and @mento/db can be loaded by different module loaders in tests.
+    if ((error as Error).name === "DatabaseUnavailableError") {
+      return reply.status(503).send({ error: "database_unavailable", message: (error as Error).message });
+    }
     request.log.error(error);
     const status = (error as { statusCode?: number }).statusCode ?? 500;
     return reply.status(status).send({ error: status >= 500 ? "internal_error" : "request_error", message: (error as Error).message });
