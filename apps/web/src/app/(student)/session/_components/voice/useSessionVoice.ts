@@ -146,7 +146,7 @@ export function useSessionVoice({
 
   const status: MicStatus = micStatus({ permission, unavailable, sttState, userMuted, floor, openedDuringTurn });
 
-  /** Orb click / mic indicator: mute ↔ listen. While the tutor talks, opening the mic allows barge-in. */
+  /** Orb click / mic indicator: mute ↔ listen. Opening it while the tutor talks silences the tutor. */
   const toggleMic = useCallback(() => {
     if (!enabled || status === "denied" || status === "unavailable" || status === "asking" || status === "connecting") return;
     if (status === "off" || status === "error") {
@@ -158,10 +158,19 @@ export function useSessionVoice({
       return;
     }
     setUserMuted(false);
-    if (floor) setOpenedDuringTurn(true);
-  }, [enabled, floor, start, status]);
+    // Opening the mic while the tutor talks takes the floor at once: the tutor stops and listens.
+    if (shouldBargeIn(floor, speakingId)) {
+      setOpenedDuringTurn(true);
+      latest.current.onBargeIn();
+    }
+  }, [enabled, floor, speakingId, start, status]);
 
   const interim = stt.caption?.kind === "interim" && status === "listening" ? stt.caption.text.trim() : "";
+  // Words heard while the tutor still talks also silence it (Deepgram's SpeechStarted can come late or not at all).
+  useEffect(() => {
+    const l = latest.current;
+    if (interim && shouldBargeIn(l.floor, l.speakingId)) l.onBargeIn();
+  }, [interim]);
 
   return {
     gate,

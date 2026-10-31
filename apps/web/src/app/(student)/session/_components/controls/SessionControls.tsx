@@ -1,7 +1,7 @@
 "use client";
 
 // Owner: Person 2. Controls around the orb (Stitch S3): bottom-left mute and captions; bottom-right
-// the keyboard (opens and focuses the chat) and the second mascot button (inert, no defined purpose, plan §6).
+// the keyboard (opens and focuses the chat).
 import { IconButton, IconCaptions, IconKeyboard, IconVolume, cx } from "@mento/ui";
 
 const group = "pointer-events-auto flex items-center gap-1 rounded-(--radius-pill) bg-(--card) p-1.5 shadow-(--shadow-float)";
@@ -44,9 +44,6 @@ export function InputControls({ onKeyboard }: { onKeyboard: () => void }) {
     <div className={group} role="group" aria-label="Escrever para o tutor">
       <IconButton aria-label="Escrever uma mensagem" variant="ghost" onClick={onKeyboard}>
         <IconKeyboard />
-      </IconButton>
-      <IconButton inert aria-label="Mento" variant="primary" className="p-1.5">
-        <img src="/brand/mascot.png" alt="" className="size-full object-contain" />
       </IconButton>
     </div>
   );
