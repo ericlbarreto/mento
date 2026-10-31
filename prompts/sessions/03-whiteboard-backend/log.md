@@ -18,3 +18,4 @@
 | 2026-10-30 | How to test, voice keys, conversation test bench | testing | [2026-10-30-12-testing-the-conversation-and-voice-setup.md](2026-10-30-12-testing-the-conversation-and-voice-setup.md) | 64284e5, e491e01 |
 | 2026-10-30 | Why the first tutor action takes ~4 s | latency | [2026-10-30-13-latency-diagnosis.md](2026-10-30-13-latency-diagnosis.md) | none |
 | 2026-10-30 | Teacher-side data guide, PR push, merge with main | handoff, process | [2026-10-30-14-teacher-data-guide-pr-and-main-merge.md](2026-10-30-14-teacher-data-guide-pr-and-main-merge.md) | fdc7983, merge |
+| 2026-10-30 | Sessions in MongoDB with history, model research | persistence, latency | [2026-10-30-15-sessions-in-mongodb-and-model-research.md](2026-10-30-15-sessions-in-mongodb-and-model-research.md) | 6ee3d49…314d48a |
