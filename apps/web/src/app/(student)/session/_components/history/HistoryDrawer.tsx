@@ -160,7 +160,7 @@ export function HistoryDrawer({ open, onClose, studentId, subject, currentSessio
           </Button>
         </div>
       ) : list.length === 0 ? (
-        <p className="py-10 text-center text-base font-semibold text-(--ink-soft)">Nenhuma aula anterior ainda</p>
+        <p className="py-10 text-center text-base font-semibold text-(--ink-soft)">Nenhuma aula anterior ainda. Comece uma nova conversa abaixo.</p>
       ) : shown.length === 0 ? (
         <p className="py-10 text-center text-base font-semibold text-(--ink-soft)">Nenhuma aula encontrada</p>
       ) : (
