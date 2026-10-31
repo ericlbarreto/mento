@@ -33,4 +33,12 @@ describe("withCatalog", () => {
     await repo.endSession(id, "manual");
     expect((await repo.listEvents(id)).at(-1)?.type).toBe("session_ended");
   });
+
+  it("asks MongoDB for one subject's catalog and returns it even when empty", async () => {
+    const asked: (string | undefined)[] = [];
+    const repo = withCatalog(base(), async (subject_id) => (asked.push(subject_id), []), () => true);
+    expect(await repo.getCatalog("subj_math")).toEqual([]);
+    expect(asked).toEqual(["subj_math"]);
+  });
 });
+

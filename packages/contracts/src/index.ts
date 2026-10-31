@@ -16,3 +16,4 @@ export * from "./retrieval";
 export * from "./sessions";
 export * from "./chunk-store";
 export * from "./subjects";
+export * from "./errors";

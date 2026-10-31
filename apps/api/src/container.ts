@@ -1,6 +1,6 @@
 import { join } from "node:path";
-import type { Retriever } from "@mento/contracts";
-import { MongoChunkStore, mongoState } from "@mento/db";
+import type { Retriever, SubjectStore } from "@mento/contracts";
+import { MongoChunkStore, MongoSubjectStore, mongoState } from "@mento/db";
 import { createRetriever, embedWithVoyage } from "@mento/sources";
 import {
   AnthropicLlm,
@@ -36,6 +36,10 @@ export interface Container {
   evidence: EvidenceStore;
   /** Hybrid search over the teacher's materials; finds nothing until VOYAGE_API_KEY and MongoDB Atlas are set up. */
   retriever: Retriever;
+  /** Subjects (matérias) and their materials, stored in MongoDB. */
+  subjects: SubjectStore;
+  /** True while MongoDB is connected (routes that need it answer 503 otherwise). */
+  dbReady: () => boolean;
   /** null when ANTHROPIC_API_KEY is not set: the turn route answers 503. */
   engine: TurnEngine | null;
 }
@@ -95,12 +99,14 @@ export function createContainer(config: Config, overrides: Partial<Container> = 
       new InMemoryTurnRepository({
         catalog: [{ material_id: "demo-roma", title: "História de Roma (demo)", subject: "history", chapters: ["A República", "O Império"] }],
       }),
-      () => store.listCatalog(),
+      (subject_id) => store.listCatalog(subject_id),
       isMongoUp,
     );
   const images = overrides.images ?? new ImageStore(join(config.DATA_DIR, "files", "gen"));
   const evidence = overrides.evidence ?? new InMemoryEvidenceStore();
   const retriever = overrides.retriever ?? buildRetriever(config, store);
   const engine = "engine" in overrides ? (overrides.engine ?? null) : buildEngine(config, repo, tts, images, evidence, retriever);
-  return { config, mongo: new MongoService(config.MONGODB_URI), mintSttToken, ...overrides, tts, repo, images, evidence, retriever, engine };
+  const subjects = overrides.subjects ?? new MongoSubjectStore();
+  const dbReady = overrides.dbReady ?? isMongoUp;
+  return { config, mongo: new MongoService(config.MONGODB_URI), mintSttToken, ...overrides, tts, repo, images, evidence, retriever, subjects, dbReady, engine };
 }
