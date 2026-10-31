@@ -1,69 +1,100 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { normalizeConcept } from "@mento/contracts";
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
-import { pickFixture } from "./mock";
-import { Citation, DrawResultArgs, SpeakArgs, TurnRequest, TurnStreamMessage, TutorAction } from "./protocol";
+import { FIXTURE_TURNS, pickFixture, replayFixture } from "./mock";
+import { Action, FixtureTurn, SpeakArgs, StreamMessage, TurnRequest } from "./protocol";
 
 const fixturesDir = join(import.meta.dirname, "../fixtures");
-const MAT = "665f1a2b3c4d5e6f7a8b9c01";
 
 describe("fixtures", () => {
   const files = readdirSync(fixturesDir).filter((f) => f.endsWith(".json"));
   it("has the four Rome fixtures", () => {
-    expect(files.sort()).toEqual(["rome-click-27bc.json", "rome-intro.json", "rome-outside-material.json", "rome-wrong-answer.json"]);
+    expect(files.sort()).toEqual(["click-and-ask.json", "outside-material.json", "rome-intro.json", "wrong-answer.json"]);
   });
-  it.each(files)("%s parses as TurnStreamMessage[]", (file) => {
-    const data: unknown = JSON.parse(readFileSync(join(fixturesDir, file), "utf8"));
-    const msgs = z.array(TurnStreamMessage).parse(data);
-    expect(msgs[0]).toHaveProperty("turn_id");
-    expect(msgs.at(-1)).toEqual({ done: true });
+  it.each(files)("%s parses as FixtureTurn and ends with script_done then turn_done", (file) => {
+    const fixture = FixtureTurn.parse(JSON.parse(readFileSync(join(fixturesDir, file), "utf8")));
+    const msgs = fixture.messages.map((m) => m.message);
+    const scriptDone = msgs.find((m) => m.type === "script_done");
+    const last = msgs.at(-1);
+    expect(last?.type).toBe("turn_done");
+    expect(scriptDone && last?.type === "turn_done" && scriptDone.turn_id === last.turn_id).toBe(true);
+    const times = fixture.messages.map((m) => m.at_ms);
+    expect(times).toEqual([...times].sort((a, b) => a - b));
+  });
+  it("verification concept_key is normalizeConcept(concept)", () => {
+    for (const { messages } of Object.values(FIXTURE_TURNS)) {
+      for (const { message } of messages) {
+        if (message.type === "action" && message.action.name === "ask_verification") {
+          expect(message.action.args.concept_key).toBe(normalizeConcept(message.action.args.concept));
+        }
+      }
+    }
   });
 });
 
 describe("protocol rejects bad shapes", () => {
+  it("unknown stream type", () => {
+    expect(StreamMessage.safeParse({ type: "done" }).success).toBe(false);
+  });
   it("unknown tool name", () => {
-    expect(TutorAction.safeParse({ id: "a1", name: "record_evidence", args: {} }).success).toBe(false);
-    expect(TutorAction.safeParse({ id: "a1", name: "paint", args: {} }).success).toBe(false);
+    expect(Action.safeParse({ id: "a1", name: "write_latex", args: { id: "eq", latex: "x", column: "main" } }).success).toBe(false);
   });
   it("unknown column", () => {
     const action = { id: "a1", name: "write_text", args: { id: "t", html: "<p>x</p>", column: "left" } };
-    expect(TutorAction.safeParse(action).success).toBe(false);
-    expect(TutorAction.safeParse({ ...action, args: { ...action.args, column: "main" } }).success).toBe(true);
+    expect(Action.safeParse(action).success).toBe(false);
+    expect(Action.safeParse({ ...action, args: { ...action.args, column: "main" } }).success).toBe(true);
   });
-  it("camelCase key", () => {
-    expect(TutorAction.safeParse({ id: "a1", name: "highlight", args: { targetId: "t", color: "yellow" } }).success).toBe(false);
-    expect(TurnStreamMessage.safeParse({ stream: "svg", elementId: "d", chunk: "<svg" }).success).toBe(false);
+  it("element id that is not a snake_case slug", () => {
+    expect(Action.safeParse({ id: "a1", name: "highlight", args: { target_id: "Bad-Id", color: "yellow" } }).success).toBe(false);
   });
   it("hint without hint_level", () => {
     expect(SpeakArgs.safeParse({ text: "Dica", purpose: "hint" }).success).toBe(false);
     expect(SpeakArgs.safeParse({ text: "Dica", purpose: "hint", hint_level: 2 }).success).toBe(true);
   });
-  it("draw_result without url or svg", () => {
-    expect(DrawResultArgs.safeParse({ element_id: "d" }).success).toBe(false);
-    expect(DrawResultArgs.safeParse({ element_id: "d", svg: "<svg/>" }).success).toBe(true);
+  it("verification_answer without verification_id", () => {
+    const req = { modality: "text", appended: [{ name: "verification_answer", element_id: "q_republic_end", answer: "x" }] };
+    expect(TurnRequest.safeParse(req).success).toBe(false);
   });
-  it("citation page 0", () => {
-    expect(Citation.safeParse({ material_id: MAT, page: 0, quote: "x" }).success).toBe(false);
-    expect(Citation.safeParse({ material_id: MAT, page: 1, quote: "x" }).success).toBe(true);
+  it("word that ends before it starts", () => {
+    const bad = { type: "speech_alignment", action_id: "a1", words: [{ word: "x", start_ms: 500, end_ms: 100 }] };
+    expect(StreamMessage.safeParse(bad).success).toBe(false);
   });
 });
 
 describe("pickFixture", () => {
+  const opening = TurnRequest.parse({ appended: [], modality: "text" });
   const chat = TurnRequest.parse({ appended: [{ name: "user_message", kind: "chat", text: "oi" }], modality: "text" });
   const click = TurnRequest.parse({
     appended: [{ name: "user_message", kind: "board_select", text: "o que é isso?", selected: { element_id: "timeline_rome", text: "27 a.C." } }],
     modality: "text",
   });
   const answer = TurnRequest.parse({
-    appended: [{ name: "answer_submit", verification_id: "ver_1", element_id: "el_q_republic_end", answer: "Porque o Senado acabou" }],
+    appended: [{ name: "verification_answer", verification_id: "ver_1", element_id: "q_republic_end", answer: "Porque o Senado acabou" }],
     modality: "text",
   });
   it("routes by turn index and request content", () => {
     expect(pickFixture(chat, 0)).toBe("rome-intro");
-    expect(pickFixture(click, 0)).toBe("rome-intro");
-    expect(pickFixture(click, 1)).toBe("rome-click-27bc");
-    expect(pickFixture(answer, 2)).toBe("rome-wrong-answer");
-    expect(pickFixture(chat, 3)).toBe("rome-outside-material");
+    expect(pickFixture(opening, 3)).toBe("rome-intro");
+    expect(pickFixture(click, 1)).toBe("click-and-ask");
+    expect(pickFixture(answer, 2)).toBe("wrong-answer");
+    expect(pickFixture(chat, 3)).toBe("outside-material");
+  });
+});
+
+describe("replayFixture", () => {
+  it("stops quietly when the signal aborts", async () => {
+    const controller = new AbortController();
+    const seen: string[] = [];
+    setTimeout(() => controller.abort(), 1300); // after the first action (at_ms 1200), well before the rest
+    for await (const m of replayFixture("rome-intro", { signal: controller.signal })) seen.push(m.type);
+    expect(seen).toEqual(["action"]);
+  });
+  it("yields nothing when already aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const seen: unknown[] = [];
+    for await (const m of replayFixture("click-and-ask", { signal: controller.signal })) seen.push(m);
+    expect(seen).toEqual([]);
   });
 });
