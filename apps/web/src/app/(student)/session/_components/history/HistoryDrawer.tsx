@@ -1,25 +1,21 @@
 "use client";
 
 // Owner: Person 2. "Histórico de Aulas" (Stitch S7, plan §3): the student's sessions (in this subject, or all for
-// a free board), with search, status filters and reopen. Mounted by the session page and the student home.
+// a free board), with search and reopen. Mounted by the session page and the student home.
 // Only API fields are shown: no summaries, "anotações" counts or audio minutes (plan §6).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { SessionSummary } from "@mento/contracts";
-import { Button, Chip, Drawer, IconArrowRight, IconClock, IconEye, IconMessage, IconPlus, IconSearch, cx } from "@mento/ui";
+import { Button, Chip, Drawer, IconArrowRight, IconClock, IconMessage, IconPlus, IconSearch, cx } from "@mento/ui";
 import { createSession, listSessions } from "@/lib/api";
 import {
-  FILTERS,
-  countByFilter,
   drawerTitle,
   historyDate,
   historyDuration,
   historyTitle,
   interactions,
-  isEnded,
   newConversationLabel,
   visibleSessions,
-  type HistoryFilter,
 } from "./historyModel";
 
 type Load = { status: "loading" } | { status: "error" } | { status: "ready"; list: SessionSummary[] };
@@ -39,7 +35,6 @@ export type HistoryDrawerProps = {
 export function HistoryDrawer({ open, onClose, studentId, subject, currentSessionId, modality = "voice" }: HistoryDrawerProps) {
   const router = useRouter();
   const [load, setLoad] = useState<Load>({ status: "loading" });
-  const [filter, setFilter] = useState<HistoryFilter>("all");
   const [query, setQuery] = useState("");
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState(false);
@@ -62,8 +57,7 @@ export function HistoryDrawer({ open, onClose, studentId, subject, currentSessio
   useEffect(() => (open ? fetchList() : undefined), [open, fetchList]);
 
   const list = load.status === "ready" ? load.list : [];
-  const counts = useMemo(() => countByFilter(list), [list]);
-  const shown = useMemo(() => visibleSessions(list, { filter, query, currentId: currentSessionId }), [list, filter, query, currentSessionId]);
+  const shown = useMemo(() => visibleSessions(list, { filter: "all", query, currentId: currentSessionId }), [list, query, currentSessionId]);
 
   const openSession = (id: string) => {
     onClose();
@@ -92,7 +86,7 @@ export function HistoryDrawer({ open, onClose, studentId, subject, currentSessio
       initialFocusRef={searchRef}
       eyebrow="Histórico de estudos"
       title={drawerTitle(subject?.name)}
-      description="Sessões anteriores, anotações de lousa e status de conclusão."
+      description="Suas aulas anteriores e as anotações de lousa de cada uma."
       toolbar={
         <div className="flex flex-col gap-4">
           <label className="relative block">
@@ -107,23 +101,6 @@ export function HistoryDrawer({ open, onClose, studentId, subject, currentSessio
               className="h-12 w-full rounded-(--radius-pill) border-[1.5px] border-(--line) bg-(--paper-2) pl-11 pr-4 text-[15px] text-(--ink) outline-none placeholder:text-(--ink-soft) focus-visible:border-(--mento-blue) focus-visible:shadow-[0_0_0_3px_var(--mento-blue-soft)]"
             />
           </label>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar aulas">
-            {FILTERS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                aria-pressed={filter === f.id}
-                onClick={() => setFilter(f.id)}
-                className={cx(
-                  "h-9 rounded-(--radius-pill) px-4 text-[15px] font-semibold outline-none transition-colors duration-(--dur-fast) focus-visible:shadow-(--focus-ring)",
-                  filter === f.id ? "bg-(--mento-blue) text-white" : "bg-(--paper-2) text-(--ink) hover:bg-(--mento-blue-soft)",
-                )}
-              >
-                {f.label}
-                {load.status === "ready" && ` (${counts[f.id]})`}
-              </button>
-            ))}
-          </div>
         </div>
       }
       footer={
@@ -177,7 +154,6 @@ export function HistoryDrawer({ open, onClose, studentId, subject, currentSessio
 }
 
 function HistoryCard({ session, current, onOpen }: { session: SessionSummary; current: boolean; onOpen: () => void }) {
-  const ended = isEnded(session);
   const date = historyDate(session.started_at);
   return (
     <article
@@ -192,13 +168,6 @@ function HistoryCard({ session, current, onOpen }: { session: SessionSummary; cu
           <Chip variant="source" icon={null} dot="var(--mento-blue)">
             Aula atual · Agora
           </Chip>
-        ) : (
-          <Chip variant="status" icon={null} dot={ended ? "var(--success)" : "var(--mento-blue)"}>
-            {ended ? "Concluída" : "Em andamento"}
-          </Chip>
-        )}
-        {current ? (
-          <span className="text-[13px] font-bold text-(--mento-blue-strong)">Em andamento</span>
         ) : (
           <span className="text-[13px] font-semibold text-(--ink-soft)">{date}</span>
         )}
@@ -216,17 +185,10 @@ function HistoryCard({ session, current, onOpen }: { session: SessionSummary; cu
         </span>
       </p>
       <div className="flex flex-wrap justify-end gap-2">
-        {current || !ended ? (
-          <Button size="sm" onClick={onOpen}>
-            <IconArrowRight className="size-4" aria-hidden="true" />
-            Continuar aula agora
-          </Button>
-        ) : (
-          <Button size="sm" variant="secondary" onClick={onOpen}>
-            <IconEye className="size-4" aria-hidden="true" />
-            Ver lousa da aula
-          </Button>
-        )}
+        <Button size="sm" onClick={onOpen}>
+          <IconArrowRight className="size-4" aria-hidden="true" />
+          Continuar aula
+        </Button>
       </div>
     </article>
   );
