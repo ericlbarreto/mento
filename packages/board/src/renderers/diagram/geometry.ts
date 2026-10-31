@@ -12,6 +12,8 @@ export interface StrokePath {
   d: string;
   stroke: string;
   width: number;
+  /** SVG dash pattern (dashed lines fade in instead of being drawn by dash offset). */
+  dash?: string;
 }
 export interface FillPath {
   d: string;
@@ -114,7 +116,10 @@ export function drawShape(elementId: string, s: DiagramShape): DrawnShape {
       break;
     }
     case "line": {
-      push(paths(generator.line(s.x1, s.y1, s.x2, s.y2, o({ stroke: INK[s.color], strokeLineDash: s.dashed ? [2.2, 1.8] : undefined }))));
+      const line = paths(generator.line(s.x1, s.y1, s.x2, s.y2, o({ stroke: INK[s.color], disableMultiStroke: s.dashed })));
+      // roughjs keeps the dash as a render option, not in the path data: carry it to the SVG.
+      if (s.dashed) for (const p of line.strokes) p.dash = "2.2 1.8";
+      push(line);
       pts.push([s.x1, s.y1], [s.x2, s.y2]);
       if (s.ground) {
         const len = Math.hypot(s.x2 - s.x1, s.y2 - s.y1);
@@ -165,7 +170,7 @@ export function drawShape(elementId: string, s: DiagramShape): DrawnShape {
       const drawable = s.closed
         ? generator.polygon(points, o({ stroke, ...fill }))
         : s.smooth
-          ? generator.curve(points, o({ stroke, strokeWidth: 0.9, roughness: 0.5 }))
+          ? generator.curve(points, o({ stroke, strokeWidth: 0.9, roughness: 0.5, disableMultiStroke: true }))
           : generator.linearPath(points, o({ stroke, strokeWidth: 0.9 }));
       push(paths(drawable));
       pts.push(...points);

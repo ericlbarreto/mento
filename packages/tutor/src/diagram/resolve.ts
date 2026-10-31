@@ -452,7 +452,16 @@ export function resolveDiagram(input: unknown): ResolvedDiagram {
     want(item, s.label, end, sub(end, start));
   }
 
-  // 4. Labels past arrow tips / beside lines and points, nudged off boxes, lines and other labels.
+  // 4a. A box label sits at the center unless an arrow starts there (forces drawn from the center of mass):
+  // then it moves to the upper-left quarter of the box, so the arrow never crosses the text.
+  for (const i of items.values()) {
+    if (i.geo.kind !== "rect" || !i.label) continue;
+    const g = i.geo;
+    const busy = [...items.values()].some((a) => a.geo.kind === "arrow" && len(sub(a.geo.p, g.c)) < 0.5);
+    if (busy) i.label = { ...i.label, ...add(g.c, rot({ x: -g.w / 4, y: -g.h / 4 }, g.angle)) };
+  }
+
+  // 4b. Labels past arrow tips / beside lines and points, nudged off boxes, lines and other labels.
   const ordered = base.map((s) => items.get(s.id)).filter((i): i is Item => !!i);
   const boxes = ordered.filter((i) => i.geo.kind === "rect").map((i) => ({ id: i.id, box: boxOf(rectCorners(i.geo as Extract<Geo, { kind: "rect" }>)) }));
   const placed: { id: string; box: Box }[] = [];

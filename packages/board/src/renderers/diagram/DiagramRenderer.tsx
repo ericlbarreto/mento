@@ -80,14 +80,24 @@ export function DiagramRenderer({ element }: RendererProps<"diagram">) {
               <path key={`f${j}`} d={f.d} data-fade="" style={{ fill: f.fill, stroke: "none" }} />
             ))}
             {d.strokes.map((s, j) => (
-              <path
-                key={`s${j}`}
-                d={s.d}
-                data-stroke=""
-                pathLength={animate ? 1 : undefined}
-                strokeDasharray={animate ? 1 : undefined}
-                style={{ fill: "none", stroke: s.stroke, strokeWidth: s.width, strokeLinecap: "round", strokeLinejoin: "round" }}
-              />
+              s.dash ? (
+                <path
+                  key={`s${j}`}
+                  d={s.d}
+                  data-fade=""
+                  strokeDasharray={s.dash}
+                  style={{ fill: "none", stroke: s.stroke, strokeWidth: s.width, strokeLinecap: "round" }}
+                />
+              ) : (
+                <path
+                  key={`s${j}`}
+                  d={s.d}
+                  data-stroke=""
+                  pathLength={animate ? 1 : undefined}
+                  strokeDasharray={animate ? 1 : undefined}
+                  style={{ fill: "none", stroke: s.stroke, strokeWidth: s.width, strokeLinecap: "round", strokeLinejoin: "round" }}
+                />
+              )
             ))}
             {d.dots.map((c, j) => (
               <circle key={`c${j}`} cx={c.x} cy={c.y} r={c.r} data-fade="" style={{ fill: c.color }} />

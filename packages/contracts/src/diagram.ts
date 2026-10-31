@@ -22,7 +22,7 @@ export type DiagramColor = z.infer<typeof DiagramColor>;
 export const DiagramTextSize = z.enum(["s", "m", "l"]);
 export type DiagramTextSize = z.infer<typeof DiagramTextSize>;
 /** Font size of a label, in grid units (the resolver estimates label boxes with it; the renderer uses it). */
-export const DIAGRAM_FONT_SIZE: Record<DiagramTextSize, number> = { s: 4.5, m: 5.5, l: 7 };
+export const DIAGRAM_FONT_SIZE: Record<DiagramTextSize, number> = { s: 5, m: 6.5, l: 8 };
 
 /** Plain text only (rendered as SVG text, never HTML). */
 const LabelText = z.string().min(1).max(40);
