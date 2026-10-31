@@ -228,6 +228,8 @@ export const MOCK_GAPS: Gap[] = [
 
 // The demo textbooks (Plan E): original 8º-ano books whose PDFs ship with the front-end (public/materials) and
 // whose passages and embeddings are in the database. Materials stay mock in both modes, so this list is the tab.
+// The class book (D76, D67: the teacher works with História): an original 8º-ano book whose PDF ships with the
+// front-end (public/materials) and whose passages and embeddings are in the database. Materials stay mock in both modes.
 export const MOCK_MATERIALS: Material[] = [
   {
     id: "mat_historia_brasil",
@@ -236,30 +238,6 @@ export const MOCK_MATERIALS: Material[] = [
     status: "ready",
     created_at: "2026-10-31T10:00:00-03:00",
     file_url: "/materials/historia-brasil-8ano.pdf",
-  },
-  {
-    id: "mat_matematica",
-    title: "Matemática 8º ano — Potências, equações e gráficos",
-    pages: 27,
-    status: "ready",
-    created_at: "2026-10-31T10:00:00-03:00",
-    file_url: "/materials/matematica-8ano.pdf",
-  },
-  {
-    id: "mat_fisica",
-    title: "Física no dia a dia — Energia, eletricidade e movimento",
-    pages: 27,
-    status: "ready",
-    created_at: "2026-10-31T10:00:00-03:00",
-    file_url: "/materials/fisica-8ano.pdf",
-  },
-  {
-    id: "mat_biologia",
-    title: "Biologia 8º ano — Reprodução, hormônios e saúde",
-    pages: 20,
-    status: "ready",
-    created_at: "2026-10-31T10:00:00-03:00",
-    file_url: "/materials/biologia-8ano.pdf",
   },
 ];
 

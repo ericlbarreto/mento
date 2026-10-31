@@ -1,11 +1,10 @@
 "use client";
-// Owner: Person 1. Materials tab: three plain counts, the list of PDFs (or the empty state) and the upload modal.
+// Owner: Person 1. Materials tab: plain counts and the list of the class books (or the empty state). The books ship
+// with the front-end (public/materials) and are already in the tutor's database, so there is no upload here (D76).
 import Link from "next/link";
-import { useState } from "react";
-import { IconBook, IconCheck, IconChevronRight, IconFile, IconLayers, IconLightbulb, IconPlus, IconSearch, IconShield, IconUpload } from "../_components/icons";
+import { IconBook, IconCheck, IconChevronRight, IconFile, IconLayers, IconLightbulb, IconSearch, IconShield } from "../_components/icons";
 import { MaterialTile } from "../_components/MaterialTile";
-import { UploadMaterialModal } from "../_components/UploadMaterialModal";
-import { Button, Card, Chip, MetricCard, buttonClass } from "../_components/ui";
+import { Card, Chip, MetricCard, buttonClass } from "../_components/ui";
 import { relativeDate } from "../_lib/format";
 import { useTeacher } from "../_lib/store";
 import { ExerciseListsSection } from "../_components/ExerciseLists";
@@ -40,7 +39,7 @@ const FEATURES = [
   { icon: <IconLayers size={18} />, title: "Leitura automática", body: "Depois do envio, o PDF é preparado sozinho. Em poucos minutos ele já pode ser usado nas conversas.", tag: "Sem configuração" },
 ];
 
-function EmptyState({ onUpload }: { onUpload: () => void }) {
+function EmptyState() {
   const { classContext } = useTeacher();
   return (
     <Card className="overflow-hidden px-6 py-12 md:px-12">
@@ -54,11 +53,8 @@ function EmptyState({ onUpload }: { onUpload: () => void }) {
         </Chip>
         <h2 className="mt-3 max-w-xl text-[30px] font-extrabold leading-9 tracking-[-0.01em]">Nenhum material adicionado ainda para a turma</h2>
         <p className="mt-3 max-w-xl text-[17px] leading-7 text-[var(--ink-soft)]">
-          Envie livros ou apostilas em PDF. O tutor usa esse conteúdo para ensinar e cita a página exata durante as conversas com os alunos.
+          Os livros da turma aparecem aqui. O tutor usa esse conteúdo para ensinar e cita a página exata durante as conversas com os alunos.
         </p>
-        <Button className="mt-7 px-6 py-3" onClick={onUpload}>
-          <IconUpload size={18} /> Enviar primeiro material
-        </Button>
       </div>
       <div className="mt-12 grid gap-4 md:grid-cols-3">
         {FEATURES.map((f) => (
@@ -103,7 +99,6 @@ function MaterialRow({ material }: { material: Material }) {
 export function MaterialsView({ forceEmpty }: { forceEmpty: boolean }) {
   const store = useTeacher();
   const materials = forceEmpty ? [] : store.materials;
-  const [uploading, setUploading] = useState(false);
   const ready = materials.filter((m) => m.status === "ready");
 
   return (
@@ -116,9 +111,6 @@ export function MaterialsView({ forceEmpty }: { forceEmpty: boolean }) {
           <h1 className="mt-1 text-[36px] font-extrabold leading-[44px] tracking-[-0.02em]">Materiais</h1>
           <p className="mt-2 text-[17px] leading-7 text-[var(--ink-soft)]">Livros e apostilas em PDF que o tutor usa para explicar e citar a página exata.</p>
         </div>
-        <Button className="px-6 py-3" onClick={() => setUploading(true)}>
-          <IconPlus size={18} /> Enviar PDF
-        </Button>
       </header>
 
       <section aria-label="Resumo do acervo" className="mb-10 grid gap-4 sm:grid-cols-2">
@@ -127,7 +119,7 @@ export function MaterialsView({ forceEmpty }: { forceEmpty: boolean }) {
       </section>
 
       {materials.length === 0 ? (
-        <EmptyState onUpload={() => setUploading(true)} />
+        <EmptyState />
       ) : (
         <section aria-labelledby="files">
           <div className="mb-4 flex items-center gap-3">
@@ -154,7 +146,6 @@ export function MaterialsView({ forceEmpty }: { forceEmpty: boolean }) {
 
       {!forceEmpty && <ExerciseListsSection />}
 
-      <UploadMaterialModal open={uploading} onClose={() => setUploading(false)} />
     </>
   );
 }
