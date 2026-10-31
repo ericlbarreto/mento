@@ -78,7 +78,13 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number, writer?: B
 
     const vp = () => ({ w: viewport.clientWidth, h: viewport.clientHeight });
     const worldSize = () => ({ w: world.offsetWidth, h: world.offsetHeight });
-    const inset = (): Inset => ({ top: 24, right: 32, bottom: Math.min(260, vp().h * 0.35), left: 32 });
+    // The host may publish how much of the board's bottom its overlays cover (caption, orb, notices) as
+    // `--board-safe-bottom` (px); without it, keep a fixed band clear.
+    const safeBottom = () => {
+      const v = parseFloat(getComputedStyle(viewport).getPropertyValue("--board-safe-bottom"));
+      return Number.isFinite(v) && v > 0 ? Math.min(v, vp().h * 0.7) : Math.min(260, vp().h * 0.35);
+    };
+    const inset = (): Inset => ({ top: 24, right: 32, bottom: safeBottom(), left: 32 });
     const fitScale = () => initialCamera(vp(), mainWidth).scale;
 
     const write = () => {

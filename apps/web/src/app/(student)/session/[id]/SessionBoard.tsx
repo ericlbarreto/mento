@@ -160,6 +160,21 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
     if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.dataset.elementId && selectFrom(e.target)) e.preventDefault();
   };
 
+  // The caption, orb and notices cover the bottom of the board: tell the board's camera how much, so what the
+  // tutor writes is framed above them.
+  const boardAreaRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const area = boardAreaRef.current;
+    const overlay = overlayRef.current;
+    if (!area || !overlay) return;
+    const update = () => area.style.setProperty("--board-safe-bottom", `${Math.ceil(overlay.offsetHeight) + 16}px`);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(overlay);
+    return () => ro.disconnect();
+  }, []);
+
   const verification = { openElementId: c.openQuestion?.element_id ?? null, answered: c.answered, onAnswer: c.answerQuestion };
 
   const toggleMute = () => {
@@ -191,15 +206,15 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
             />
           </div>
           {/* Click-and-ask listens here (bubbling from the board elements); Enter on a focused element does the same. */}
-          <div className="relative min-h-0 flex-1" onClick={onBoardClick} onKeyDown={onBoardKeyDown}>
+          <div ref={boardAreaRef} className="relative min-h-0 flex-1" onClick={onBoardClick} onKeyDown={onBoardKeyDown}>
             <Board
               store={player.store}
               assetBaseUrl={assetBaseUrl}
               onWarning={player.warn}
               verification={verification}
-              className={`min-h-0 [&_[data-element-id]]:cursor-pointer [&>section]:pb-72 [&>section]:scroll-pb-72 ${dotted}`}
+              className={`min-h-0 [&_[data-element-id]]:cursor-pointer ${dotted}`}
             />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 px-6 pb-5">
+            <div ref={overlayRef} className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 px-6 pb-5">
               {voiceOn && noticeClosedFor !== voice.status && (
                 <VoiceNotice
                   status={voice.status}
