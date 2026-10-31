@@ -1,12 +1,12 @@
 "use client";
-// Owner: Person 1. Student detail: concept map, the open gaps (stage, diagnosis, where they may start; never the
+// Owner: Person 1. Student detail: mastery per concept, the open gaps (stage, diagnosis, where they may start; never the
 // student's words, D70), overcome concepts and strengths, the conversations, and the summary of the latest analysis.
 import Link from "next/link";
 import { use, useState } from "react";
 import { ConversationsTable } from "../../_components/ConversationsTable";
 import { ErrorBlock, LoadingBlock } from "../../_components/LoadState";
-import { IconAlert, IconArrowLeft, IconBook, IconCheck, IconFlag, IconLightbulb, IconShield, IconSparkle } from "../../_components/icons";
-import { Avatar, Button, Card, Chip, SectionTitle, SimulatedBadge, cx } from "../../_components/ui";
+import { IconArrowLeft, IconBook, IconCheck, IconFlag, IconShield, IconSparkle } from "../../_components/icons";
+import { Avatar, Button, Card, Chip, SectionTitle, cx } from "../../_components/ui";
 import { pagesLabel, relativeDate } from "../../_lib/format";
 import { STATE_LABEL, evidenceLine, firstName, gapStage, studentStatus } from "../../_lib/status";
 import { useStudentDetail, useTeacher } from "../../_lib/store";
@@ -16,50 +16,59 @@ const TONE_TEXT = { danger: "text-[var(--danger)]", warn: "text-[var(--warn)]", 
 const STATE_TONE: Record<ConceptState, "ok" | "blue" | "danger" | "neutral"> = { consolidated: "ok", in_transition: "blue", sampling: "neutral", gap: "danger" };
 
 const STEP_LABEL: Record<ConceptStep, string> = { correct: "acertou", partial: "acertou em parte", incorrect: "errou" };
+const STEP_FILL: Record<ConceptStep, string> = { correct: "bg-[var(--ok)]", partial: "bg-[var(--warn)]", incorrect: "bg-[var(--danger)]" };
+const STATE_BAR: Record<ConceptState, string> = { consolidated: "bg-[var(--ok)]", in_transition: "bg-[var(--mento-blue)]", sampling: "bg-[var(--line)]", gap: "bg-[var(--danger)]" };
 
-function StepDot({ step }: { step: ConceptStep }) {
-  const style =
-    step === "correct"
-      ? "bg-[var(--mento-blue)] text-white"
-      : step === "incorrect"
-        ? "bg-[var(--danger-soft)] text-[var(--danger)] ring-1 ring-[var(--danger)]/40"
-        : "bg-[var(--card)] text-[var(--mento-blue)] ring-1 ring-[var(--line)]";
+function Legend() {
   return (
-    <span role="img" aria-label={STEP_LABEL[step]} title={STEP_LABEL[step]} className={cx("flex size-8 items-center justify-center rounded-full", style)}>
-      {step === "correct" ? <IconCheck size={16} /> : step === "incorrect" ? <IconAlert size={16} /> : <IconLightbulb size={15} />}
-    </span>
+    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-[var(--ink-soft)]">
+      {(Object.keys(STEP_LABEL) as ConceptStep[]).map((s) => (
+        <li key={s} className="flex items-center gap-1.5">
+          <span className={cx("h-2.5 w-4 rounded-full", STEP_FILL[s])} aria-hidden="true" />
+          {STEP_LABEL[s]}
+        </li>
+      ))}
+    </ul>
   );
 }
 
-/** One row per concept; one dot per conversation, oldest first. */
+/** One row per concept: its state, and one segment per conversation in which it came up, oldest first. */
 function ConceptMap({ concepts }: { concepts: ConceptRow[] }) {
   return (
     <Card className="p-6">
-      <SectionTitle icon={<IconSparkle size={18} />} title="Mapeamento conceitual contínuo" aside="matriz formativa" />
-      <p className="-mt-2 mb-4 text-[15px] leading-6 text-[var(--ink-soft)]">
-        Cada ponto é uma conversa em que o conceito apareceu, da mais antiga para a mais recente. Com menos de 3 respostas, ainda é cedo para concluir.
-      </p>
+      <SectionTitle icon={<IconSparkle size={18} />} title="Domínio por conceito" aside="conversa a conversa" />
       {concepts.length === 0 ? (
         <p className="rounded-xl bg-[var(--paper)] px-4 py-6 text-center text-[15px] text-[var(--ink-soft)]">Os conceitos aparecem aqui depois que o tutor fizer perguntas de verificação.</p>
       ) : (
-        <ul className="space-y-2">
-          {concepts.map((c) => (
-            <li key={c.concept_key} className={cx("flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl px-4 py-3", c.state === "gap" ? "bg-[var(--danger-soft)]/60" : "bg-[var(--paper)]")}>
-              <div className="flex min-w-[10rem] flex-1 items-center gap-2">
-                <span className="text-[16px] font-bold">{c.concept}</span>
-                <Chip className="text-[12px]">n = {c.n}</Chip>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {c.steps.map((s, i) => (
-                  <StepDot key={i} step={s} />
-                ))}
-              </div>
-              <Chip tone={STATE_TONE[c.state]} className="text-[12px]">
-                {STATE_LABEL[c.state]}
-              </Chip>
-            </li>
-          ))}
-        </ul>
+        <>
+          <div className="-mt-1 mb-4">
+            <Legend />
+          </div>
+          <ul className="space-y-3">
+            {concepts.map((c) => (
+              <li key={c.concept_key} className="relative overflow-hidden rounded-xl bg-[var(--paper)] py-3.5 pl-5 pr-4">
+                <span className={cx("absolute inset-y-0 left-0 w-1", STATE_BAR[c.state])} aria-hidden="true" />
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-[16px] font-bold leading-6">{c.concept}</p>
+                  <Chip tone={STATE_TONE[c.state]} className="shrink-0 text-[12px]">
+                    {STATE_LABEL[c.state]}
+                  </Chip>
+                </div>
+                <div className="mt-2.5 flex items-center gap-3">
+                  <ol className="flex flex-1 gap-1" aria-label={`Respostas em ${c.concept}, da mais antiga para a mais recente`}>
+                    {c.steps.map((step, i) => (
+                      <li key={i} title={`${i + 1}ª conversa: ${STEP_LABEL[step]}`} className={cx("h-2.5 max-w-16 flex-1 rounded-full", STEP_FILL[step])}>
+                        <span className="sr-only">{`${i + 1}ª conversa: ${STEP_LABEL[step]}`}</span>
+                      </li>
+                    ))}
+                  </ol>
+                  <span className="shrink-0 text-[13px] text-[var(--ink-soft)]">{c.n === 1 ? "1 resposta" : `${c.n} respostas`}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-[13px] leading-5 text-[var(--ink-soft)]">Da conversa mais antiga (à esquerda) para a mais recente. Com menos de 3 respostas, ainda é cedo para concluir.</p>
+        </>
       )}
     </Card>
   );
@@ -197,11 +206,10 @@ export default function StudentDetailPage({ params }: { params: Promise<{ id: st
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-6">
         <Link href="/professor" className="inline-flex items-center gap-2 text-[15px] font-bold text-[var(--mento-blue)] hover:underline">
           <IconArrowLeft size={18} /> Voltar para Alunos
         </Link>
-        {row.is_simulated && <SimulatedBadge />}
       </div>
 
       <Card className="mb-8 flex flex-wrap items-center gap-6 p-6 md:p-7">

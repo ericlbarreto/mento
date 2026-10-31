@@ -30,7 +30,6 @@ import {
   type TopBarNavItem,
 } from "@mento/ui";
 import { createSession } from "@/lib/api";
-import { ApiStatus } from "../../ApiStatus";
 import { HistoryDrawer } from "../../session/_components/history/HistoryDrawer";
 import { Skeleton, StudentGrid, stagger } from "../start/pickers";
 import styles from "../start/start.module.css";
@@ -155,7 +154,6 @@ export function HomeScreen() {
           </button>
         )}
 
-        <ApiStatus />
       </main>
 
       <Footer />
