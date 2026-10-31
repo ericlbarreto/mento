@@ -19,7 +19,9 @@
     "@mento/contracts": "workspace:*",
     "@mento/ui": "workspace:*",
     "@mento/board": "workspace:*",
-    "@mento/voice": "workspace:*"
+    "@mento/voice": "workspace:*",
+    "pdf-lib": "^1.17.1",
+    "@pdf-lib/fontkit": "^1.1.1"
   },
   "devDependencies": {
     "tailwindcss": "^4.3.3",
