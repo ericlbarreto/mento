@@ -72,7 +72,7 @@ Ran the brainstorming flow (architectural path): read the provider docs (Anthrop
 
 ## Decisions and contracts touched
 
-Proposed contract additions (turn stream union, `script_done`, `speech_alignment`, `audio_url`, `SttCaption`, `spoken_ms`) and decisions D47–D51; they are written into `contracts-spec.md` and `docs/10` by Plan 1, Task 6.
+Proposed contract additions (turn stream union, `script_done`, `speech_alignment`, `audio_url`, `SttCaption`, `spoken_ms`) and decisions D48–D52; they are written into `contracts-spec.md` and `docs/10` by Plan 1, Task 6.
 
 ## Follow-ups / questions for other people
 

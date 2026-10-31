@@ -27,7 +27,7 @@ Client (web)
 
 1. **Tutor Core:** builds the 3-layer prompt, runs the LLM loop, executes tools, emits events.
 2. **Whiteboard engine:** validates tool actions (see `16`), keeps board state, renders with deterministic DOM components (see `16-technical-roadmap.md`).
-3. **Sources service:** material ingestion (UI upload + script), text-index retrieval scoped to the chosen material, citation data (`04-knowledge-and-sources.md`).
+3. **Sources service:** material ingestion (UI upload + script), text-index retrieval scoped to the materials of the chosen subject (D47), citation data (`04-knowledge-and-sources.md`).
 4. **Event log:** append-only; the single source for replay, evidence and analysis.
 5. **Analysis job:** post-session; counters + LLM structured output.
 6. **Teacher API** (students, materials, class context, insights, overview metrics; single workspace, no auth).

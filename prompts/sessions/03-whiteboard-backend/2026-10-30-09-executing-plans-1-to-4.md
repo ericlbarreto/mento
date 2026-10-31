@@ -26,7 +26,7 @@ Executed plans 1 to 4 task by task on `feat/whiteboard-api` (failing test, imple
 
 ## Decisions and contracts touched
 
-- D47–D51 recorded; turn stream union and the other contract additions now exist in `@mento/contracts`; `IMAGE_MODEL` default confirmed as `gemini-3.1-flash-lite-image`.
+- D48–D52 recorded; turn stream union and the other contract additions now exist in `@mento/contracts`; `IMAGE_MODEL` default confirmed as `gemini-3.1-flash-lite-image`.
 
 ## Follow-ups / questions for other people
 

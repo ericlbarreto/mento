@@ -50,7 +50,7 @@ Sim, corrija
 
 ## Outcome (English)
 
-Moved ingestion and retrieval into this workstream (D52) and executed plan 5: chunking, Voyage embeddings, PDF text, hybrid retriever, MongoDB models and Atlas indexes, wiring, scripts. The Atlas integration test passed on the team cluster (vector index and Portuguese text index). Downloaded an open-access test book (História de Roma Antiga I, Universidade de Coimbra, 2015) with the founder's approval; the first ingestion hit Voyage HTTP 429 (no payment method), so retries with backoff were added and the founder added a payment method (free tokens still apply). Ingestion: 489 pages → 896 passages in ~26 s. Added text cleaning (line-break hyphens, page numbers, letter-spaced headings, tables of contents skipped) and `--replace`. Retrieval check: all 6 Portuguese questions hit relevant pages; search p50 0.84 s, of which the query embedding is 0.78 s. `gemini-3.1-flash-lite-image` confirmed as the image model.
+Moved ingestion and retrieval into this workstream (D53) and executed plan 5: chunking, Voyage embeddings, PDF text, hybrid retriever, MongoDB models and Atlas indexes, wiring, scripts. The Atlas integration test passed on the team cluster (vector index and Portuguese text index). Downloaded an open-access test book (História de Roma Antiga I, Universidade de Coimbra, 2015) with the founder's approval; the first ingestion hit Voyage HTTP 429 (no payment method), so retries with backoff were added and the founder added a payment method (free tokens still apply). Ingestion: 489 pages → 896 passages in ~26 s. Added text cleaning (line-break hyphens, page numbers, letter-spaced headings, tables of contents skipped) and `--replace`. Retrieval check: all 6 Portuguese questions hit relevant pages; search p50 0.84 s, of which the query embedding is 0.78 s. `gemini-3.1-flash-lite-image` confirmed as the image model.
 
 ## Files changed
 
@@ -58,7 +58,7 @@ Moved ingestion and retrieval into this workstream (D52) and executed plan 5: ch
 
 ## Decisions and contracts touched
 
-D52 (ingestion and retrieval belong to Person 3); `ChunkStore` contract; `IngestReport.toc_pages`.
+D53 (ingestion and retrieval belong to Person 3); `ChunkStore` contract; `IngestReport.toc_pages`.
 
 ## Follow-ups / questions for other people
 

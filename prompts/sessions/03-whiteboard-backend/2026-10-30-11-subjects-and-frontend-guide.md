@@ -1,7 +1,7 @@
 # 2026-10-30 (time not recorded) — Subjects (matérias), optional subject on sessions, front-end integration guide
 
 - **Person / agent:** Person 3 (founder as proxy) / Claude Code (Opus 5.5)
-- **Task id** (from your workstreams file): start-screen change (D53)
+- **Task id** (from your workstreams file): start-screen change (D54)
 - **Docs read first:** workstreams/contracts-spec.md, docs/frontend-contract.md
 
 ## Prompt 1 of 1 (verbatim)
@@ -26,7 +26,7 @@ Added subjects: contracts (`Subject`, `SubjectSummary`, `ListSubjectsResponse`, 
 
 ## Decisions and contracts touched
 
-D53 (subjects drive the whiteboard; supersedes the "search everything" part of D50); contracts-spec §14.
+D54 (subjects drive the whiteboard; supersedes the "search everything" part of D51); contracts-spec §14.
 
 ## Follow-ups / questions for other people
 

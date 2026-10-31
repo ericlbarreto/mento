@@ -10,9 +10,9 @@ The tutor answers from what the teacher actually uses, and the student can **see
 
 - A **material** is an uploaded PDF (typically a book or chapter): `title`, `subject` (História, Matemática, Ciências, Português, Geografia, Outro), `profile_key` (selects the subject profile in `prompts/subjects/`, `generic` if unknown), `status`, `page_count`, `outline`.
 - There is **one teacher workspace**: all materials belong to it (no per-class or per-teacher scoping).
-- At session start the student **picks one material** (and optionally types a topic). The conversation is scoped to that material: its subject profile, its retrieval index and its citations.
+- At session start the student **picks a subject** (D47). The conversation is scoped to **all `ready` materials of that subject**: the subject profile, retrieval across those materials (each chunk keeps its `material_id`) and their citations. A **free whiteboard** (Mento button, `subject_id` null) searches **all** materials and flags answers no passage supports as `outside_material` (D54).
 - A question outside the material gets a general-knowledge answer, visibly marked **"outside the teacher's material"**.
-- Future: studying across several materials at once (not in the hackathon).
+- Retrieval across several materials of one subject is in scope (D47); across subjects is future.
 
 ## Getting a material in
 
@@ -65,7 +65,7 @@ A citation carries `material_id`, `page`, `quote`. The frontend opens the PDF at
 
 ## What the student sees
 
-- At start: **pick your name → pick a material → optional topic** (`02-student-experience-whiteboard.md`).
+- At start: **pick a subject card** (with its count of materials) or the **Mento button** for a free session; the tutor then asks what to study (`02-student-experience-whiteboard.md`, D47).
 - **Chips** on tutor messages, e.g., `Livro, p.12`; click opens the PDF at the page with the excerpt highlighted.
 - A distinct marker when an answer is outside the material.
 

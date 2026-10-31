@@ -13,7 +13,7 @@
 
 ## 2. End-to-end flow
 
-1. Start screen lists **subjects** (matérias) with their materials (`GET /api/subjects`); clicking one starts a session limited to that subject's books, and a separate button starts a free whiteboard over all materials (D53, which replaces the earlier "no material choice" rule; the student still never picks a single book) → `POST /api/sessions` `{student_id, modality: "voice", subject_id?}` → `{id, subject_id}`. The server **pre-warms the prompt cache** and opens the TTS connection.
+1. Start screen lists **subjects** (matérias) with their materials (`GET /api/subjects`); clicking one starts a session limited to that subject's books, and a separate button starts a free whiteboard over all materials (D54, which replaces the earlier "no material choice" rule; the student still never picks a single book) → `POST /api/sessions` `{student_id, modality: "voice", subject_id?}` → `{id, subject_id}`. The server **pre-warms the prompt cache** and opens the TTS connection.
 2. Browser: `POST /api/voice/token` → opens the Deepgram WebSocket **at session start** and streams the microphone.
 3. The tutor opens the conversation (first turn has no student message; greeting audio is cached).
 4. Student finishes speaking → browser sends `POST /api/sessions/:id/turn` → SSE stream of tutor messages.

@@ -50,7 +50,7 @@ none
 
 ## Decisions and contracts touched
 
-Confirms the voice decision of `docs/11` and `docs/16` §9; recorded later as D47 in the spec.
+Confirms the voice decision of `docs/11` and `docs/16` §9; recorded later as D48 in the spec.
 
 ## Follow-ups / questions for other people
 

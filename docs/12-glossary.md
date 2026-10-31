@@ -14,7 +14,7 @@
 | **Class context (turma)** | The single global description written by the teacher: grade level (7º–9º ano) and class characteristics; applied to every chat |
 | **Teacher workspace** | The single-teacher, no-login area with two tabs: Students and Materials |
 | **Student** | A person created by the teacher; picks their own name to start a conversation |
-| **Conversation / session** | One tutoring dialogue of one student with one material; stored with its event log |
+| **Conversation / session** | One tutoring dialogue of one student with one subject (all its materials) or in a free session with no material; stored with its event log |
 | **Gap** | A concept the student seems to be missing, with evidence and confidence (`insights.kind = gap`) |
 | **Insight** | A generated, teacher-facing item: `gap`, `progress` or `suggestion` |
 | **Chunk** | A page/section of a source stored as text with its page number |

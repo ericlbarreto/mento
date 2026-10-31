@@ -908,7 +908,7 @@ git commit -m "feat(api): validated SSE stream messages and the fixture turn end
 - Modify: `scripts/turn-cli.ts` (replace the stub)
 - Modify: `docs/16-technical-roadmap.md` (§3.2)
 - Modify: `workstreams/contracts-spec.md` (new §12)
-- Modify: `docs/10-decisions.md` (decisions D47–D51)
+- Modify: `docs/10-decisions.md` (decisions D48–D52)
 - Create: `docs/frontend-contract.md`
 
 **Interfaces:**
@@ -1004,11 +1004,11 @@ Source of truth in code: `packages/contracts` (`actions.ts`, `stream.ts`, `event
 Insert these rows after the row `D46`:
 
 ```markdown
-| D47 | **Voice-first back-end with SSE turn + prefetched audio over HTTP** (not one WebSocket per session, not browser→ElevenLabs direct). Spec: `docs/superpowers/specs/2026-10-30-whiteboard-backend-design.md` | Keeps the planned contracts, simple interruption, server cache and timing |
-| D48 | **Turn stream is a union tagged by `type`** with `speech_alignment`, `script_done`, `turn_done`, `error`; student captions come from `useStt()` in the browser | Front-end needs word captions and a clear point to open the mic |
-| D49 | **Models:** tutor `claude-sonnet-5-5`, judge `claude-haiku-5-5`, images Google Gemini (founder's choice), embeddings Voyage `voyage-4` by default (free allowance), STT Deepgram, TTS ElevenLabs Flash v2.5 | Latency first; cost is acceptable except embeddings |
-| D50 | **Sessions have no `material_id`:** the tutor searches all teacher materials (hybrid vector + text search on MongoDB Atlas) through `searchChunks` | Founder decision: the AI, not the student, picks the material |
-| D51 | **Judge runs in parallel with the next tutor turn** and only records evidence | Keeps the judge off the critical path; disagreement is measured |
+| D48 | **Voice-first back-end with SSE turn + prefetched audio over HTTP** (not one WebSocket per session, not browser→ElevenLabs direct). Spec: `docs/superpowers/specs/2026-10-30-whiteboard-backend-design.md` | Keeps the planned contracts, simple interruption, server cache and timing |
+| D49 | **Turn stream is a union tagged by `type`** with `speech_alignment`, `script_done`, `turn_done`, `error`; student captions come from `useStt()` in the browser | Front-end needs word captions and a clear point to open the mic |
+| D50 | **Models:** tutor `claude-sonnet-5-5`, judge `claude-haiku-5-5`, images Google Gemini (founder's choice), embeddings Voyage `voyage-4` by default (free allowance), STT Deepgram, TTS ElevenLabs Flash v2.5 | Latency first; cost is acceptable except embeddings |
+| D51 | **Sessions have no `material_id`:** the tutor searches all teacher materials (hybrid vector + text search on MongoDB Atlas) through `searchChunks` | Founder decision: the AI, not the student, picks the material |
+| D52 | **Judge runs in parallel with the next tutor turn** and only records evidence | Keeps the judge off the critical path; disagreement is measured |
 ```
 
 - [ ] **Step 6: Write `docs/frontend-contract.md`**
@@ -1065,7 +1065,7 @@ Expected: all green.
 
 ```bash
 git add scripts/turn-cli.ts docs workstreams
-git commit -m "docs: front-end contract page, decisions D47-D51, spec additions; add turn-cli"
+git commit -m "docs: front-end contract page, decisions D48-D52, spec additions; add turn-cli"
 ```
 
 ---

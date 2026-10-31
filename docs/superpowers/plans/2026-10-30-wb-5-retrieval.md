@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript, Mongoose 9 / MongoDB Atlas (Vector Search + Atlas Search), Voyage `voyage-4` embeddings, `pdfjs-dist` 6 (text layer), Vitest 5.
 
-**Spec:** `docs/superpowers/specs/2026-10-30-whiteboard-backend-design.md` (§6.1). Prerequisite: Plan 3 (`Retriever`, `Chunk`, `SearchQuery` in `@mento/contracts`). **Owner: Person 3 (whiteboard back-end)**: the founder moved ingestion and retrieval into this workstream on 2026-10-30 (decision D52); Person 1 keeps the material upload UI and the MongoDB `TurnRepository`.
+**Spec:** `docs/superpowers/specs/2026-10-30-whiteboard-backend-design.md` (§6.1). Prerequisite: Plan 3 (`Retriever`, `Chunk`, `SearchQuery` in `@mento/contracts`). **Owner: Person 3 (whiteboard back-end)**: the founder moved ingestion and retrieval into this workstream on 2026-10-30 (decision D53); Person 1 keeps the material upload UI and the MongoDB `TurnRepository`.
 
 ## Global Constraints
 
