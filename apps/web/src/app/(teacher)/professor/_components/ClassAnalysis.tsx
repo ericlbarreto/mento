@@ -9,6 +9,11 @@ import type { Gap, Intervention } from "../_lib/types";
 import { IconBook, IconCalendar, IconCheck, IconFlag, IconLightbulb, IconMessage, IconShield, IconSparkle } from "./icons";
 import { Avatar, Button, Card, Chip, SimulatedBadge, cx } from "./ui";
 
+/** The simulated-data badge, shown only while the class has simulated students. */
+function SimulatedNote() {
+  return useTeacher().students.some((s) => s.is_simulated) ? <SimulatedBadge /> : null;
+}
+
 function StepTitle({ step, icon, title, description, id, badge }: { step: number; icon: React.ReactNode; title: string; description: string; id: string; badge?: React.ReactNode }) {
   return (
     <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
@@ -48,7 +53,7 @@ function GapsStep() {
         icon={<IconFlag size={18} />}
         title="Lacunas encontradas nas conversas"
         description="O que cada aluno ainda não entendeu: quando ele mesmo disse no chat ou quando a análise percebeu pelas respostas."
-        badge={<SimulatedBadge />}
+        badge={<SimulatedNote />}
       />
       {groups.length === 0 ? (
         <Card className="p-6 text-[15px] text-[var(--ink-soft)]">Nenhuma lacuna aberta na turma por enquanto.</Card>
@@ -58,7 +63,7 @@ function GapsStep() {
             <Card key={concept} className={cx("p-6", critical && "border-[var(--danger)]/30")}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <Chip tone={critical ? "danger" : "warn"} className="text-[11px] font-bold uppercase tracking-[0.04em]">
-                  {critical ? "Atenção alta" : "Atenção média"}
+                  {critical ? "Prioridade alta" : "Prioridade média"}
                 </Chip>
                 <span className="text-[13px] font-semibold text-[var(--ink-soft)]">
                   {list.length} de {students.length} alunos
@@ -106,6 +111,7 @@ function InsightsStep() {
         id="step-insights"
         icon={<IconLightbulb size={18} />}
         title="Insights para você"
+        badge={<SimulatedNote />}
         description="O que as lacunas da turma, juntas, dizem sobre a aula. Cada insight mostra de quais lacunas veio."
       />
       <div className="grid gap-4 lg:grid-cols-3">
@@ -221,6 +227,7 @@ function InterventionStep() {
         id="step-intervention"
         icon={<IconCalendar size={18} />}
         title="Intervenção para a próxima aula"
+        badge={<SimulatedNote />}
         description="Propostas para a turma toda, montadas a partir dos insights acima."
       />
       <div className="grid gap-4 xl:grid-cols-2">

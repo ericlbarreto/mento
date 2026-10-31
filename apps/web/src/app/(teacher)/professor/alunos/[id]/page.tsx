@@ -22,7 +22,7 @@ function GapCard({ gap, name }: { gap: Gap; name: string }) {
     <Card className={cx("relative overflow-hidden p-6 pl-8 before:absolute before:inset-y-0 before:left-0 before:w-1.5", critical ? "before:bg-[var(--danger)]" : "before:bg-[var(--warn)]")}>
       <div className="flex flex-wrap items-center gap-2">
         <Chip tone={critical ? "danger" : "warn"} className="text-[11px] font-bold uppercase tracking-[0.04em]">
-          {critical ? "Atenção alta" : "Atenção média"}
+          {critical ? "Prioridade alta" : "Prioridade média"}
         </Chip>
         <Chip tone={gap.origin === "stated" ? "blue" : "neutral"} className="text-[12px]">
           {gap.origin === "stated" ? <IconMessage size={13} /> : <IconSparkle size={13} />}

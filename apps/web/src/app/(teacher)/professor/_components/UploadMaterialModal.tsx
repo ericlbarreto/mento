@@ -97,7 +97,7 @@ export function UploadMaterialModal({ open, onClose }: { open: boolean; onClose:
           <label htmlFor="mat-title" className="mb-2 block text-[15px] font-bold">
             Título do material
           </label>
-          <input id="mat-title" value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} placeholder="Ex.: Roma Antiga · Capítulo 4" />
+          <input id="mat-title" maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} placeholder="Ex.: Roma Antiga · Capítulo 4" />
           <p className="mt-1 text-[13px] text-[var(--ink-soft)]">É o nome que aparece para os alunos quando o tutor cita uma página.</p>
         </div>
 

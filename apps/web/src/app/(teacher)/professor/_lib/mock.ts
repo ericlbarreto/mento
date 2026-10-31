@@ -230,7 +230,7 @@ export const MOCK_INSIGHTS: ClassInsight[] = [
   {
     id: "ins_power",
     title: "A passagem da República para o Império é o principal nó da turma",
-    body: "Quatro alunos não sabem dizer quem decidia em Roma depois de Augusto: alguns acham que o Senado ainda governava, outros misturam os dois períodos. Dois disseram isso com as próprias palavras.",
+    body: "Quatro alunos mostram dúvida sobre quem decidia em Roma depois de Augusto (em um caso, com só uma resposta até agora): alguns acham que o Senado ainda governava, outros misturam os dois períodos. Dois disseram isso com as próprias palavras.",
     gap_ids: ["gap_maya_senate", "gap_ana_senate", "gap_pedro_republic", "gap_beatriz_republic"],
     created_at: "2026-10-30T15:00:00-03:00",
   },

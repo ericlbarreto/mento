@@ -21,7 +21,8 @@ interface TeacherStore {
   classContext: ClassContext;
   rows: StudentRow[];
   setInterventionStatus(id: string, status: InterventionStatus): void; // PATCH /interventions/:id (to agree with Person 1)
-  uploadMaterial(input: { title: string; file: File }): Promise<Material>; // POST /materials
+  // POST /materials (multipart): the real call must also send the teacher's single `subject_id` (D64, D67).
+  uploadMaterial(input: { title: string; file: File }): Promise<Material>;
 }
 
 const Ctx = createContext<TeacherStore | null>(null);

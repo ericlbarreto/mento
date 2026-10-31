@@ -136,7 +136,7 @@ export default function StudentsTab() {
       <section aria-label="Resumo da turma" className="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <MetricCard label="Lacunas" value={open.length} unit="abertas" note={`em ${withGaps} de ${students.length} alunos`} icon={<IconFlag size={18} />} tone="danger" />
         <MetricCard label="Insights" value={insights.length} unit="para você" note="tirados das lacunas da turma" icon={<IconLightbulb size={18} />} tone="warn" />
-        <MetricCard label="Intervenções" value={pending} unit={pending === 1 ? "para decidir" : "para decidir"} note="propostas para a próxima aula" icon={<IconCalendar size={18} />} />
+        <MetricCard label="Intervenções" value={pending} unit="para decidir" note="propostas para a próxima aula" icon={<IconCalendar size={18} />} />
       </section>
 
       <div className="mb-12">
