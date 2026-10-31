@@ -21,7 +21,6 @@ const SUBJECT_NAMES: Record<string, string> = {
   biology: "Biologia",
   physics: "Física",
   geography: "Geografia",
-  science: "Ciências",
   portuguese: "Língua Portuguesa",
   english: "Inglês",
 };
