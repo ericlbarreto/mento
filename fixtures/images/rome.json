@@ -1,0 +1,10 @@
+{
+  "prompts": [
+    { "name": "colosseum", "prompt": "The Roman Colosseum seen from outside, with its arches and tiers." },
+    { "name": "aqueduct", "prompt": "A Roman aqueduct with a long row of stone arches crossing a valley." },
+    { "name": "legionary", "prompt": "A Roman legionary soldier with shield, helmet and short sword, full body." },
+    { "name": "forum", "prompt": "The Roman Forum with columns, temples and people in togas." },
+    { "name": "ship", "prompt": "A Roman merchant ship with a square sail on the Mediterranean sea." },
+    { "name": "map-empire", "prompt": "A simple hand-drawn map of the Mediterranean sea surrounded by the Roman Empire territory." }
+  ]
+}

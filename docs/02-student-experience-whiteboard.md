@@ -7,7 +7,7 @@
 
 > UI layout (orb at bottom center, captions, chips) and the shared design language with the teacher UI are specified in `18-ui-references.md`.
 
-The student picks **who they are** (from the teacher's list of students), **which material to study** and, optionally, a **topic**, and then talks to the tutor. The tutor adapts its language to the teacher's **class context** (grade level and characteristics). The screen has three regions:
+**Start flow (D47):** the student is pre-set (one demo student). The start screen shows **one card per subject** (e.g., História, Matemática) with the **number of materials** for that subject, and a **Mento button** below them. A subject card opens the whiteboard grounded in **all materials of that subject**; the Mento button opens a **free session with no material** (every answer flagged as outside the material). The session **opens in voice**: the tutor greets the student and asks what they want to study; the text chat is always next to the board. The tutor adapts its language to the teacher's **class context** (grade level and characteristics). The screen has three regions:
 
 1. **Board** (center): where the tutor writes and draws, and where the student can annotate and click.
 2. **Conversation** (side): text messages, source chips, tutor states ("thinking", "waiting for you").
@@ -22,7 +22,7 @@ All user-facing text is in pt-BR.
 | Modality | text or voice |
 | Surface | board + conversation, or chat only |
 
-The toggle changes only what the client sends/renders. Session, history, sources and evidence stay the same. The student can start in text, turn voice on and go back without losing context. **Hackathon: text + board is Must; voice is Should.**
+The toggle changes only what the client sends/renders. Session, history, sources and evidence stay the same. The student can start in text, turn voice on and go back without losing context. **Hackathon: text + board is Must; voice is Should**, but when voice works the session opens in voice (D47); if voice fails, the same greeting appears in the chat and the student types.
 
 ## Board principle
 

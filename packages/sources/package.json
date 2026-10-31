@@ -4,16 +4,22 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./ingest": "./src/ingest-entry.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@mento/contracts": "workspace:*"
+    "@mento/contracts": "workspace:*",
+    "pdfjs-dist": "^6.4.299",
+    "unpdf": "^2.0.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@mento/db": "workspace:*",
+    "mongoose": "^9.11.4",
     "typescript": "~6.0.3",
     "vitest": "^5.0.5"
   }

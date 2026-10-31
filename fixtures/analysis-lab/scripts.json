@@ -1,0 +1,157 @@
+{
+  "_note": "Compact, hand-editable conversation scripts. build.ts expands them into contract-shaped sessions/events/evidence (workstreams/contracts-spec.md §2–5). Step types: student, tutor (+cite), verify (+hints). Student names live only in students.json and never reach the analysis input.",
+  "class_context": {
+    "grade_level": "8º ano",
+    "description": "Turma de 8º ano, nível de leitura mediano, gostam de jogos e vídeos curtos, dificuldade com datas e linha do tempo."
+  },
+  "students": [
+    { "id": "stu_01", "name": "Ana Souza", "is_simulated": true },
+    { "id": "stu_02", "name": "Bruno Lima", "is_simulated": true },
+    { "id": "stu_03", "name": "Carla Mendes", "is_simulated": true },
+    { "id": "stu_04", "name": "Diego Alves", "is_simulated": true },
+    { "id": "stu_05", "name": "Eduarda Rocha", "is_simulated": true }
+  ],
+  "conversations": [
+    {
+      "id": "ses_ana_01",
+      "lesson_id": "L6",
+      "student_id": "stu_01",
+      "topic": "Crise da República e Império",
+      "started_at": "2026-10-20T13:00:00Z",
+      "end_reason": "user_left",
+      "steps": [
+        { "student": "Por que Roma deixou de ser república e virou império?" },
+        { "tutor": "Boa pergunta! No fim da República, generais como Júlio César ganharam muito poder com seus próprios exércitos. Em 27 a.C., Otávio recebeu o título de Augusto e passou a concentrar o poder: foi o começo do Império.", "cite": { "page": 49, "quote": "Otávio recebe o título de Augusto" } },
+        { "student": "Mas a república também não tinha rei? Qual a diferença?" },
+        { "tutor": "Na República romana não havia rei. O poder era dividido entre dois cônsules eleitos por um ano e o Senado. Foi justamente para evitar um rei que os romanos criaram esse sistema.", "cite": { "page": 33, "quote": "Dois cônsules eleitos por um ano" } },
+        { "verify": { "concept": "Formas de governo", "lesson_id": "L2", "question": "Qual a principal diferença entre uma república e uma monarquia?", "answer": "na república o rei é eleito e na monarquia ele herda o trono", "result": "incorrect", "rationale": "Supõe que a república também tem rei; não reconhece a divisão do poder entre magistrados eleitos com mandato limitado." } },
+        { "verify": { "concept": "Formas de governo", "lesson_id": "L2", "question": "Por que os romanos escolheram dois cônsules com mandato de um ano em vez de um rei?",
+            "hints": [
+              { "level": 1, "student_before": "não sei, tipo dois reis?", "text": "Pensa assim: se um só governante ficasse no poder a vida toda, o que poderia acontecer?" },
+              { "level": 2, "text": "Com dois cônsules e só um ano de mandato, nenhum deles conseguia mandar sozinho por muito tempo." }
+            ],
+            "answer": "pra um não mandar mais que o outro eu acho", "result": "partial", "rationale": "Percebe o equilíbrio entre os cônsules, mas não relaciona ao limite de tempo nem à ausência de rei, e só depois de duas dicas." } },
+        { "verify": { "concept": "Cidadania na Antiguidade", "lesson_id": "L1", "question": "Em Roma, assim como em Atenas, nem todo mundo era cidadão. Quem ficava de fora?", "answer": "ninguém ficava de fora, todo mundo que morava na cidade era cidadão", "result": "incorrect", "rationale": "Não reconhece a exclusão de mulheres, estrangeiros e escravizados da cidadania antiga." } },
+        { "student": "não entendi muito essa parte de senado e de quem era cidadão" },
+        { "tutor": "Tudo bem! Na próxima conversa a gente revisa isso com um quadro: quem manda, como chega ao poder e por quanto tempo." }
+      ]
+    },
+    {
+      "id": "ses_ana_02",
+      "lesson_id": "L6",
+      "student_id": "stu_01",
+      "topic": "Augusto e o Império",
+      "started_at": "2026-10-23T13:10:00Z",
+      "end_reason": "idle_timeout",
+      "steps": [
+        { "student": "o augusto era rei então?" },
+        { "tutor": "Quase isso, mas com um disfarce: Augusto manteve o Senado funcionando, mas na prática concentrava o poder. Ele se apresentava como o 'primeiro cidadão', o princeps.", "cite": { "page": 50, "quote": "mantém o Senado na aparência" } },
+        { "verify": { "concept": "Formas de governo", "lesson_id": "L2", "question": "O que tornava o governo de Augusto diferente do governo na República?",
+            "hints": [ { "level": 1, "text": "Na República, quantas pessoas dividiam o poder principal e por quanto tempo?" } ],
+            "answer": "ele virou o presidente da república", "result": "incorrect", "rationale": "Continua tratando república e império como a mesma coisa; não identifica a concentração de poder em uma pessoa." } },
+        { "verify": { "concept": "Crise da República", "lesson_id": "L6", "question": "Cite um fator que enfraqueceu a República romana.", "answer": "as guerras civis entre os generais que tinham exército próprio", "result": "correct", "rationale": "Identifica corretamente as guerras civis e os exércitos pessoais." } },
+        { "student": "ok" }
+      ]
+    },
+    {
+      "id": "ses_bruno_01",
+      "lesson_id": "L4",
+      "student_id": "stu_02",
+      "topic": "República romana",
+      "started_at": "2026-10-19T14:00:00Z",
+      "end_reason": "user_left",
+      "steps": [
+        { "student": "quem eram os plebeus?" },
+        { "tutor": "Os plebeus eram a maioria da população livre de Roma: comerciantes, artesãos e camponeses. Os patrícios eram a aristocracia dona das terras.", "cite": { "page": 35, "quote": "Patrícios (aristocracia proprietária de terras)" } },
+        { "verify": { "concept": "Patrícios e plebeus", "lesson_id": "L4", "question": "Qual a diferença entre patrícios e plebeus?", "answer": "os patricios eram os escravos", "result": "incorrect", "rationale": "Confunde patrícios com escravizados; inverte a posição social." } },
+        { "verify": { "concept": "Patrícios e plebeus", "lesson_id": "L4", "question": "Por que os plebeus fizeram revoltas durante a República?",
+            "hints": [ { "level": 1, "student_before": "porque eram pobres?", "text": "Pensa em quem podia participar das decisões do governo no começo da República." } ],
+            "answer": "porque eles não podiam participar do governo", "result": "correct", "rationale": "Correto, com uma dica." } }
+      ]
+    },
+    {
+      "id": "ses_bruno_02",
+      "lesson_id": "L4",
+      "student_id": "stu_02",
+      "topic": "Tribunos da plebe",
+      "started_at": "2026-10-24T14:05:00Z",
+      "end_reason": "user_left",
+      "steps": [
+        { "student": "lembrei dos plebeus! quero entender os tribunos" },
+        { "tutor": "Ótimo! Depois de várias revoltas, os plebeus conquistaram os tribunos da plebe, representantes que podiam vetar leis contrárias a eles.", "cite": { "page": 38, "quote": "podiam vetar leis contrárias aos plebeus" } },
+        { "verify": { "concept": "Patrícios e plebeus", "lesson_id": "L4", "question": "O que os plebeus ganharam com a criação dos tribunos da plebe?", "answer": "um representante que podia vetar as leis contra eles", "result": "correct", "rationale": "Correto e sem ajuda." } },
+        { "verify": { "concept": "Patrícios e plebeus", "lesson_id": "L4", "question": "Quem tinha mais poder no Senado no início da República?", "answer": "os patrícios, porque eram os donos de terra", "result": "correct", "rationale": "Correto, com justificativa." } },
+        { "verify": { "concept": "Instituições da República", "lesson_id": "L4", "question": "Qual era o papel do Senado na República?", "answer": "aconselhava os cônsules e controlava o dinheiro", "result": "correct", "rationale": "Correto e completo." } }
+      ]
+    },
+    {
+      "id": "ses_carla_01",
+      "lesson_id": "L7",
+      "student_id": "stu_03",
+      "topic": "Coliseu",
+      "started_at": "2026-10-22T15:00:00Z",
+      "end_reason": "user_left",
+      "steps": [
+        { "student": "o coliseu foi construído na época da república né?" },
+        { "tutor": "Na verdade não! O Coliseu foi inaugurado em 80 d.C., quando Roma já era um Império, mais de cem anos depois de Augusto.", "cite": { "page": 57, "quote": "O Coliseu foi inaugurado em 80 d.C." } },
+        { "verify": { "concept": "Cronologia de Roma", "lesson_id": "L3", "question": "Coloque em ordem os três períodos de Roma: Império, Monarquia e República.",
+            "hints": [ { "level": 1, "student_before": "começa com a república?", "text": "Lembra da lenda de Rômulo e Remo: Roma começou com reis." } ],
+            "answer": "Monarquia, República, Império", "result": "correct", "rationale": "Ordem correta após uma dica." } },
+        { "verify": { "concept": "Pão e circo", "lesson_id": "L7", "question": "O que significava a política do pão e circo?",
+            "hints": [ { "level": 1, "text": "Pensa no que o governo distribuía para a população da cidade e por quê." } ],
+            "answer": "dar comida e diversão pro povo não reclamar do governo", "result": "correct", "rationale": "Correto, com uma dica." } },
+        { "verify": { "concept": "Cronologia de Roma", "lesson_id": "L6", "question": "Em qual período Augusto governou Roma?", "answer": "na república", "result": "incorrect", "rationale": "Situa Augusto na República; não liga Augusto ao início do Império." } },
+        { "student": "eu sempre confundo as datas" }
+      ]
+    },
+    {
+      "id": "ses_diego_01",
+      "lesson_id": "L5",
+      "student_id": "stu_04",
+      "topic": "Guerras Púnicas",
+      "started_at": "2026-10-21T16:00:00Z",
+      "end_reason": "user_left",
+      "steps": [
+        { "student": "onde fica cartago?" },
+        { "tutor": "Cartago ficava no norte da África, onde hoje é a Tunísia, do outro lado do mar Mediterrâneo em relação a Roma.", "cite": { "page": 42, "quote": "norte da África, atual Tunísia" } },
+        { "verify": { "concept": "Guerras Púnicas", "lesson_id": "L5", "question": "Por que Roma e Cartago entraram em guerra?", "answer": "pelo controle do comércio no mar mediterrâneo", "result": "correct", "rationale": "Correto e sem ajuda." } },
+        { "verify": { "concept": "Geografia do Mediterrâneo", "lesson_id": "L5", "question": "No mapa, onde fica a Sicília em relação a Roma e a Cartago?", "answer": "a sicília fica perto da grécia?", "result": "partial", "rationale": "Localização imprecisa; não situa a ilha entre a Itália e o norte da África." } },
+        { "student": "eu não sei muito bem onde ficam os lugares nesse mapa" },
+        { "verify": { "concept": "Guerras Púnicas", "lesson_id": "L5", "question": "Que território Roma conquistou depois da Primeira Guerra Púnica?",
+            "hints": [
+              { "level": 1, "text": "É uma ilha grande bem no meio do caminho entre Roma e Cartago." },
+              { "level": 2, "text": "Ela fica logo abaixo da 'ponta da bota' da Itália." }
+            ],
+            "answer": "a sicília", "result": "correct", "rationale": "Correto após duas dicas de localização." } }
+      ]
+    },
+    {
+      "id": "ses_diego_02",
+      "lesson_id": "L5",
+      "student_id": "stu_04",
+      "topic": "Mare Nostrum",
+      "started_at": "2026-10-25T16:00:00Z",
+      "end_reason": "user_left",
+      "steps": [
+        { "student": "por que os romanos chamavam o mediterrâneo de nosso mar?" },
+        { "tutor": "Porque, depois das conquistas, Roma controlava praticamente todas as terras ao redor do Mediterrâneo. Por isso o chamavam de Mare Nostrum.", "cite": { "page": 46, "quote": "Mare Nostrum" } },
+        { "verify": { "concept": "Instituições da República", "lesson_id": "L4", "question": "Quem decidia sobre a guerra contra Cartago: o Senado ou um rei?", "answer": "o senado, roma não tinha rei nessa época", "result": "correct", "rationale": "Correto e sem ajuda; usa bem o conceito de república." } },
+        { "verify": { "concept": "Geografia do Mediterrâneo", "lesson_id": "L5", "question": "Cite duas regiões ao redor do Mediterrâneo que Roma conquistou.",
+            "hints": [ { "level": 1, "student_before": "a itália e... não lembro", "text": "Olha no mapa a região a oeste, onde hoje ficam Espanha e Portugal." } ],
+            "answer": "a sicília e a hispânia", "result": "correct", "rationale": "Correto com uma dica de localização no mapa." } }
+      ]
+    },
+    {
+      "id": "ses_eduarda_01",
+      "lesson_id": null,
+      "student_id": "stu_05",
+      "topic": "Roma Antiga",
+      "started_at": "2026-10-24T17:00:00Z",
+      "end_reason": "beacon",
+      "steps": [
+        { "student": "oi" },
+        { "tutor": "Oi! Sobre o que da Roma Antiga você quer conversar hoje?" }
+      ]
+    }
+  ]
+}

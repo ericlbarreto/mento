@@ -76,7 +76,7 @@ Input: `target_id`, `text_to_match`, `color`.
 | Student input | UI behavior |
 |---|---|
 | **Typed message** | Appears instantly in the chat strip; orb → *pensando*; tutor actions start within ~1.5 s |
-| **Voice** (Should) | Mic button; live interim transcript; final text sent as `user_message(kind=speech)`; mic auto-opens after a tutor question |
+| **Voice** (Should) | Session **opens in voice** (D47); mic button; live interim transcript; final text sent as `user_message(kind=speech)`; mic auto-opens after a tutor question |
 | **Click-and-ask** | `board_select` as above |
 | **Answer to a verification question** | The `question` element contains an input (and optional choices); submit → `answer_submit`; the orb shows *pensando* while the judge runs |
 | **Quick actions** | Chips: "Explica de novo", "Dá um exemplo", "Mais devagar", "Voltar" → sent as `user_message` with a canned text |
@@ -91,8 +91,9 @@ Chips (`Livro · p.12`) open a **drawer with pdf.js** at the page and **highligh
 
 ## Start screen and session lifecycle
 
-1. **"Quem é você?"** (student list) → **"O que vamos estudar?"** (material cards; only `ready`) → optional topic → **Começar** (`POST /api/sessions`).
-2. **End of conversation** (Person 3 turns it into `session_ended`): a visible **"Terminar conversa"** button, an idle timeout (5 min without input), and `navigator.sendBeacon('/api/sessions/:id/end')` on tab close.
+1. **Start screen (D47):** the student is **pre-set** (`NEXT_PUBLIC_DEMO_STUDENT_ID`, else the first seeded student; greeting "Oi, {nome}!"). **"O que vamos estudar?"** shows one card per **subject** from `GET /api/subjects` with its count of `ready` materials ("3 materiais"). Below the cards, the **Mento button** (mascot) starts a **free session** (`subject: null`). Clicking either calls `POST /api/sessions` and opens the whiteboard. No name picker, no topic field.
+2. **Opening in voice:** the whiteboard opens with the mic armed; the tutor's first turn (no student message) greets the student and asks what they want to study; the student answers by voice. The **chat strip** is always visible next to the board; if voice is unavailable or the mic is denied, the greeting shows in the chat and the input gets focus.
+3. **End of conversation** (Person 3 turns it into `session_ended`): a visible **"Terminar conversa"** button, an idle timeout (5 min without input), and `navigator.sendBeacon('/api/sessions/:id/end')` on tab close.
 
 ## Visual direction and animations with the mascot
 
@@ -115,7 +116,7 @@ The test interface is **light beige with the Mento blue**; use the brand assets 
 | T5 | `highlight` + `circle_annotate` | Must 1 | 2 h | Circle lands on the right words, wrapped and KaTeX cases |
 | T6 | Chat strip, input, captions, quick-action chips, answer UI | Must 2 | 3 h | A full text exchange works against fixtures |
 | T7 | Click-and-ask (select, focus ring, `board_select`) | Must 2 | 2 h | Selected element reaches the server payload |
-| T8 | Start screen (name → material → topic) + end-of-conversation controls | Must 8 | 2 h | Session created; end triggers `session_ended` |
+| T8 | Start screen (pre-set student, subject cards with material counts, Mento button for a free session) + voice opening + end-of-conversation controls (D47) | Must 8 | 2 h | Card or Mento button creates the session; tutor greets and asks what to study; end triggers `session_ended` |
 | T9 | Source chips + pdf.js drawer with quote highlight | Must 5 | 4 h | Chip opens the highlighted quote |
 | T10 | **Orb with mascot GIFs** + ring + states | Must 2 / Should | 2.5 h | All states switch without flicker |
 | T11 | Animation polish with `impeccable` (start, thinking, success burst, transitions) | Should | 4 h | Design checklist passes |

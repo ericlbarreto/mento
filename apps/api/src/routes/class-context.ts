@@ -1,7 +1,13 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
+import { ClassContext } from "@mento/contracts";
+import { getClassContextData, putClassContext } from "../controllers/teacher.controller";
 
-// Owner: Person 1. Endpoints (docs/21-repo-structure.md §5): GET /class-context, PUT /class-context
-// TODO: implement. Keep the route thin: parse with Zod (@mento/contracts), call a package, respond.
-const plugin: FastifyPluginAsyncZod = async (_app) => {};
+// Owner: Person 1. One global class context (grade level + description) applied to every student chat.
+const plugin: FastifyPluginAsyncZod = async (app) => {
+  app.get("/class-context", { schema: { response: { 200: ClassContext } } }, async () => getClassContextData(app.container));
+  app.put("/class-context", { schema: { body: ClassContext, response: { 200: ClassContext } } }, async (request) =>
+    putClassContext(app.container, request.body),
+  );
+};
 
 export default plugin;
