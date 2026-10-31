@@ -1,7 +1,10 @@
 {
   "questions": [
-    { "question": "Quando começou a República romana?", "expect_page": null },
-    { "question": "Quem foi Augusto e por que ele é importante?", "expect_page": null },
-    { "question": "Como os aquedutos levavam água às cidades?", "expect_page": null }
+    { "question": "Como foi a fundação de Roma segundo a lenda de Rômulo e Remo?", "expect_page": null },
+    { "question": "Quando e por que começou a República romana?", "expect_page": null },
+    { "question": "O que foram as Guerras Púnicas contra Cartago?", "expect_page": null },
+    { "question": "Quem foram os irmãos Graco e o que eles propuseram?", "expect_page": null },
+    { "question": "Qual era o papel do Senado e dos cônsules na República?", "expect_page": null },
+    { "question": "Por que Júlio César foi assassinado?", "expect_page": null }
   ]
 }
