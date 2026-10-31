@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
+import type { BoardWriter } from "./writer";
 
 export interface BoardEnv {
   /**
@@ -24,3 +25,8 @@ export interface VerificationEnv {
 const BoardEnvContext = createContext<BoardEnv>({ assetBaseUrl: "" });
 export const BoardEnvProvider = BoardEnvContext.Provider;
 export const useBoardEnv = () => useContext(BoardEnvContext);
+
+/** The board's handwriting driver (absent outside a Board: everything renders written). */
+const BoardWriterContext = createContext<BoardWriter | null>(null);
+export const BoardWriterProvider = BoardWriterContext.Provider;
+export const useBoardWriter = () => useContext(BoardWriterContext);
