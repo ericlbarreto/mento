@@ -1,10 +1,34 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { CreateSessionRequest, CreateSessionResponse, EndSessionRequest, ErrorResponse } from "@mento/contracts";
+import {
+  CreateSessionRequest,
+  CreateSessionResponse,
+  EndSessionRequest,
+  ErrorResponse,
+  ListSessionsQuery,
+  ListSessionsResponse,
+  SessionDetailResponse,
+} from "@mento/contracts";
 
-// Owner: Person 1 (session persistence); the create/end endpoints below are the minimal ones the whiteboard needs.
+// Sessions are stored in MongoDB (sessions + events collections).
 // POST /api/sessions: from a subject (its books are the sources) or a free whiteboard (subject_id omitted or null).
+// GET /api/sessions, GET /api/sessions/:id: the history screen and re-opening a conversation.
 const plugin: FastifyPluginAsyncZod = async (app) => {
+  app.get("/sessions", { schema: { querystring: ListSessionsQuery, response: { 200: ListSessionsResponse, 503: ErrorResponse } } }, async (request) => {
+    return { sessions: await request.server.container.history.listSessions(request.query) };
+  });
+
+  app.get(
+    "/sessions/:id",
+    { schema: { params: z.object({ id: z.string().min(1) }), response: { 200: SessionDetailResponse, 404: ErrorResponse, 503: ErrorResponse } } },
+    async (request, reply) => {
+      const { history, repo } = request.server.container;
+      const session = await history.getSessionSummary(request.params.id);
+      if (!session) return reply.status(404).send({ error: "session_not_found" });
+      return { session, events: await repo.listEvents(session.id) };
+    },
+  );
+
   app.post(
     "/sessions",
     { schema: { body: CreateSessionRequest, response: { 201: CreateSessionResponse, 404: ErrorResponse, 503: ErrorResponse } } },

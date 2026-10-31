@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { ListSubjectsResponse, SubjectSummary, type CreateSubjectRequest, type Subject, type SubjectStore } from "@mento/contracts";
+import { InMemoryTurnRepository } from "@mento/tutor/testing";
 import { buildApp } from "../app";
 import { loadConfig } from "../config";
 
@@ -34,7 +35,7 @@ export function fakeSubjects(initial: SubjectSummary[] = [history]): SubjectStor
 }
 
 const config = loadConfig({ LOG_LEVEL: "silent" } as NodeJS.ProcessEnv);
-const start = async (dbReady = true) => (app = await buildApp(config, { subjects: fakeSubjects(), dbReady: () => dbReady }));
+const start = async (dbReady = true) => (app = await buildApp(config, { subjects: fakeSubjects(), dbReady: () => dbReady, repo: new InMemoryTurnRepository() }));
 
 describe("subjects", () => {
   it("lists subjects with their material counts", async () => {

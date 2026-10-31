@@ -1,6 +1,6 @@
 import { join } from "node:path";
-import type { Retriever, SubjectStore } from "@mento/contracts";
-import { MongoChunkStore, MongoSubjectStore, mongoState } from "@mento/db";
+import type { Retriever, SessionHistory, SubjectStore } from "@mento/contracts";
+import { MongoChunkStore, MongoEvidenceStore, MongoSubjectStore, MongoTurnRepository, mongoState } from "@mento/db";
 import { createRetriever, embedWithVoyage } from "@mento/sources";
 import {
   AnthropicLlm,
@@ -8,7 +8,6 @@ import {
   GeminiImageClient,
   ImageDrawPipeline,
   ImageStore,
-  InMemoryEvidenceStore,
   TurnEngine,
   captionOnlyDraw,
   emptyRetriever,
@@ -17,11 +16,9 @@ import {
   type EvidenceStore,
   type TurnRepository,
 } from "@mento/tutor";
-import { InMemoryTurnRepository } from "@mento/tutor/testing";
 import { createTtsService, isVoiceConfigError, mintSttToken, type TtsService } from "@mento/voice/server";
 import type { Config } from "./config";
 import { MongoService } from "./services/mongo.service";
-import { withCatalog } from "./with-catalog";
 
 export interface Container {
   config: Config;
@@ -29,11 +26,13 @@ export interface Container {
   mintSttToken: typeof mintSttToken;
   /** null when ElevenLabs is not configured: the audio route answers 503 and the tutor falls back to captions. */
   tts: TtsService | null;
-  /** In memory (events) until Person 1's MongoDB repository replaces it; the catalog already comes from MongoDB. */
+  /** Sessions and events in MongoDB (collections `sessions`, `events`). */
   repo: TurnRepository;
   images: ImageStore;
-  /** In memory until Person 1's MongoDB repository implements insertEvidence. */
+  /** Judged answers in MongoDB (collection `evidence`). */
   evidence: EvidenceStore;
+  /** History read side (list and re-open sessions). */
+  history: SessionHistory;
   /** Hybrid search over the teacher's materials; finds nothing until VOYAGE_API_KEY and MongoDB Atlas are set up. */
   retriever: Retriever;
   /** Subjects (matérias) and their materials, stored in MongoDB. */
@@ -93,20 +92,14 @@ function buildEngine(config: Config, repo: TurnRepository, tts: TtsService | nul
 export function createContainer(config: Config, overrides: Partial<Container> = {}): Container {
   const tts = "tts" in overrides ? (overrides.tts ?? null) : buildTts(config);
   const store = new MongoChunkStore();
-  const repo =
-    overrides.repo ??
-    withCatalog(
-      new InMemoryTurnRepository({
-        catalog: [{ material_id: "demo-roma", title: "História de Roma (demo)", subject: "history", chapters: ["A República", "O Império"] }],
-      }),
-      (subject_id) => store.listCatalog(subject_id),
-      isMongoUp,
-    );
+  const mongoRepo = new MongoTurnRepository(store);
+  const repo = overrides.repo ?? mongoRepo;
   const images = overrides.images ?? new ImageStore(join(config.DATA_DIR, "files", "gen"));
-  const evidence = overrides.evidence ?? new InMemoryEvidenceStore();
+  const evidence = overrides.evidence ?? new MongoEvidenceStore();
+  const history = overrides.history ?? mongoRepo;
   const retriever = overrides.retriever ?? buildRetriever(config, store);
   const engine = "engine" in overrides ? (overrides.engine ?? null) : buildEngine(config, repo, tts, images, evidence, retriever);
   const subjects = overrides.subjects ?? new MongoSubjectStore();
   const dbReady = overrides.dbReady ?? isMongoUp;
-  return { config, mongo: new MongoService(config.MONGODB_URI), mintSttToken, ...overrides, tts, repo, images, evidence, retriever, subjects, dbReady, engine };
+  return { config, mongo: new MongoService(config.MONGODB_URI), mintSttToken, ...overrides, tts, repo, images, evidence, history, retriever, subjects, dbReady, engine };
 }
