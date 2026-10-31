@@ -445,6 +445,12 @@ importers:
       '@mento/contracts':
         specifier: workspace:*
         version: link:../packages/contracts
+      '@mento/db':
+        specifier: workspace:*
+        version: link:../packages/db
+      '@mento/sources':
+        specifier: workspace:*
+        version: link:../packages/sources
       '@mento/tutor':
         specifier: workspace:*
         version: link:../packages/tutor

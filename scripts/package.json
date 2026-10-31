@@ -8,6 +8,8 @@
   },
   "dependencies": {
     "@mento/contracts": "workspace:*",
+    "@mento/db": "workspace:*",
+    "@mento/sources": "workspace:*",
     "@mento/tutor": "workspace:*",
     "@mento/voice": "workspace:*",
     "ws": "^8.22.0"
