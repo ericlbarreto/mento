@@ -1,0 +1,64 @@
+# Whiteboard back-end: hand-off (2026-10-30, night)
+
+> Written so another agent or tool can continue Person 3's work (whiteboard back-end) without this conversation. Read this first, then `workstreams/03-whiteboard-backend.md` and the spec `docs/superpowers/specs/2026-10-30-whiteboard-backend-design.md`.
+
+## 1. Where things are
+
+| Item | Where |
+|---|---|
+| Open PR | https://github.com/ericlbarreto/mento/pull/8, branch `feat/whiteboard-history` (PR #5 with the whole back-end is already merged into `main`) |
+| Commit style | `feat(whiteboard): <what you did>`, **no co-author lines** (founder's rule) |
+| Prompt log | `prompts/sessions/03-whiteboard-backend/` (one file per founder prompt, verbatim, plus `log.md`) |
+| Decisions | `docs/10-decisions.md` D48–D55 are this lane's |
+| Front-end guide | `docs/frontend-integration.md` (every route, SSE message, history, voice) |
+| Teacher-side data guide | `docs/teacher-data-integration.md` |
+| Model latency research | `docs/superpowers/research/2026-10-30-tutor-model-latency.md` |
+
+## 2. What works (verified 2026-10-30, 22:42 -03)
+
+- **Turn loop:** `POST /api/sessions/:id/turn` streams tool calls over SSE; the board validates them; citations are checked; everything is stored in MongoDB (`sessions`, `events`, `evidence`).
+- **History:** `GET /api/sessions` and `GET /api/sessions/:id` re-render a past session (board + transcript).
+- **Voice:** Deepgram Nova-3 pt-BR in the browser with a short-lived token (`POST /api/voice/token`); ElevenLabs Flash v2.5 on the server (`GET /api/tts/:action_id`, PCM 24 kHz, word timings in `speech_alignment`). The founder is on a paid ElevenLabs plan (library voices need one).
+- **Retrieval:** Voyage embeddings + Atlas Vector Search + Atlas Search (Portuguese), fused with RRF; a session's subject limits the materials.
+- **Drawing and judge:** Gemini images (cached), Haiku judge records evidence.
+- **Model (D55):** tutor `claude-haiku-5-5` with thinking disabled. Env `TUTOR_MODEL`, `TUTOR_THINKING`, `TUTOR_EFFORT`.
+- **Numbers:** first action p50 1.8 s end to end, first audio byte ~0.35 s, 0 errors; all test suites pass (`pnpm test`; Atlas tests with `ATLAS_TEST_URI=$MONGODB_URI`).
+
+## 3. How to test it end to end
+
+1. `pnpm dev` (web :3000, API :4000; `.env` holds the keys).
+2. Open `http://localhost:3000/dev/conversation`, choose **voz** and a subject, click **Iniciar conversa**. Use headphones: the mic stays open for barge-in, and the tutor's own voice can trigger an interruption without them.
+3. Quick checks without a browser: `pnpm turn:bench 3` (latency), `pnpm voice:smoke` (TTS + STT).
+
+## 4. Problem found in the founder's test (2026-10-30, 22:45)
+
+Session `6ae548050b438ca0124cd292` (7 voice turns), read from `GET /api/sessions/:id`:
+
+- **Every turn was one short `speak` and then one or two board blocks.** The tutor said "Vou te mostrar…" and never explained what it wrote. The student asked "Quem foi Júlio César?" four times; the tutor rewrote the same block three times (`cesar_quem_resp`, `cesar_quem_fala`, `cesar_quem_agora`).
+- Cause: the prompt only asked to "alternate speak, board and questions"; Haiku 5.5 without thinking does the minimum. Latency was fine (first action 1.4–2.4 s), citations were right.
+- "He did not hear me": not confirmed (the recording has no audio). Likely causes: no headphones (the tutor's voice triggers `SpeechStarted` and cuts itself) or Deepgram waiting for the end-of-speech pause.
+
+## 5. Current work: a teaching tutor (founder's request, 2026-10-30)
+
+Founder's goal (prompt 19 in the log): a tutor that is **very much a teacher**: knows how to lead a lesson, explains well, asks specific questions, and makes it **two-way**: the student learns by explaining. Didactic and fluid.
+
+Plan (applied in `prompts/base.md` and `prompts/subjects/history.md`):
+
+1. **Lesson loop:** hook (a question that connects the topic to the student) → explain in small steps, each board block narrated by a `speak` before and after it → the student explains it back or applies it → specific feedback → next step.
+2. **Answer first, then ask:** a direct question gets a real answer in the same reply (2–4 speaks), then one question back. Never end on a promise ("vou te mostrar").
+3. **One question per reply, at the end,** then stop and wait. Alternate kinds: recall, why/cause, "explique para um colega", apply to a new case, place on the timeline.
+4. **Respond to the student's words:** acknowledge what is right, correct one misconception gently, build on it.
+5. **Repeated question:** explain again from a different angle (analogy, example) and point at the existing block (`highlight`), do not rewrite it.
+6. **Voice mode shape:** 3–6 `speak`s per reply, each one or two short sentences.
+
+Measured result: see §6 (filled when the test runs).
+
+## 6. Result of the teaching prompt
+
+_Pending: to be filled after the test in this step._
+
+## 7. Next steps (not started)
+
+- Take the ~0.8 s Voyage query embedding off the critical path (first action p50 is 1.8 s; target 1.5 s).
+- If Haiku still writes thin lessons after the prompt change, try Sonnet 5.5 with `TUTOR_THINKING=between_tools` (~2 s to the first action, fuller scripts) and compare in `/dev/conversation`.
+- `getClassContext` and `getLearnerSummary` in `MongoTurnRepository` still return defaults: Person 1 owns the class and learner data.
