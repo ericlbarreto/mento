@@ -6,7 +6,7 @@ import romeIntro from "../../../../fixtures/turns/rome-intro.json";
 import clickAndAsk from "../../../../fixtures/turns/click-and-ask.json";
 
 /** Student as the start screen shows it. Local until Person 1's students contract lands (PR #7). */
-export const StudentSummary = z.object({ id: z.string().min(1), name: z.string().min(1) });
+export const StudentSummary = z.object({ id: z.string().min(1), name: z.string().min(1), is_simulated: z.boolean().optional() });
 export type StudentSummary = z.infer<typeof StudentSummary>;
 
 /** The pre-set demo student (first of MOCK_STUDENTS). */

@@ -4,9 +4,9 @@
 // chrome, the PR #6 board, captions, orb, controls and chat around useSessionController. Plan 2026-10-30-2330 §3.
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Board, MOCK_STUDENTS } from "@mento/board";
+import { Board, MOCK_STUDENTS, type StudentSummary } from "@mento/board";
 import { Footer, Orb, SimulatedDataBadge, TopBar, type TopBarNavItem } from "@mento/ui";
-import { API_URL, MOCK_API, apiUrl, getSession, listSessions, streamTurn } from "@/lib/api";
+import { API_URL, MOCK_API, apiUrl, getSession, listSessions, listStudents, streamTurn } from "@/lib/api";
 import { CaptionBar } from "../_components/caption/CaptionBar";
 import { ChatPanel } from "../_components/chat/ChatPanel";
 import { InputControls, PlaybackControls } from "../_components/controls/SessionControls";
@@ -47,8 +47,19 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
 
   const [studentId, setStudentId] = useState<string | null>(null);
   useEffect(() => setStudentId(readStudentId()), []);
-  // Names come from the mock list until Person 1's students route exists, so they carry the simulated badge.
-  const student = MOCK_STUDENTS.find((s) => s.id === studentId);
+  // Names come from the students route; without it (404), from the mock list. Simulated students carry the badge.
+  const [students, setStudents] = useState<{ list: StudentSummary[]; mock: boolean } | null>(null);
+  useEffect(() => {
+    let live = true;
+    listStudents()
+      .then((list) => live && setStudents(list ? { list, mock: MOCK_API } : { list: MOCK_STUDENTS, mock: true }))
+      .catch(() => live && setStudents({ list: MOCK_STUDENTS, mock: true }));
+    return () => {
+      live = false;
+    };
+  }, []);
+  const student = students?.list.find((s) => s.id === studentId);
+  const simulated = !!student && (students?.mock || student.is_simulated === true);
 
   const [historyCount, setHistoryCount] = useState<number | null>(null);
   const subjectId = session?.subject?.id;
@@ -110,7 +121,7 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
 
   return (
     <div className="flex min-h-dvh flex-col bg-(--paper)">
-      <TopBar nav={NAV} classLabel="8º ano" studentName={student?.name} studentAction={student ? <SimulatedDataBadge /> : undefined} />
+      <TopBar nav={NAV} classLabel="8º ano" studentName={student?.name} studentAction={simulated ? <SimulatedDataBadge /> : undefined} />
       <div className="relative flex h-[calc(100dvh-4rem)] min-h-[600px]">
         <main className={`relative flex min-w-0 flex-1 flex-col ${dotted}`}>
           <div className="shrink-0 px-6 pt-4 pb-1">
