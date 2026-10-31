@@ -43,7 +43,7 @@ export function SessionPauseModal({
   const strong = <strong className="font-bold text-(--mento-blue-strong)">{topic}</strong>;
 
   const copy: Record<PauseView, { title: string; body: ReactNode }> = {
-    paused: { title: "Sua conversa está em pausa", body: <>Você pausou a conversa sobre {strong}. A lousa fica como está.</> },
+    paused: { title: "Sua conversa está em pausa", body: <>A conversa sobre {strong} ficou pausada quando você saiu. A lousa está como você deixou.</> },
     ending: { title: "Encerrando a conversa…", body: <>Estamos concluindo a conversa sobre {strong}.</> },
     end_failed: { title: "Encerrar conversa", body: <>A conversa sobre {strong} ainda está aberta.</> },
     ended: {

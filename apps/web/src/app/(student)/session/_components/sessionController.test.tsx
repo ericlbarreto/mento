@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { StrictMode, act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import type { Event, SessionDetailResponse, StreamMessage, TurnRequest } from "@mento/contracts";
+import type { Event, SessionDetailResponse, StreamMessage, SttCaption, TurnRequest } from "@mento/contracts";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { StreamTurn } from "@mento/board";
-import { buildAppended, describeError, makeSelection, openingDelayMs } from "./sessionModel";
+import { buildAppended, describeError, makeSelection, openingDelayMs, sttSummary } from "./sessionModel";
 import { type SessionController, useSessionController } from "./useSessionController";
 
 beforeAll(() => {
@@ -15,12 +15,12 @@ const NOW = "2026-10-30T12:00:00.000Z";
 let seq = 0;
 const ev = (type: Event["type"], payload: unknown, session_id = "s"): Event => ({ id: `ev_${++seq}`, session_id, ts: NOW, type, payload });
 
-function detail(id: string, events: Event[] = []): SessionDetailResponse {
+function detail(id: string, events: Event[] = [], modality: "text" | "voice" = "text"): SessionDetailResponse {
   return {
     session: {
       id,
       student_id: "demo-ana",
-      modality: "text",
+      modality,
       subject: { id: "subj_1", name: "História", key: "history" },
       title: null,
       started_at: NOW,
@@ -56,11 +56,16 @@ afterEach(async () => {
 });
 
 /** Mounts the hook in StrictMode (effects run, are cleaned up, and run again) and returns its latest value. */
-async function mount(sessionId: string, events: Event[], streamTurn: StreamTurn) {
+async function mount(
+  sessionId: string,
+  events: Event[],
+  streamTurn: StreamTurn,
+  { modality = "text", holdVoiceOpening = false }: { modality?: "text" | "voice"; holdVoiceOpening?: boolean } = {},
+) {
   const ref: { current: SessionController | null } = { current: null };
-  const api = { getSession: vi.fn(async (id: string) => detail(id, events)), streamTurn };
+  const api = { getSession: vi.fn(async (id: string) => detail(id, events, modality)), streamTurn };
   function Harness() {
-    ref.current = useSessionController({ sessionId, api, openingDelay: () => 0 });
+    ref.current = useSessionController({ sessionId, api, openingDelay: () => 0, holdVoiceOpening });
     return null;
   }
   root = createRoot(document.createElement("div"));
@@ -151,7 +156,100 @@ describe("session controller", () => {
   });
 });
 
+const caption = (text: string): SttCaption => ({
+  kind: "final",
+  text,
+  speech_final: true,
+  words: [
+    { word: "Quem", start_ms: 200, end_ms: 500, confidence: 0.9 },
+    { word: "foi", start_ms: 520, end_ms: 700, confidence: 0.96 },
+    { word: "Augusto?", start_ms: 720, end_ms: 2000, confidence: 0.96 },
+  ],
+});
+
+describe("voice session", () => {
+  it("holds a voice session's opening turn until the audio is unlocked, then sends it once with modality voice", async () => {
+    const { calls, streamTurn } = fakeStream();
+    const { ref } = await mount("sess_voice_hold", [], streamTurn, { modality: "voice", holdVoiceOpening: true });
+    expect(calls).toHaveLength(0);
+    expect(ref.current?.phase).toBe("preparing");
+    await act(async () => ref.current!.releaseOpening());
+    await act(async () => ref.current!.releaseOpening());
+    await settle();
+    expect(calls).toEqual([{ modality: "voice", appended: [] }]);
+  });
+
+  it("never holds a text session's opening turn", async () => {
+    const { calls, streamTurn } = fakeStream();
+    await mount("sess_text_nohold", [], streamTurn, { holdVoiceOpening: true });
+    expect(calls).toEqual([{ modality: "text", appended: [] }]);
+  });
+
+  it("sends the final spoken caption as user_message kind speech with its STT summary, shown as voice in the chat", async () => {
+    const { calls, streamTurn } = fakeStream();
+    const { ref } = await mount("sess_speech", [ev("tutor_action", { turn_id: "t", action_id: "a", order: 0, name: "speak", args: { text: "Oi" } })], streamTurn, {
+      modality: "voice",
+    });
+    await act(async () => void ref.current!.sendMessage("Quem foi Augusto?", "speech", caption("Quem foi Augusto?")));
+    await settle();
+    expect(calls.at(-1)).toEqual({
+      modality: "voice",
+      appended: [{ name: "user_message", kind: "speech", text: "Quem foi Augusto?", stt: { provider: "deepgram", duration_ms: 1800, confidence: 0.94 } }],
+    });
+    expect(ref.current?.lines.at(-1)).toMatchObject({ role: "student", text: "Quem foi Augusto?", via: "voice" });
+  });
+
+  it("turns a spoken question about a board selection into board_select (click-and-ask by voice)", async () => {
+    const { calls, streamTurn } = fakeStream();
+    const { ref } = await mount("sess_speech_select", [ev("tutor_action", { turn_id: "t", action_id: "a", order: 0, name: "speak", args: { text: "Oi" } })], streamTurn, {
+      modality: "voice",
+    });
+    await act(async () => ref.current!.setSelection(makeSelection("tl_republica", "509 a.C. Início da República", "")));
+    await act(async () => void ref.current!.sendMessage("O que é isso?", "speech", caption("O que é isso?")));
+    await settle();
+    expect(calls.at(-1)?.appended).toEqual([
+      { name: "user_message", kind: "board_select", text: "O que é isso?", selected: { element_id: "tl_republica" }, stt: expect.objectContaining({ provider: "deepgram" }) },
+    ]);
+  });
+
+  it("gives the floor to the student after script_done and the last speak, and keeps it with the tutor while it speaks", async () => {
+    const { streamTurn } = fakeStream((call) =>
+      call === 0 ? [speak("act_1", "Hoje vamos estudar a República romana e como ela terminou.", 0), { type: "script_done", turn_id: "turn_1" }] : [{ type: "script_done", turn_id: "turn_2" }],
+    );
+    const { ref } = await mount("sess_floor", [], streamTurn, { modality: "voice" });
+    // script_done arrived, but the line is still playing: the mic stays muted.
+    expect(ref.current?.speakingId).toBe("act_1");
+    expect(ref.current?.tutorHasFloor).toBe(true);
+    // A turn whose script is done and has nothing to play hands the floor back at once.
+    await act(async () => void ref.current!.sendMessage("Pode repetir?"));
+    await settle();
+    expect(ref.current?.tutorHasFloor).toBe(false);
+  });
+
+  it("barge-in: interrupt() stops the tutor and the next spoken turn carries interrupted", async () => {
+    const { calls, streamTurn } = fakeStream((call) =>
+      call === 0 ? [speak("act_1", "Hoje vamos ver como Roma deixou de ser uma República e virou um Império.", 0), { type: "script_done", turn_id: "turn_1" }] : [],
+    );
+    const { ref } = await mount("sess_barge", [], streamTurn, { modality: "voice" });
+    expect(ref.current?.tutorHasFloor).toBe(true);
+    await act(async () => ref.current!.interrupt());
+    expect(ref.current?.speakingId).toBeNull();
+    expect(ref.current?.tutorHasFloor).toBe(false);
+    expect(ref.current?.player.queueState).toBe("idle");
+    await act(async () => void ref.current!.sendMessage("Espera, o que é Império?", "speech", caption("Espera, o que é Império?")));
+    await settle();
+    expect(calls).toHaveLength(2);
+    expect(calls[1]!.interrupted).toMatchObject({ turn_id: "turn_1", action_id: "act_1", spoken_ms: expect.any(Number) });
+    expect(calls[1]!.appended[0]).toMatchObject({ name: "user_message", kind: "speech" });
+  });
+});
+
 describe("session model", () => {
+  it("summarizes a final caption for the tutor (duration and mean confidence)", () => {
+    expect(sttSummary(caption("Quem foi Augusto?"))).toEqual({ provider: "deepgram", duration_ms: 1800, confidence: 0.94 });
+    expect(sttSummary({ kind: "final", text: "oi", words: [], speech_final: true })).toEqual({ provider: "deepgram", duration_ms: 0 });
+  });
+
   it("answers the open question with a typed message, unless it is about a board selection", () => {
     const q = { verification_id: "v1", element_id: "q1" };
     expect(buildAppended("  Augusto  ", { openQuestion: q })).toEqual({ name: "verification_answer", verification_id: "v1", element_id: "q1", answer: "Augusto" });
