@@ -11,9 +11,9 @@ import { ElementFrame } from "./ElementFrame";
 const MANUAL_SCROLL_IDLE_MS = 4000;
 
 const columnWidth: Record<Column, string> = {
-  main: "w-[min(680px,88vw)]",
-  visuals: "w-[min(560px,88vw)]",
-  side: "w-[min(400px,88vw)]",
+  main: "w-[min(680px,100%)]",
+  visuals: "w-[min(560px,100%)]",
+  side: "w-[min(400px,100%)]",
 };
 
 const columnLabel: Record<Column, string> = {

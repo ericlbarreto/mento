@@ -80,7 +80,11 @@ export function useHomeData(): HomeData & { retry: () => void; pickStudent: (s: 
     if (students.status !== "ready" || !studentId) return;
     const { list } = students.value;
     const fallback = list.find((s) => s.id === DEMO_STUDENT_ID) ?? list[0];
-    if (fallback && !list.some((s) => s.id === studentId)) setStudentId(fallback.id);
+    if (fallback && !list.some((s) => s.id === studentId)) {
+      setStudentId(fallback.id);
+      // The session page reads the id from storage, so the fallback must be stored too.
+      storeStudentId(fallback.id);
+    }
   }, [students, studentId]);
 
   useEffect(() => {
