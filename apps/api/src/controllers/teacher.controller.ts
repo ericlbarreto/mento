@@ -22,6 +22,19 @@ import { badRequest, conflict, notFound, unprocessable } from "../lib/errors";
 
 /** Controllers: plain async functions (container + parsed input in, data out). No business logic here: see @mento/analysis. */
 
+/**
+ * The teacher sees what the student understands, not what they wrote (D70): the student's own words stay in the
+ * database, where the analysis uses them, and are never sent to the teacher UI.
+ */
+export const withoutQuotes = (i: Insight): Insight => ({ ...i, evidence: [] });
+const analysisWithoutQuotes = (a: Analysis): Analysis => ({ ...a, findings: a.findings.map((f) => ({ ...f, evidence: [] })) });
+const groupsWithoutQuotes = <T extends { critical: Insight[]; medium: Insight[]; positive: Insight[] }>(g: T): T => ({
+  ...g,
+  critical: g.critical.map(withoutQuotes),
+  medium: g.medium.map(withoutQuotes),
+  positive: g.positive.map(withoutQuotes),
+});
+
 export const getOverviewData = (c: Container) => getOverview(c.teacherRepo, c.conversations);
 export const getStudentRows = (c: Container) => listStudentRows(c.teacherRepo, c.conversations);
 
@@ -48,7 +61,7 @@ export function parseStatuses(raw: string | undefined): Insight["status"][] | un
 export async function getStudentInsightsData(c: Container, id: string, filter: { severity?: Severity | undefined; status?: string | undefined }) {
   await requireStudent(c, id);
   const status = parseStatuses(filter.status);
-  return getStudentInsights(c.teacherRepo, id, { ...(filter.severity ? { severity: filter.severity } : {}), ...(status ? { status } : {}) });
+  return groupsWithoutQuotes(await getStudentInsights(c.teacherRepo, id, { ...(filter.severity ? { severity: filter.severity } : {}), ...(status ? { status } : {}) }));
 }
 
 export async function getStudentEvolution(c: Container, id: string) {
@@ -58,16 +71,19 @@ export async function getStudentEvolution(c: Container, id: string) {
 
 export async function getStudentSessionList(c: Container, id: string) {
   await requireStudent(c, id);
-  return getStudentSessions(c.teacherRepo, c.conversations, id);
+  // The topic is often the student's first message (the whiteboard titles conversations with it), so it is not sent (D70).
+  return (await getStudentSessions(c.teacherRepo, c.conversations, id)).map((s) => ({ ...s, topic: null }));
 }
 
 export async function getClassInsights(c: Container, filter: { severity?: Severity | undefined; status?: string | undefined; student_id?: string | undefined }) {
   const status = parseStatuses(filter.status);
-  return listClassInsights(c.teacherRepo, {
-    ...(filter.severity ? { severity: filter.severity } : {}),
-    ...(status ? { status } : {}),
-    ...(filter.student_id ? { student_id: filter.student_id } : {}),
-  });
+  return groupsWithoutQuotes(
+    await listClassInsights(c.teacherRepo, {
+      ...(filter.severity ? { severity: filter.severity } : {}),
+      ...(status ? { status } : {}),
+      ...(filter.student_id ? { student_id: filter.student_id } : {}),
+    }),
+  );
 }
 
 /** The teacher decides (principle 8): accept or dismiss. Dismissing a gap also dismisses its open suggestion. */
@@ -81,7 +97,7 @@ export async function decideInsight(c: Container, id: string, status: "accepted"
       if (s.related_gap_id === id && (s.status === "new" || s.status === "accepted")) await c.teacherRepo.updateInsight(s.id, { status: "dismissed" });
     }
   }
-  return updated!;
+  return withoutQuotes(updated!);
 }
 
 export async function getClassContextData(c: Container): Promise<ClassContext> {
@@ -101,7 +117,9 @@ export async function putClassContext(c: Container, body: ClassContext): Promise
 }
 
 export async function getAnalysisData(c: Container, sessionId: string): Promise<Analysis> {
-  return (await c.teacherRepo.getAnalysisBySession(sessionId)) ?? Promise.reject(notFound("analysis"));
+  const analysis = await c.teacherRepo.getAnalysisBySession(sessionId);
+  if (!analysis) throw notFound("analysis");
+  return analysisWithoutQuotes(analysis);
 }
 
 const orNotFound = async <T>(work: Promise<T>): Promise<T> => {
@@ -119,5 +137,5 @@ export const startAnalysis = (c: Container, sessionId: string, force: boolean) =
 /** Runs the analysis now and returns the result (`POST /dev/analyze/:sessionId`). */
 export async function runAnalysis(c: Container, sessionId: string) {
   const { analysis, cached, insights } = await orNotFound(c.analysis.run(sessionId, { force: true }));
-  return { analysis, cached, insights_touched: insights.length };
+  return { analysis: analysisWithoutQuotes(analysis), cached, insights_touched: insights.length };
 }

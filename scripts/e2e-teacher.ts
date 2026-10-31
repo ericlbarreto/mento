@@ -58,7 +58,9 @@ try {
   check("Ana: summary links the topic to the root cause", /Formas de governo/.test(ana.latest_analysis.summary) && /Lição 2/.test(ana.latest_analysis.summary), ana.latest_analysis);
   const anaInsights = await get(`/students/${id("Ana Souza")}/insights`);
   const gap = anaInsights.critical.find((i: any) => i.kind === "gap");
-  check("Ana: critical gap, recurring, root cause Lição 2, with her own words", gap.rule === "R3_recurring" && gap.root_cause.lesson_id === "L2" && gap.evidence.some((e: any) => /rei é eleito/.test(e.quote)), gap);
+  check("Ana: critical gap, recurring, root cause Lição 2", gap.rule === "R3_recurring" && gap.root_cause.lesson_id === "L2", gap);
+  const storedGap = await app.container.teacherRepo.getInsight(gap.id);
+  check("Ana: her own words stay in the database but never reach the teacher UI (D70)", gap.evidence.length === 0 && !!storedGap?.evidence.some((e) => /rei é eleito/.test(e.quote)));
   check("Carla: root cause is Lição 6", (await get(`/students/${id("Carla Mendes")}/insights`)).medium.some((i: any) => i.kind === "gap" && i.root_cause?.lesson_id === "L6"));
   check("Bruno: nothing open, two positives", JSON.stringify((await get(`/students/${id("Bruno Lima")}/insights`)).counts) === JSON.stringify({ critical: 0, medium: 0, positive: 2 }));
   check("Eduarda: no insights", (await get(`/students/${id("Eduarda Rocha")}/insights`)).counts.positive === 0);
@@ -157,7 +159,8 @@ try {
   const lucasInsights = (await live.inject(`/api/students/${lucas}/insights`)).json() as any;
   const lucasGap = lucasInsights.critical.find((i: any) => i.kind === "gap");
   check("Lucas gets a critical gap whose root cause is the earlier lesson (derived from the cited pages)", lucasGap?.rule === "R1_repeated_errors" && lucasGap.root_cause?.lesson_id === "L2" && lucasGap.studying_lesson_id === "L6", lucasGap && { rule: lucasGap.rule, root: lucasGap.root_cause?.lesson_id, studying: lucasGap.studying_lesson_id });
-  check("with the student's own words", lucasGap?.evidence.map((e: any) => e.quote).join("|") === "na república o rei é eleito|o augusto virou presidente", lucasGap?.evidence);
+  const lucasStored = lucasGap ? await live.container.teacherRepo.getInsight(lucasGap.id) : null;
+  check("the student's own words are kept in the database, not sent to the teacher UI", lucasGap?.evidence.length === 0 && lucasStored?.evidence.map((e) => e.quote).join("|") === "na república o rei é eleito|o augusto virou presidente", lucasStored?.evidence);
   const lucasSessions = (await live.inject(`/api/students/${lucas}/sessions`)).json() as any[];
   check("the student's page lists the stored conversation with its lesson and analysis", lucasSessions.length === 1 && lucasSessions[0].lesson_id === "L6" && lucasSessions[0].analysis_status === "done", lucasSessions);
   await live.close();

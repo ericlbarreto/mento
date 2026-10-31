@@ -84,6 +84,22 @@ The block above is the conceptual model. What exists in MongoDB today (`packages
 
 **Conversations (Person 3):** `sessions`, `events` and `evidences` are written by the tutor and read, never written, by the analysis (`MongoConversationReader` → `toSessionBundle`, D65). The material and the lesson of a conversation are derived from the sources the tutor cited. The JSON file in `fixtures/analysis-lab/` is only a demo/test source.
 
+### Exercise lists (D72)
+
+Collection **`exercise_lists`** (Mongoose model `ExerciseList`, snake_case timestamps), one document per list with the questions embedded:
+
+| Field | Meaning |
+|---|---|
+| `title`, `concept`, `concept_key` | The topic the class struggles with (from the intervention) and the title Claude gave the list |
+| `material_id`, `material_title`, `lesson_id`, `lesson_title`, `pages` | The book and lesson where the difficulty starts (from the conversations' material, or the gaps' lesson of origin) |
+| `grade_level` | From the class context at generation time |
+| `gap_ids`, `student_count` | The open gaps the list was made for; the UI only shows the count |
+| `status`, `error` | `generating` → `ready` or `failed` (reason) |
+| `exercises[]` | `{ id, kind: choice/open, prompt, options?, answer, explanation, page }` |
+| `model`, `prompt_version` | Reproducibility (`claude-opus-5-5`, `exercises-v1`) |
+
+Indexes: `created_at` (desc), `concept_key`. The prompt (`prompts/exercises.md`) receives the topic, grade level, class description, the lesson (title, summary, key concepts) and up to 12 pages of passages: **never a student's name or words**. The PDFs (teacher with answers, student without) are built in the browser from the stored list; no file is stored.
+
 ## Event contract (single typed schema for all channels)
 
 **Client → server** (stored as events; full list in `workstreams/contracts-spec.md` §3): user messages (`kind` = chat, speech, board_select, quick_action), answers to verifications, interruptions, end of conversation. Audio chunks go to the STT provider, not to our API.

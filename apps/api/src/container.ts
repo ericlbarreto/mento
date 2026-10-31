@@ -1,14 +1,17 @@
 import path, { join } from "node:path";
-import type { ChunkStore, ConversationSource, Retriever, SessionHistory, SubjectStore, TeacherRepository } from "@mento/contracts";
-import { MongoChunkStore, MongoConversationReader, MongoEvidenceStore, MongoRepository, MongoSubjectStore, MongoTurnRepository, mongoState } from "@mento/db";
+import type { ChunkStore, ConversationSource, ExerciseListStore, Retriever, SessionHistory, SubjectStore, TeacherRepository } from "@mento/contracts";
+import { MongoChunkStore, MongoConversationReader, MongoEvidenceStore, MongoExerciseListStore, MongoRepository, MongoSubjectStore, MongoTurnRepository, mongoState } from "@mento/db";
 import { createRetriever, embedWithVoyage, DiskFileStore, MaterialIngestQueue, type Embed, type FileStore, type SequenceLlm } from "@mento/sources";
 import {
   AnalysisService,
+  ClaudeExerciseGenerator,
+  ExerciseListService,
   FileConversationSource,
   MongoConversationSource,
   SessionEndedHandler,
   idMapsFromRepo,
   type AnalysisWriter,
+  type ExerciseGenerator,
 } from "@mento/analysis";
 import {
   AnthropicLlm,
@@ -68,6 +71,9 @@ export interface Container {
   /** Where uploaded PDFs are kept. */
   fileStore: FileStore;
   ingest: MaterialIngestQueue;
+  /** Generated exercise lists (`exercise_lists`) and the service that writes them with Claude (D72). */
+  exerciseLists: ExerciseListStore;
+  exercises: ExerciseListService;
 }
 
 /** Things only the teacher side needs to replace (tests, a different deployment). */
@@ -80,6 +86,8 @@ export interface TeacherOverrides {
   log?: (message: string, error?: unknown) => void;
   /** Delay before the single automatic retry of a failed analysis. */
   retryDelayMs?: number;
+  /** Writes the exercise lists; default Claude (`EXERCISES_MODEL`), null without ANTHROPIC_API_KEY. */
+  exerciseGenerator?: ExerciseGenerator | null;
 }
 
 export type ContainerOverrides = Partial<Container> & TeacherOverrides;
@@ -132,7 +140,7 @@ function buildEngine(config: Config, repo: TurnRepository, tts: TtsService | nul
 const repoRoot = (rel: string) => path.resolve(import.meta.dirname, "../../..", rel);
 
 export function createContainer(config: Config, allOverrides: ContainerOverrides = {}): Container {
-  const { writer, sequenceLlm, now, log, retryDelayMs, ...overrides } = allOverrides;
+  const { writer, sequenceLlm, now, log, retryDelayMs, exerciseGenerator, ...overrides } = allOverrides;
 
   // ---- Whiteboard (Person 3) ----
   const tts = "tts" in overrides ? (overrides.tts ?? null) : buildTts(config);
@@ -188,12 +196,18 @@ export function createContainer(config: Config, allOverrides: ContainerOverrides
       log,
     });
 
+  const exerciseLists = overrides.exerciseLists ?? new MongoExerciseListStore();
+  const generator =
+    exerciseGenerator !== undefined ? exerciseGenerator : config.ANTHROPIC_API_KEY ? new ClaudeExerciseGenerator({ apiKey: config.ANTHROPIC_API_KEY, model: config.EXERCISES_MODEL }) : null;
+  const exercises =
+    overrides.exercises ?? new ExerciseListService({ lists: exerciseLists, repo: teacherRepo, conversations, chunks: store, generator, emit: bus.emit, log });
+
   return {
     config,
     mongo: new MongoService(config.MONGODB_URI, config.MONGODB_DB),
     mintSttToken,
     ...overrides,
     tts, repo, images, evidence, history, retriever, chunkStore: store, embed, subjects, dbReady, engine,
-    teacherRepo, conversations, analysis, sessionEnded, bus, fileStore, ingest,
+    teacherRepo, conversations, analysis, sessionEnded, bus, fileStore, ingest, exerciseLists, exercises,
   };
 }

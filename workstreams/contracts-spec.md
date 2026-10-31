@@ -237,3 +237,15 @@ Source of truth in code: `packages/contracts/src/{student,class-context,material
 - **The analysis reads the stored conversations (D65).** Stored shapes: `StoredSession` / `StoredEvent` / `StoredEvidence` and `ConversationReader` (`packages/contracts/src/stored-conversation.ts`), implemented by `MongoConversationReader` in @mento/db; `toSessionBundle` (@mento/analysis) maps them to `SessionBundle`: events get `seq` by stored order, evidence rows come from `evidences`. `Session.material_id` is nullable (a conversation that cited no source has none) and `session_started.payload.material_id` is optional. Material and lesson are derived from the sources the tutor cited: no change to the tutor\'s events. Helpers in `material.ts`: `lessonsFromChapters`, `sequenceOf(material)` (the saved sequence, or the chapters as lessons), `lessonOfPage`.
 - **Trigger:** a real active → ended transition through `POST /api/sessions/:id/finish` (or the `/end` compatibility alias) starts `container.sessionEnded.handle(id)` in the background (waits for the judge, registered students only, one retry after 30 s). Duplicate finish calls do not trigger it. `ANALYSIS_MAX_WAIT_MS` (default 15000) bounds the wait; `CONVERSATIONS_FILE` switches the source to a JSON file for demos.
 - **Resume and analysis identity:** `/resume` keeps the same session id and append-only history. `analyses.session_id` remains unique. A new finish with no new learning input is served from `input_hash` cache; new turns/evidence recompute the same analysis row and upsert the same open insights.
+
+## 16. Exercise lists (2026-10-31, Person 1, D72)
+
+Additive. Source of truth: `packages/contracts/src/exercises.ts`.
+
+- `Exercise`: `{ id ("q1".."q5"), kind: "choice" | "open", prompt, options? (exactly 4, choice only), answer, explanation, page: number | null }`. `answer` and `explanation` only go to the teacher's PDF.
+- `ExerciseList`: `{ id, title, concept, concept_key, material_id, material_title, lesson_id, lesson_title, pages: [from, to] | null, grade_level, gap_ids, student_count, status: "generating" | "ready" | "failed", error, exercises, model, prompt_version, created_at, updated_at }`.
+- `CreateExerciseListBody`: `{ concept, gap_ids (1..100) }`.
+- `ExerciseListStore`: `create`, `update`, `get`, `list` (newest first), `delete`.
+- `TeacherEvent` gains `{ type: "exercise_list_status", list_id, status }`.
+- Routes: `GET /api/exercise-lists`, `GET /api/exercise-lists/:id`, `POST /api/exercise-lists` (202 generating; 400 `invalid_gaps`; 503 `generator_unavailable` | `database_unavailable`), `DELETE /api/exercise-lists/:id` (204).
+

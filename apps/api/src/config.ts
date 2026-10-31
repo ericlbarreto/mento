@@ -29,6 +29,8 @@ const schema = z.object({
   TUTOR_THINKING: z.enum(["adaptive", "between_tools", "disabled", "default"]).default("disabled"),
   TUTOR_EFFORT: z.enum(["low", "medium", "high", "default"]).default("default"),
   JUDGE_MODEL: z.string().default("claude-haiku-5-5"),
+  /** Writes the exercise lists for the teacher (D72): quality matters more than latency here. */
+  EXERCISES_MODEL: z.string().default("claude-opus-5-5"),
   GEMINI_API_KEY: z.string().default(""),
   IMAGE_MODEL: z.string().default("gemini-3.1-flash-lite-image"),
   VOYAGE_API_KEY: z.string().default(""),

@@ -7,3 +7,4 @@ export * from "./mongo-subject-store";
 export * from "./mongo-turn-repository";
 export * from "./repository";
 export * from "./mongo-conversation-reader";
+export * from "./exercise-list-store";

@@ -14,3 +14,4 @@ export * from "./service";
 export * from "./session-ended";
 export * from "./queries";
 export * from "./lab";
+export * from "./exercises";

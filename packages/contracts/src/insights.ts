@@ -262,4 +262,5 @@ export type LearnerSummary = z.infer<typeof LearnerSummary>;
 export type TeacherEvent =
   | { type: "analysis_status"; session_id: string; student_id: string; status: AnalysisStatus }
   | { type: "insight_created"; insight: Insight }
-  | { type: "material_status"; material_id: string; status: string; progress: { done: number; total: number } };
+  | { type: "material_status"; material_id: string; status: string; progress: { done: number; total: number } }
+  | { type: "exercise_list_status"; list_id: string; status: "generating" | "ready" | "failed" };

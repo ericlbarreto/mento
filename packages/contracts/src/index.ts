@@ -23,3 +23,4 @@ export * from "./chunk-store";
 export * from "./subjects";
 export * from "./errors";
 export * from "./stored-conversation";
+export * from "./exercises";

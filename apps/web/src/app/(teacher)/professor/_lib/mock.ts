@@ -1,6 +1,6 @@
 // Owner: Person 1. Fictional data for the teacher UI until the teacher API (PR #7) is wired in.
 // Every student is simulated, so the UI shows the "Dados simulados" badge.
-import type { ClassContext, ClassInsight, Gap, Intervention, Material, SessionItem, Student } from "./types";
+import type { ClassContext, Gap, Material, SessionItem, Student } from "./types";
 
 const CLASS = { class_name: "8º B", grade_level: "8º ano" as const, is_simulated: true };
 
@@ -223,57 +223,6 @@ export const MOCK_GAPS: Gap[] = [
     confidence: 0.4,
     material_ref: { pages: [2, 2] },
     created_at: "2026-10-29T09:05:00-03:00",
-  },
-];
-
-export const MOCK_INSIGHTS: ClassInsight[] = [
-  {
-    id: "ins_power",
-    title: "A passagem da República para o Império é o principal nó da turma",
-    body: "Quatro alunos mostram dúvida sobre quem decidia em Roma depois de Augusto (em um caso, com só uma resposta até agora): alguns acham que o Senado ainda governava, outros misturam os dois períodos. Dois disseram isso com as próprias palavras.",
-    gap_ids: ["gap_maya_senate", "gap_ana_senate", "gap_pedro_republic", "gap_beatriz_republic"],
-    created_at: "2026-10-30T15:00:00-03:00",
-  },
-  {
-    id: "ins_dates",
-    title: "Contar os anos antes de Cristo atrapalha a linha do tempo",
-    body: "Dois alunos ordenam datas a.C. como números comuns. Isso pode estar por trás da confusão entre os períodos.",
-    gap_ids: ["gap_maya_dates", "gap_pedro_dates"],
-    created_at: "2026-10-30T15:00:00-03:00",
-  },
-  {
-    id: "ins_bread",
-    title: "O sentido político do pão e circo ainda não apareceu",
-    body: "Uma aluna descreve o pão e circo só como diversão. É um caso só: vale observar se outros alunos pensam igual antes de mudar a aula.",
-    gap_ids: ["gap_ana_bread"],
-    created_at: "2026-10-30T15:00:00-03:00",
-  },
-];
-
-export const MOCK_INTERVENTIONS: Intervention[] = [
-  {
-    id: "int_timeline",
-    title: "Linha do tempo: quem decidia em Roma?",
-    duration_min: 15,
-    goal: "Separar República e Império pela pergunta “quem decidia?” e treinar a ordem das datas a.C.",
-    steps: [
-      "Desenhe no quadro uma linha do tempo com 753 a.C., 509 a.C., 44 a.C. e 27 a.C. e peça para a turma ordenar as datas.",
-      "Em cada período, pergunte quem tomava as decisões: o rei, o Senado ou o imperador.",
-      "Feche com o Império: o Senado continua existindo, mas quem decide é o imperador.",
-    ],
-    insight_ids: ["ins_power", "ins_dates"],
-    material_ref: { pages: [2, 4] },
-    status: "suggested",
-  },
-  {
-    id: "int_bread",
-    title: "Pergunta disparadora sobre o pão e circo",
-    duration_min: 5,
-    goal: "Ver se a turma entende o objetivo político do pão e circo.",
-    steps: ["Pergunte: “Por que o governo de Roma pagaria pelos espetáculos?” e compare as respostas no quadro."],
-    insight_ids: ["ins_bread"],
-    material_ref: { pages: [4, 4] },
-    status: "suggested",
   },
 ];
 

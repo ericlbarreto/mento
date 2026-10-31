@@ -13,3 +13,5 @@ export * from "./student.model";
 export * from "./class-context.model";
 export * from "./analysis.model";
 export * from "./insight.model";
+// Generated exercise lists (D72).
+export * from "./exercise-list.model";
