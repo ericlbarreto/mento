@@ -1,10 +1,9 @@
 // Mock data for running the whiteboard without the API (NEXT_PUBLIC_MOCK_API=1). Fictional data only.
-import { z } from "zod";
-import { type MaterialSummary, type StudentSummary, type TurnRequest, TurnStreamMessage } from "../protocol";
+import { FixtureTurn, type MaterialSummary, type StreamMessage, type StudentSummary, type TurnRequest } from "../protocol";
 import romeIntro from "../../fixtures/rome-intro.json";
-import romeClick27bc from "../../fixtures/rome-click-27bc.json";
-import romeWrongAnswer from "../../fixtures/rome-wrong-answer.json";
-import romeOutsideMaterial from "../../fixtures/rome-outside-material.json";
+import clickAndAsk from "../../fixtures/click-and-ask.json";
+import wrongAnswer from "../../fixtures/wrong-answer.json";
+import outsideMaterial from "../../fixtures/outside-material.json";
 
 /** Id of the demo book; the fixtures cite it. */
 export const MOCK_MATERIAL_ID = "665f1a2b3c4d5e6f7a8b9c01";
@@ -22,21 +21,50 @@ export const MOCK_MATERIALS: MaterialSummary[] = [
   { id: "665f1a2b3c4d5e6f7a8b9c03", title: "Geografia — Clima (digitalizado)", subject: "Geografia", pages: 20, status: "failed" },
 ];
 
-const Fixture = z.array(TurnStreamMessage);
-
-/** Recorded turn scripts, validated at load so a bad fixture fails loudly. */
+/** Recorded turns (same format as Person 3's fixtures/turns), validated at load so a bad fixture fails loudly. */
 export const FIXTURE_TURNS = {
-  "rome-intro": Fixture.parse(romeIntro),
-  "rome-click-27bc": Fixture.parse(romeClick27bc),
-  "rome-wrong-answer": Fixture.parse(romeWrongAnswer),
-  "rome-outside-material": Fixture.parse(romeOutsideMaterial),
-} satisfies Record<string, TurnStreamMessage[]>;
+  "rome-intro": FixtureTurn.parse(romeIntro),
+  "click-and-ask": FixtureTurn.parse(clickAndAsk),
+  "wrong-answer": FixtureTurn.parse(wrongAnswer),
+  "outside-material": FixtureTurn.parse(outsideMaterial),
+} satisfies Record<string, FixtureTurn>;
 export type FixtureName = keyof typeof FIXTURE_TURNS;
 
-/** Picks the mock reply for a turn: first turn → intro; board click → 27 a.C.; answer → wrong-answer hint (in that order); else → outside material. */
+/**
+ * Picks the mock reply: opening turn (no message, or the first turn) → rome-intro; board click → click-and-ask;
+ * answer to a verification → wrong-answer (in that order); otherwise → outside-material.
+ */
 export function pickFixture(req: TurnRequest, turnIndex: number): FixtureName {
-  if (turnIndex === 0) return "rome-intro";
-  if (req.appended.some((a) => a.name === "user_message" && a.kind === "board_select")) return "rome-click-27bc";
-  if (req.appended.some((a) => a.name === "answer_submit")) return "rome-wrong-answer";
-  return "rome-outside-material";
+  if (turnIndex === 0 || req.appended.length === 0) return "rome-intro";
+  if (req.appended.some((a) => a.name === "user_message" && a.kind === "board_select")) return "click-and-ask";
+  if (req.appended.some((a) => a.name === "verification_answer")) return "wrong-answer";
+  return "outside-material";
+}
+
+/**
+ * Replays a recorded turn, yielding each message `at_ms` after the replay started.
+ * Stops quietly (returns, never throws) as soon as `signal` aborts.
+ */
+export async function* replayFixture(name: FixtureName, opts: { signal?: AbortSignal } = {}): AsyncGenerator<StreamMessage> {
+  const start = Date.now();
+  for (const { at_ms, message } of FIXTURE_TURNS[name].messages) {
+    if (!(await abortableDelay(Math.max(0, at_ms - (Date.now() - start)), opts.signal))) return;
+    yield message;
+  }
+}
+
+/** Resolves true after `ms`, or false as soon as `signal` aborts. */
+function abortableDelay(ms: number, signal?: AbortSignal): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) return resolve(false);
+    const onAbort = () => {
+      clearTimeout(timer);
+      resolve(false);
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve(true);
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }

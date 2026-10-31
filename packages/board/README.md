@@ -8,7 +8,7 @@ Board renderer, action queue, SSE client, speech queue. Client-safe only.
 
 ## Turn protocol mirror and mock mode
 
-- `src/protocol.ts`: local Zod mirror of the turn protocol and start-screen shapes (docs/16 §3–4, workstreams/contracts-spec.md). Strict, snake_case, closed enums. Shapes marked `PROPOSAL` are not in the spec yet (`turn_id` / `error` stream messages, `ask_verification.id/verification_id/choices`, `MaterialSummary` fields). Person 3 can move these into `@mento/contracts`.
-- `fixtures/*.json`: Rome turn scripts (arrays of `TurnStreamMessage`, fictional pt-BR content), validated in `src/protocol.test.ts`.
-- `src/mock/`: `MOCK_STUDENTS`, `MOCK_MATERIALS`, `FIXTURE_TURNS` and `pickFixture(req, turnIndex)`.
+- `src/protocol.ts`: local mirror of Person 3's planned `@mento/contracts` (PR #5, plan wb-1: citation, actions, speech, stream, events, fixtures). Same names, shapes and limits; delete it and import from `@mento/contracts` once that lands. The start-screen shapes at the end (`StudentSummary`, `MaterialSummary`, `CreateSessionRequest`…) are Person 1's and not in PR #5.
+- `fixtures/*.json`: Rome turns in the `FixtureTurn` format (`{ description, messages: [{ at_ms, message }] }`, fictional pt-BR content): `rome-intro`, `click-and-ask`, `wrong-answer`, `outside-material`. Validated in `src/protocol.test.ts`.
+- `src/mock/`: `MOCK_STUDENTS`, `MOCK_MATERIALS`, `FIXTURE_TURNS`, `pickFixture(req, turnIndex)` and `replayFixture(name, { signal })` (honors `at_ms`; returns quietly on abort).
 - `apps/web/src/lib/api.ts` replays the fixtures when `NEXT_PUBLIC_MOCK_API=1` is set in the root `.env`.
