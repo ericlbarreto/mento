@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Event } from "@mento/contracts";
-import { buildSystem, buildUserMessage, historyFromEvents, type CatalogEntry } from "./prompt-builder";
+import { buildSystem, buildUserMessage, historyFromEvents, repliesWithoutQuestion, type CatalogEntry } from "./prompt-builder";
 
 const prompts = { base: "BASE", subjects: { history: "HISTORY PROFILE", generic: "GENERIC PROFILE" } };
 const catalog: CatalogEntry[] = [{ material_id: "m1", title: "História de Roma", subject: "history", chapters: ["A República", "O Império"] }];
@@ -97,5 +97,28 @@ describe("historyFromEvents", () => {
       { role: "student", text: "Foi em 27 a.C." },
     ]);
     expect(historyFromEvents(events, 2)).toHaveLength(2);
+  });
+});
+
+describe("repliesWithoutQuestion and the pace note", () => {
+  const ev = (turn_id: string, name: string, args: unknown, n: number): Event => ({ id: String(n), session_id: "s", ts: "2026-10-30T21:00:00.000Z", type: "tutor_action", payload: { turn_id, name, args } });
+  const base = { modality: "voice" as const, history: [], boardSnapshot: "(the board is empty)", passages: [], appended: [] };
+
+  it("counts the latest tutor replies in a row that asked nothing", () => {
+    expect(repliesWithoutQuestion([])).toBeUndefined();
+    const events = [
+      ev("turn_1", "speak", { text: "O que você quer estudar?" }, 1),
+      ev("turn_2", "speak", { text: "César foi um general." }, 2),
+      ev("turn_2", "write_text", { html: "<p>?</p>" }, 3),
+      ev("turn_3", "speak", { text: "Se tiver dúvida, é só falar." }, 4),
+    ];
+    expect(repliesWithoutQuestion(events)).toBe(2);
+    expect(repliesWithoutQuestion([...events, ev("turn_4", "ask_verification", { question: "Explique." }, 5)])).toBe(0);
+  });
+
+  it("asks for a check after two quiet replies and for no question right after one", () => {
+    expect(buildUserMessage({ ...base, repliesWithoutQuestion: 2 })).toMatch(/## Pace\n.*ask_verification/);
+    expect(buildUserMessage({ ...base, repliesWithoutQuestion: 0 })).toMatch(/do not ask another one/);
+    expect(buildUserMessage(base)).not.toContain("## Pace");
   });
 });

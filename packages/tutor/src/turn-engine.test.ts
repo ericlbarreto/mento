@@ -57,7 +57,8 @@ describe("TurnEngine: the script", () => {
       stopEvent(),
     ]]);
     const { messages } = await run(engine, session, opening);
-    expect(actionNames(messages)).toEqual(["speak"]);
+    // only the valid speak passes (the write_text is the fallback card of a reply with nothing on the board)
+    expect(actionNames(messages)).toEqual(["speak", "write_text"]);
     expect(messages.some((m) => m.type === "error")).toBe(false);
   });
 
@@ -220,7 +221,7 @@ describe("TurnEngine: failures", () => {
     const { engine, session, llm } = await setup([[toolEvent("speak", { text: "Voltei." }), stopEvent()]], {}, { failFirst: new LlmError("overloaded", 529, true) });
     const { messages } = await run(engine, session, opening);
     expect(llm.calls).toHaveLength(2);
-    expect(types(messages)).toEqual(["action", "script_done", "turn_done"]);
+    expect(types(messages)).toEqual(["action", "action", "script_done", "turn_done"]); // the speak, then its board card
   });
 
   it("sends a recoverable error and no turn_done when the LLM fails for good", async () => {
@@ -255,7 +256,7 @@ describe("TurnEngine: continuing the reply", () => {
   const speakEv = (text: string, purpose?: string) => toolEvent("speak", { text, ...(purpose ? { purpose } : {}) });
   const writeEv = (id: string) => toolEvent("write_text", { id, column: "main", html: "<p>x</p>" });
 
-  it("asks the model to continue when it stopped for tool results before ending with a question", async () => {
+  it("asks the model to continue when it stopped for tool results right after a board action", async () => {
     const { engine, session, llm } = await setup([
       [speakEv("Júlio César foi um general."), writeEv("cesar"), stopEvent("tool_use")],
       [speakEv("Ele conquistou a Gália."), speakEv("Por que o Senado tinha medo dele?", "question"), stopEvent("tool_use")],
@@ -271,7 +272,7 @@ describe("TurnEngine: continuing the reply", () => {
     expect(types(messages).filter((x) => x === "script_done")).toHaveLength(1);
   });
 
-  it("stops after an ask_verification, after end_turn, and after at most four rounds", async () => {
+  it("stops after an ask_verification, after end_turn, and after at most one extra round", async () => {
     const verify = await setup([
       [speakEv("Vamos ver."), toolEvent("ask_verification", { id: "q1", column: "main", concept: "César", question: "Explique com suas palavras.", kind: "explain" }), stopEvent("tool_use")],
       [speakEv("nunca"), stopEvent()],
@@ -283,9 +284,73 @@ describe("TurnEngine: continuing the reply", () => {
     await run(ended.engine, ended.session, opening);
     expect(ended.llm.calls).toHaveLength(1);
 
-    const endless = await setup([[speakEv("mais um passo"), stopEvent("tool_use")]]);
+    const endless = await setup([[writeEv("passo"), speakEv("mais um passo"), writeEv("outro"), stopEvent("tool_use")]]);
     await run(endless.engine, endless.session, opening);
-    expect(endless.llm.calls).toHaveLength(4);
+    expect(endless.llm.calls).toHaveLength(2);
+  });
+
+  it("completes a reply that closes with a statement: no question needed", async () => {
+    const { engine, session, llm } = await setup([
+      [speakEv("Júlio César foi um general."), writeEv("cesar"), speakEv("Ele conquistou a Gália."), speakEv("Se ficar alguma dúvida, é só falar.", "explain"), stopEvent("tool_use")],
+      [speakEv("nunca"), stopEvent()],
+    ]);
+    const { messages } = await run(engine, session, say("Quem foi Júlio César?"));
+    expect(llm.calls).toHaveLength(1);
+    expect(actionNames(messages)).toEqual(["speak", "write_text", "speak", "speak"]);
+  });
+
+  it("continues a reply with a board action but a single speak, and never asks for a question", async () => {
+    const { engine, session, llm } = await setup([
+      [writeEv("cesar"), speakEv("Olha o quadro."), stopEvent("tool_use")],
+      [speakEv("César foi um general."), stopEvent()],
+    ]);
+    await run(engine, session, say("Quem foi Júlio César?"));
+    expect(llm.calls).toHaveLength(2);
+    const nudge = (llm.calls[1]!.messages[2]!.content as { type: string; text?: string }[]).find((b) => b.type === "text");
+    expect(nudge?.text).toMatch(/close with a short speak/);
+    expect(nudge?.text).not.toMatch(/end with one question/);
+  });
+});
+
+describe("TurnEngine: pictures keep pace with the text", () => {
+  const speakEv = (text: string) => toolEvent("speak", { text });
+  const writeEv = (id: string) => toolEvent("write_text", { id, column: "main", html: "<p>Roma</p>" });
+  const drawEv = (id: string, tool_use_id?: string) => toolEvent("draw", { id, column: "visuals", prompt: "Coliseu", is_structured: false, max_dimensions: { w: 500, h: 400 } }, tool_use_id);
+  const diagram = { id: "reta", column: "visuals", title: "Reta", frame: "wide", shapes: [{ id: "chao", kind: "line", from: [10, 70], to: [150, 70] }] };
+
+  it("sends at most one draw per reply, even after several text blocks, and never a placeholder for the extra one", async () => {
+    const logs: string[] = [];
+    const { engine, session } = await setup(
+      [[speakEv("Olha."), drawEv("coliseu"), writeEv("a"), writeEv("b"), drawEv("forum"), speakEv("Esse é o Coliseu."), speakEv("Fica à vontade."), stopEvent()]],
+      { log: (m) => void logs.push(m) },
+    );
+    const { messages } = await run(engine, session, say("Roma"));
+    expect(actionNames(messages)).toEqual(["speak", "draw", "write_text", "write_text", "speak", "speak"]);
+    expect(logs).toContain("draw rejected");
+  });
+
+  it("counts draws over the whole reply and tells the model to write instead", async () => {
+    const { engine, session, llm } = await setup([
+      [speakEv("Olha."), writeEv("a"), drawEv("coliseu"), stopEvent("tool_use")],
+      [drawEv("forum", "toolu_extra"), speakEv("Esse é o Coliseu."), speakEv("Pronto."), stopEvent()],
+    ]);
+    const { messages } = await run(engine, session, say("Roma"));
+    expect(llm.calls).toHaveLength(2);
+    expect(actionNames(messages).filter((n) => n === "draw")).toHaveLength(1);
+
+    const third = await setup([
+      [speakEv("Olha."), drawEv("coliseu"), drawEv("forum", "toolu_x"), stopEvent("tool_use")],
+      [writeEv("a"), speakEv("Pronto."), stopEvent()],
+    ]);
+    await run(third.engine, third.session, say("Roma"));
+    const results = third.llm.calls[1]!.messages[2]!.content as { type: string; tool_use_id?: string; content?: string; is_error?: boolean }[];
+    expect(results.find((r) => r.tool_use_id === "toolu_x")).toMatchObject({ is_error: true, content: expect.stringMatching(/write_text/) });
+  });
+
+  it("does not count draw_diagram as a picture", async () => {
+    const { engine, session } = await setup([[speakEv("Olha."), drawEv("coliseu"), toolEvent("draw_diagram", diagram), speakEv("Aqui."), speakEv("Pronto."), stopEvent()]]);
+    const { messages } = await run(engine, session, say("Roma"));
+    expect(actionNames(messages)).toEqual(["speak", "draw", "draw_diagram", "speak", "speak"]);
   });
 });
 
@@ -365,6 +430,21 @@ describe("TurnEngine: every reply puts something on the board", () => {
     await engine.idle();
     expect(actionNames(messages)).toEqual([]);
     expect(types(messages)).not.toContain("turn_done");
+  });
+
+  it("holds a closing statement too and writes the card before saying it", async () => {
+    const { engine, session } = await setup([[speakEv("Claro, pode falar."), speakEv("Se tiver dúvida, é só falar.", "explain"), stopEvent()]]);
+    const { messages } = await run(engine, session, say("Posso perguntar uma coisa?"));
+    const acts = actions(messages);
+    expect(acts.map((a) => a.name)).toEqual(["speak", "write_text", "speak"]);
+    expect(acts[1]!.name === "write_text" && acts[1]!.args.html).toBe("<p><b>Se tiver dúvida, é só falar.</b></p>");
+    expect(spoken(messages)).toEqual(["Claro, pode falar.", "Se tiver dúvida, é só falar."]);
+  });
+
+  it("writes the card after a reply that is a single speak with nothing on the board", async () => {
+    const { engine, session } = await setup([[speakEv("Oi, tudo bem por aqui."), stopEvent("end_turn")]]);
+    const { messages } = await run(engine, session, say("oi"));
+    expect(actionNames(messages)).toEqual(["speak", "write_text"]);
   });
 
   it("asks only one question: the fallback ends the reply without another round", async () => {
