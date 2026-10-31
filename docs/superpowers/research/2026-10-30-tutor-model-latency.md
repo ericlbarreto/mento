@@ -49,3 +49,7 @@ None of these measured our case: a ~5k-token cached prompt, 10 tools, Portuguese
 1. **Now:** set the tutor request to `thinking: {"type": "between_tools"}` with `effort: "low"` (Sonnet 5.5) and compare it with `claude-haiku-5-5` + `thinking: {"type": "disabled"}` on `pnpm turn:bench` and in `/dev/conversation`. Keep the one that reaches a p50 first action ≤ 1.5 s with good pedagogy.
 2. **Only if both miss the target:** add an OpenAI-compatible client and run the same bench with GLM-5.2 (on a US host such as DeepInfra or FriendliAI) and DeepSeek V4.1 Flash.
 3. **Independently:** take the ~0.8 s query embedding off the critical path (start it when the student's speech ends, or run the first LLM call without passages and rely on the search round).
+
+## 6. Result (2026-10-30)
+
+Applied: `claude-haiku-5-5` with `thinking: {"type": "disabled"}` (env `TUTOR_MODEL`, `TUTOR_THINKING`, `TUTOR_EFFORT`). `pnpm turn:bench 3` end to end, retrieval included: first action p50 1664 ms, p95 2298 ms; script done p50 3842 ms; 0 errors. Effort `low` was not faster and wrote poorer scripts. Remaining gap to the 1.5 s target is mostly the ~0.8 s query embedding (§5 item 3).

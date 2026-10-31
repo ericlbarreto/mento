@@ -251,6 +251,16 @@ describe("TurnEngine: failures", () => {
   });
 });
 
+describe("TurnEngine: model settings", () => {
+  it("sends the same thinking and effort settings on every call and on the pre-warm (prompt cache)", async () => {
+    const { engine, session, llm } = await setup([[toolEvent("speak", { text: "Oi" }), stopEvent()]], { models: { tutor: "claude-haiku-5-5", thinking: { type: "disabled" }, effort: "medium" } });
+    await engine.prewarm(session);
+    await run(engine, session, opening);
+    expect(llm.calls[0]).toMatchObject({ model: "claude-haiku-5-5", thinking: { type: "disabled" }, effort: "medium" });
+    expect(llm.prewarmRequests[0]).toMatchObject({ thinking: { type: "disabled" }, effort: "medium" });
+  });
+});
+
 describe("TurnEngine.prewarm", () => {
   it("asks the LLM to cache the static prefix", async () => {
     const { engine, session, llm } = await setup([[stopEvent()]]);

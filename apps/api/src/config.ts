@@ -22,7 +22,10 @@ const schema = z.object({
   ELEVENLABS_MODEL: z.string().default("eleven_flash_v2_5"),
   TTS_MODE: z.enum(["http", "ws"]).default("ws"),
   ANTHROPIC_API_KEY: z.string().default(""),
-  TUTOR_MODEL: z.string().default("claude-sonnet-5-5"),
+  // Haiku 5.5 without thinking: ~1.3 s to the first action vs ~5 s for Sonnet 5.5 defaults (research doc 2026-10-30).
+  TUTOR_MODEL: z.string().default("claude-haiku-5-5"),
+  TUTOR_THINKING: z.enum(["adaptive", "between_tools", "disabled", "default"]).default("disabled"),
+  TUTOR_EFFORT: z.enum(["low", "medium", "high", "default"]).default("default"),
   JUDGE_MODEL: z.string().default("claude-haiku-5-5"),
   GEMINI_API_KEY: z.string().default(""),
   IMAGE_MODEL: z.string().default("gemini-3.1-flash-lite-image"),

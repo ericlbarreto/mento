@@ -23,6 +23,7 @@ const sleep = (ms: number, signal?: AbortSignal) =>
 export class ScriptedLlm implements LlmClient {
   readonly calls: LlmRequest[] = [];
   prewarmed = 0;
+  readonly prewarmRequests: Omit<LlmRequest, "signal" | "max_tokens">[] = [];
   private next = 0;
 
   constructor(
@@ -41,7 +42,8 @@ export class ScriptedLlm implements LlmClient {
     }
   }
 
-  async prewarm(): Promise<void> {
+  async prewarm(req: Omit<LlmRequest, "signal" | "max_tokens">): Promise<void> {
     this.prewarmed += 1;
+    this.prewarmRequests.push(req);
   }
 }

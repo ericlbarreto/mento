@@ -19,3 +19,17 @@ describe("requestParams", () => {
     expect(requestParams({ ...base, tool_choice: { type: "tool", name: "record_judgment" } }).tool_choice).toEqual({ type: "tool", name: "record_judgment" });
   });
 });
+
+describe("requestParams thinking and effort", () => {
+  const base = { model: "m", system: [], tools: [], messages: [{ role: "user" as const, content: "x" }], max_tokens: 10 };
+
+  it("forwards the thinking setting and the effort level only when set", () => {
+    const p = requestParams({ ...base, thinking: { type: "disabled" }, effort: "low" });
+    expect(p.thinking).toEqual({ type: "disabled" });
+    expect(p.output_config).toEqual({ effort: "low" });
+    const none = requestParams(base);
+    expect("thinking" in none).toBe(false);
+    expect("output_config" in none).toBe(false);
+  });
+});
+

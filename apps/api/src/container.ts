@@ -85,7 +85,11 @@ function buildEngine(config: Config, repo: TurnRepository, tts: TtsService | nul
     draw: buildDraw(config, images),
     judge: new ClaudeJudge({ llm, model: config.JUDGE_MODEL, repo, retriever, evidence }),
     prompts: loadPromptsSync(config.PROMPTS_DIR),
-    models: { tutor: config.TUTOR_MODEL },
+    models: {
+      tutor: config.TUTOR_MODEL,
+      thinking: config.TUTOR_THINKING === "default" ? undefined : { type: config.TUTOR_THINKING },
+      effort: config.TUTOR_EFFORT === "default" ? undefined : config.TUTOR_EFFORT,
+    },
   });
 }
 

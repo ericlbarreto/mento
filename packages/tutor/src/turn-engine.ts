@@ -1,5 +1,5 @@
 import type { Chunk, EventType, StreamMessage, TurnRequest, TurnTiming } from "@mento/contracts";
-import type { LlmClient, LlmContentBlock, LlmMessage } from "./llm";
+import type { Effort, LlmClient, LlmContentBlock, LlmMessage, ThinkingSetting } from "./llm";
 import { LlmError } from "./llm";
 import { commitAction, prepareAction } from "./action-pipeline";
 import { noopDraw, noopJudge, type DrawPipeline, type Judge, type TtsStarter } from "./hooks";
@@ -27,7 +27,7 @@ export interface TurnEngineDeps {
   draw?: DrawPipeline;
   judge?: Judge;
   prompts: PromptSet;
-  models: { tutor: string };
+  models: { tutor: string; thinking?: ThinkingSetting; effort?: Effort };
   /** Speak a bridging line when no action was emitted after this many ms. Default 3000. */
   bridgeAfterMs?: number;
   maxTokens?: number;
@@ -129,7 +129,7 @@ export class TurnEngine {
     const rt = await this.runtime(session_id);
     const [classContext, summary, catalog] = await Promise.all([repo.getClassContext(), repo.getLearnerSummary(session.student_id), this.catalogFor(rt, session.subject)]);
     const system = buildSystem({ prompts, classContext, summary, catalog, subject: session.subject });
-    await llm.prewarm({ model: models.tutor, system, tools: modelTools(), messages: [{ role: "user", content: "." }] });
+    await llm.prewarm({ model: models.tutor, thinking: models.thinking, effort: models.effort, system, tools: modelTools(), messages: [{ role: "user", content: "." }] });
   }
 
   async run(session_id: string, req: TurnRequest, emit: (m: StreamMessage) => void, signal: AbortSignal): Promise<{ turn_id: string }> {
@@ -250,7 +250,7 @@ export class TurnEngine {
     }, this.deps.bridgeAfterMs ?? 3000);
 
     try {
-      for await (const ev of this.deps.llm.stream({ model, system, tools: modelTools(), messages, max_tokens: this.deps.maxTokens ?? 2048, signal: state.signal })) {
+      for await (const ev of this.deps.llm.stream({ model, thinking: this.deps.models.thinking, effort: this.deps.models.effort, system, tools: modelTools(), messages, max_tokens: this.deps.maxTokens ?? 2048, signal: state.signal })) {
         if (state.signal.aborted) break;
         if (ev.type === "first_token") {
           state.timing.llm_first_token_ms ??= Math.round(this.now() - state.t0);
