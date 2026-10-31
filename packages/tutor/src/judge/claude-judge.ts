@@ -6,16 +6,28 @@ import type { TurnRepository } from "../repository";
 import type { ToolDef } from "../tools";
 import type { EvidenceStore } from "./evidence";
 
+const RATIONALE_MAX = 300;
+
+/** Cuts a long rationale at the last word boundary (with "…"): a verbose judge must not lose the judgment. */
+export const clipRationale = (text: string): string => {
+  const t = text.trim();
+  if (t.length <= RATIONALE_MAX) return t;
+  const cut = t.slice(0, RATIONALE_MAX - 1);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > RATIONALE_MAX / 2 ? cut.slice(0, space) : cut).trimEnd()}…`;
+};
+
+/** Only `result` decides the evidence: a too-long rationale is clipped and a malformed citation is dropped. */
 export const JudgmentSchema = z.object({
   result: z.enum(["correct", "partial", "incorrect"]),
-  rationale: z.string().min(1).max(300),
-  citation: Citation.optional(),
+  rationale: z.string().trim().min(1).transform(clipRationale),
+  citation: Citation.optional().catch(undefined),
 });
 
 const JUDGMENT_TOOL: ToolDef = {
   name: "record_judgment",
   description:
-    "Record your judgment of the student's answer. result: correct (fully right), partial (right in part or imprecise), incorrect. rationale: one or two sentences in Brazilian Portuguese about what the answer shows, about the answer only. citation: optional, a short exact quote from the passages that supports the judgment.",
+    "Record your judgment of the student's answer. result: correct (fully right), partial (right in part or imprecise), incorrect. rationale: one or two short sentences (at most 300 characters) in Brazilian Portuguese about what the answer shows, about the answer only. citation: optional, a short exact quote from the passages that supports the judgment.",
   input_schema: {
     type: "object",
     properties: {
