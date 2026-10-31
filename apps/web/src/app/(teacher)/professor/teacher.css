@@ -1,0 +1,19 @@
+/* Owner: Person 1. Teacher UI tokens on top of @mento/ui/tokens.css (palette from docs/18-ui-references.md). */
+.teacher {
+  --card: #fffdf8;
+  --ink-soft: #5a6283;
+  --blue-strong: #1547c2;
+  --blue-tint: #e6edfd;
+  --focus: #b1d8fa;
+  --accent-ink: #c2410c;
+  --danger: #b42318;
+  --danger-soft: #fdeae5;
+  --warn: #8a5a00;
+  --warn-soft: #fdf1cf;
+  --ok: #1d7a50;
+  --ok-soft: #e2f3ea;
+  --marker-yellow: #ffe58a;
+  --shadow-card: 0 3px 12px -2px rgba(22, 34, 80, 0.04), 0 1px 3px 0 rgba(22, 34, 80, 0.02);
+  --shadow-float: 0 12px 28px -4px rgba(22, 34, 80, 0.08), 0 4px 8px -2px rgba(22, 34, 80, 0.04);
+  font-family: var(--font-teacher), system-ui, sans-serif;
+}
