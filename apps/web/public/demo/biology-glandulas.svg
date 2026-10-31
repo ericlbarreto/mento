@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 540" font-family="Comic Sans MS, Chalkboard, sans-serif">
+  <rect width="460" height="540" fill="#fffdf7"/>
+  <!-- body silhouette (neutral, no anatomy details) -->
+  <g fill="#fde7d6" stroke="#c98a63" stroke-width="3" stroke-linejoin="round">
+    <path d="M207 118 L207 136 C172 140 146 148 133 168 C120 200 110 250 102 298 C100 312 116 318 120 304 C128 262 136 228 146 206
+             C150 240 150 276 148 306 C146 330 150 352 158 372 L170 502 C172 514 198 514 200 502 L212 384 C216 374 226 374 230 384
+             L242 502 C244 514 270 514 272 502 L284 372 C292 352 296 330 294 306 C292 276 292 240 296 206 C306 228 314 262 322 304
+             C326 318 342 312 340 298 C332 250 322 200 309 168 C296 148 270 140 235 136 L235 118 Z"/>
+    <circle cx="221" cy="76" r="46"/>
+  </g>
+  <!-- brain outline (faint) -->
+  <path d="M190 72 C186 50 206 38 222 42 C240 38 258 50 254 72 C250 84 236 86 222 84 C206 86 194 84 190 72Z"
+        fill="#f6d5e3" stroke="#d48aa8" stroke-width="2" stroke-dasharray="5 4"/>
+  <!-- kidneys (faint, for the adrenals) -->
+  <g fill="#f3c7c0" stroke="#d38a80" stroke-width="2">
+    <path d="M190 252 c-14 4 -14 32 2 34 c8 0 10 -8 6 -14 c-4 -6 4 -14 2 -18 c-2 -2 -6 -3 -10 -2z"/>
+    <path d="M252 252 c14 4 14 32 -2 34 c-8 0 -10 -8 -6 -14 c4 -6 -4 -14 -2 -18 c2 -2 6 -3 10 -2z"/>
+  </g>
+  <!-- glands -->
+  <circle cx="226" cy="66" r="7" fill="#9b6ad6" stroke="#5b3a91" stroke-width="2"/>
+  <circle cx="222" cy="94" r="6" fill="#f2a33a" stroke="#b86d10" stroke-width="2"/>
+  <g fill="#e5536b" stroke="#a42b40" stroke-width="2">
+    <ellipse cx="211" cy="148" rx="10" ry="7" transform="rotate(-20 211 148)"/>
+    <ellipse cx="231" cy="148" rx="10" ry="7" transform="rotate(20 231 148)"/>
+  </g>
+  <g fill="#ffd95a" stroke="#c99a12" stroke-width="2">
+    <path d="M186 254 l8 -12 l9 10z"/>
+    <path d="M256 254 l-8 -12 l-9 10z"/>
+  </g>
+  <path d="M196 300 C206 288 236 286 252 292 C260 296 256 304 248 304 C232 304 214 310 200 310 C192 310 190 304 196 300Z"
+        fill="#7fc36a" stroke="#3f8a2f" stroke-width="2"/>
+  <g fill="#6fa8e8" stroke="#2f62a8" stroke-width="2">
+    <ellipse cx="204" cy="350" rx="8" ry="6"/>
+    <ellipse cx="238" cy="350" rx="8" ry="6"/>
+  </g>
+  <!-- leader lines -->
+  <g fill="none" stroke-width="2" stroke-linecap="round">
+    <path d="M232 62 Q290 30 330 40" stroke="#5b3a91"/>
+    <path d="M215 96 Q160 112 118 110" stroke="#b86d10"/>
+    <path d="M241 150 Q300 156 350 150" stroke="#a42b40"/>
+    <path d="M186 246 Q130 226 98 228" stroke="#c99a12"/>
+    <path d="M254 298 Q320 290 352 300" stroke="#3f8a2f"/>
+    <path d="M196 350 Q140 362 100 362" stroke="#2f62a8"/>
+  </g>
+  <!-- labels -->
+  <g font-size="19" font-weight="bold">
+    <text x="334" y="44" fill="#5b3a91">hipotálamo</text>
+    <text x="22" y="116" fill="#b86d10">hipófise</text>
+    <text x="354" y="156" fill="#a42b40">tireoide</text>
+    <text x="14" y="234" fill="#9a7406">adrenais</text>
+    <text x="356" y="306" fill="#3f8a2f">pâncreas</text>
+    <text x="16" y="368" fill="#2f62a8">gônadas</text>
+  </g>
+  <g font-size="14" fill="#6b5a4e">
+    <text x="22" y="134">"glândula mestra"</text>
+    <text x="354" y="174">pescoço</text>
+    <text x="14" y="252">sobre os rins</text>
+    <text x="356" y="324">insulina</text>
+    <text x="16" y="386">hormônios sexuais</text>
+  </g>
+  <!-- blood-drop note -->
+  <g transform="translate(286 444)">
+    <path d="M14 0 C20 12 28 20 28 30 C28 40 21 46 14 46 C7 46 0 40 0 30 C0 20 8 12 14 0Z" fill="#e05a47" stroke="#a42b40" stroke-width="2"/>
+    <text x="38" y="20" font-size="15" fill="#a42b40">hormônios</text>
+    <text x="38" y="40" font-size="15" fill="#a42b40">vão pelo sangue</text>
+  </g>
+</svg>

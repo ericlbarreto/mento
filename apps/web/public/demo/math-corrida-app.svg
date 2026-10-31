@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 390" font-family="Comic Sans MS, Chalkboard, sans-serif">
+  <rect width="520" height="390" fill="#fffdf7"/>
+  <!-- sky: sun and clouds -->
+  <circle cx="470" cy="48" r="24" fill="#ffd95a" stroke="#f2b632" stroke-width="3"/>
+  <path d="M215 52 q13 -16 28 -4 q12 -12 26 2 q12 2 9 12 h-68 q-5 -7 5 -10z" fill="#fff" stroke="#c9d6e8" stroke-width="2"/>
+  <path d="M340 34 q10 -12 22 -3 q10 -9 20 2 q10 2 7 9 h-54 q-4 -6 5 -8z" fill="#fff" stroke="#c9d6e8" stroke-width="2"/>
+  <!-- city skyline -->
+  <g fill="#e6ecf7" stroke="#9fb1d1" stroke-width="2">
+    <rect x="190" y="110" width="40" height="120" rx="3"/>
+    <rect x="236" y="140" width="34" height="90" rx="3"/>
+    <rect x="300" y="96" width="44" height="134" rx="3"/>
+    <rect x="350" y="128" width="36" height="102" rx="3"/>
+    <rect x="430" y="118" width="44" height="112" rx="3"/>
+  </g>
+  <g fill="#fff4c2">
+    <rect x="198" y="122" width="9" height="9"/><rect x="214" y="122" width="9" height="9"/>
+    <rect x="198" y="142" width="9" height="9"/><rect x="214" y="162" width="9" height="9"/>
+    <rect x="308" y="108" width="10" height="10"/><rect x="326" y="108" width="10" height="10"/>
+    <rect x="308" y="130" width="10" height="10"/><rect x="326" y="152" width="10" height="10"/>
+    <rect x="438" y="130" width="10" height="10"/><rect x="456" y="150" width="10" height="10"/>
+  </g>
+  <!-- road with km marks -->
+  <path d="M0 232 Q260 222 520 232 V300 Q260 292 0 300Z" fill="#8a8f99" stroke="#5c616b" stroke-width="2"/>
+  <path d="M10 266 Q260 258 510 266" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="18 14" stroke-linecap="round"/>
+  <path d="M0 300 Q260 292 520 300 V390 H0Z" fill="#cdeac0" stroke="#7fb36a" stroke-width="2"/>
+  <!-- km ruler under the road: 0 to 9 km -->
+  <g stroke="#1d3f94" stroke-width="2.5" stroke-linecap="round">
+    <line x1="200" y1="318" x2="497" y2="318"/>
+    <line x1="200" y1="310" x2="200" y2="326"/><line x1="233" y1="313" x2="233" y2="323"/>
+    <line x1="266" y1="313" x2="266" y2="323"/><line x1="299" y1="313" x2="299" y2="323"/>
+    <line x1="332" y1="313" x2="332" y2="323"/><line x1="365" y1="313" x2="365" y2="323"/>
+    <line x1="398" y1="313" x2="398" y2="323"/><line x1="431" y1="313" x2="431" y2="323"/>
+    <line x1="464" y1="313" x2="464" y2="323"/><line x1="497" y1="310" x2="497" y2="326"/>
+  </g>
+  <text x="193" y="345" font-size="16" fill="#1d3f94">0</text>
+  <text x="470" y="345" font-size="16" fill="#1d3f94" font-weight="bold">9 km</text>
+  <text x="300" y="372" font-size="17" fill="#1d3f94">x = quilômetros</text>
+  <!-- destination pin -->
+  <path d="M497 228 c-14 -18 -16 -26 -16 -32 a16 16 0 0 1 32 0 c0 6 -2 14 -16 32z" fill="#e05a47" stroke="#b8342a" stroke-width="2.5"/>
+  <circle cx="497" cy="196" r="6" fill="#fff"/>
+  <!-- the car -->
+  <g transform="translate(222 196)">
+    <path d="M6 40 q0 -14 14 -16 l20 -18 q6 -5 14 -5 h38 q8 0 14 6 l16 17 q16 2 18 16 v8 h-134z" fill="#ffc531" stroke="#a67a00" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M44 22 l14 -13 h16 v13z M80 22 v-13 h12 q4 0 7 3 l10 10z" fill="#d9f0ff" stroke="#a67a00" stroke-width="2"/>
+    <rect x="58" y="-8" width="30" height="10" rx="3" fill="#1d3f94"/>
+    <text x="63" y="0" font-size="8" fill="#fff" font-weight="bold">APP</text>
+    <circle cx="34" cy="48" r="11" fill="#333" stroke="#111" stroke-width="2"/><circle cx="34" cy="48" r="4" fill="#bbb"/>
+    <circle cx="112" cy="48" r="11" fill="#333" stroke="#111" stroke-width="2"/><circle cx="112" cy="48" r="4" fill="#bbb"/>
+    <path d="M-14 26 h12 M-20 34 h16 M-12 42 h10" stroke="#9aa3b5" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <!-- phone with the fare rule -->
+  <g transform="translate(22 38) rotate(-4)">
+    <rect x="0" y="0" width="150" height="250" rx="18" fill="#2b2f3a" stroke="#14161c" stroke-width="3"/>
+    <rect x="9" y="22" width="132" height="210" rx="8" fill="#fff"/>
+    <rect x="58" y="9" width="34" height="5" rx="2.5" fill="#555"/>
+    <rect x="9" y="22" width="132" height="34" rx="8" fill="#3b6fe0"/>
+    <text x="22" y="45" font-size="15" fill="#fff" font-weight="bold">Corrida</text>
+    <text x="18" y="80" font-size="13" fill="#555">Tarifa fixa</text>
+    <text x="18" y="100" font-size="18" fill="#1d3f94" font-weight="bold">R$ 5,00</text>
+    <text x="18" y="126" font-size="13" fill="#555">Por quilômetro</text>
+    <text x="18" y="146" font-size="18" fill="#1d3f94" font-weight="bold">R$ 2,00</text>
+    <line x1="18" y1="160" x2="132" y2="160" stroke="#c9d6e8" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="18" y="182" font-size="14" fill="#555">Total pago</text>
+    <rect x="18" y="190" width="108" height="30" rx="8" fill="#ffe1dc" stroke="#e05a47" stroke-width="2"/>
+    <text x="30" y="211" font-size="18" fill="#b8342a" font-weight="bold">R$ 23,00</text>
+  </g>
+  <!-- question bubble -->
+  <path d="M300 168 q0 -22 26 -22 h120 q26 0 26 22 v4 q0 22 -26 22 h-80 l-22 18 l4 -18 h-22 q-26 0 -26 -22z" fill="#fff" stroke="#1d3f94" stroke-width="2.5"/>
+  <text x="318" y="178" font-size="17" fill="#1d3f94">Quantos km?</text>
+</svg>

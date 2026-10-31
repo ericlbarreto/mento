@@ -1,0 +1,716 @@
+{
+ "description": "Demo board (História do Brasil): from the royal court in 1808 to the Regency, with two images, a timeline, a cause → consequence diagram, circles, highlights and citations of the material. Scripted, not recorded.",
+ "messages": [
+  {
+   "at_ms": 0,
+   "message": {
+    "type": "action",
+    "order": 0,
+    "action": {
+     "id": "h0",
+     "name": "speak",
+     "args": {
+      "text": "Vamos ver como o Brasil deixou de ser colônia? Tudo começa em 1808, quando a Corte portuguesa chega ao Rio de Janeiro.",
+      "purpose": "explain",
+      "sources": [
+       {
+        "material_id": "6ae58b99b00177f12a4d5079",
+        "page": 7,
+        "quote": "Em 8 de março de 1808, D. João chegou ao Rio de Janeiro, que se tornou a sede do governo português."
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 120,
+   "message": {
+    "type": "action",
+    "order": 1,
+    "action": {
+     "id": "h1",
+     "name": "write_text",
+     "args": {
+      "id": "da_corte_a_independencia",
+      "column": "main",
+      "html": "<h2>Da Corte à Independência</h2><p>Fugindo de Napoleão, D. João trouxe a <b>Corte portuguesa</b> para o Brasil. Ainda em 1808, ele <b>abriu os portos</b> às nações amigas: era o fim do monopólio de Portugal.</p><ul><li><b>1815:</b> o Brasil vira <b>Reino Unido</b> a Portugal e Algarves e deixa de ser colônia.</li><li><b>1821:</b> as Cortes de Lisboa querem a <b>recolonização</b>; D. João VI volta e D. Pedro fica como regente.</li><li><b>9 de janeiro de 1822:</b> o <b>Dia do Fico</b>.</li><li><b>7 de setembro de 1822:</b> o <b>Grito do Ipiranga</b>, às margens do riacho, em São Paulo.</li></ul>",
+      "sources": [
+       {
+        "material_id": "6ae58b99b00177f12a4d5079",
+        "page": 7,
+        "quote": "abria os portos do Brasil às nações amigas de Portugal"
+       },
+       {
+        "material_id": "6ae58b99b00177f12a4d5079",
+        "page": 9,
+        "quote": "Em 16 de dezembro de 1815, D. João elevou o Brasil à categoria de reino"
+       },
+       {
+        "material_id": "6ae58b99b00177f12a4d5079",
+        "page": 11,
+        "quote": "Em 9 de janeiro de 1822, D. Pedro anunciou que ficaria no Brasil, contrariando a ordem das Cortes."
+       },
+       {
+        "material_id": "6ae58b99b00177f12a4d5079",
+        "page": 12,
+        "quote": "Em 7 de setembro de 1822, às margens do riacho do Ipiranga, em São Paulo, D. Pedro recebeu essas cartas e declarou o rompimento com Portugal."
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 240,
+   "message": {
+    "type": "action",
+    "order": 2,
+    "action": {
+     "id": "h2",
+     "name": "draw",
+     "args": {
+      "id": "navio_1808",
+      "column": "visuals",
+      "prompt": "A frota da Corte portuguesa chegando ao Rio de Janeiro em 1808",
+      "is_structured": false,
+      "max_dimensions": {
+       "w": 520,
+       "h": 390
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 360,
+   "message": {
+    "type": "action",
+    "order": 3,
+    "action": {
+     "id": "h3",
+     "name": "highlight",
+     "args": {
+      "target_id": "da_corte_a_independencia",
+      "color": "yellow",
+      "text_to_match": "abriu os portos"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 480,
+   "message": {
+    "type": "action",
+    "order": 4,
+    "action": {
+     "id": "h4",
+     "name": "write_timeline",
+     "args": {
+      "id": "linha_imperio",
+      "column": "main",
+      "events": [
+       {
+        "date": "1808",
+        "label": "A Corte chega ao Rio e os portos são abertos"
+       },
+       {
+        "date": "1815",
+        "label": "Brasil elevado a Reino Unido a Portugal e Algarves"
+       },
+       {
+        "date": "1822",
+        "label": "Dia do Fico (9/1) e Grito do Ipiranga (7/9)"
+       },
+       {
+        "date": "1824",
+        "label": "D. Pedro I outorga a Constituição (25/3)"
+       },
+       {
+        "date": "1831",
+        "label": "D. Pedro I abdica; começa o Período Regencial"
+       },
+       {
+        "date": "1840",
+        "label": "Golpe da Maioridade (23/7) encerra a Regência"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 600,
+   "message": {
+    "type": "action",
+    "order": 5,
+    "action": {
+     "id": "h5",
+     "name": "draw_result",
+     "args": {
+      "element_id": "navio_1808",
+      "url": "/demo/history-navio-1808.svg"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 720,
+   "message": {
+    "type": "action",
+    "order": 6,
+    "action": {
+     "id": "h6",
+     "name": "speak",
+     "args": {
+      "text": "Repare no ano de 1822: é o coração da linha do tempo. Mas a Independência não aconteceu num dia só.",
+      "purpose": "explain",
+      "sources": [
+       {
+        "material_id": "6ae58b99b00177f12a4d5079",
+        "page": 14,
+        "quote": "A Independência do Brasil foi o resultado de um processo que começou bem antes de 1822 e só terminou depois."
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 840,
+   "message": {
+    "type": "action",
+    "order": 7,
+    "action": {
+     "id": "h7",
+     "name": "circle_annotate",
+     "args": {
+      "target_id": "linha_imperio",
+      "text_to_match": "1822",
+      "color": "red"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 960,
+   "message": {
+    "type": "action",
+    "order": 8,
+    "action": {
+     "id": "h8",
+     "name": "highlight",
+     "args": {
+      "target_id": "da_corte_a_independencia",
+      "color": "pink",
+      "text_to_match": "Grito do Ipiranga"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1080,
+   "message": {
+    "type": "action",
+    "order": 9,
+    "action": {
+     "id": "h9",
+     "name": "draw",
+     "args": {
+      "id": "grito_ipiranga",
+      "column": "visuals",
+      "prompt": "D. Pedro a cavalo às margens do riacho do Ipiranga, 7 de setembro de 1822",
+      "is_structured": false,
+      "max_dimensions": {
+       "w": 520,
+       "h": 390
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1200,
+   "message": {
+    "type": "action",
+    "order": 10,
+    "action": {
+     "id": "h10",
+     "name": "write_text",
+     "args": {
+      "id": "voce_sabia",
+      "column": "side",
+      "html": "<h3>Você sabia?</h3><p>A pintura famosa de D. Pedro erguendo a espada foi feita <b>décadas depois</b>. É uma interpretação artística, não um registro fiel daquele dia.</p><p>Pergunte sempre: <b>quem</b> fez a imagem, <b>quando</b> e <b>para quê</b>?</p>",
+      "sources": [
+       {
+        "material_id": "6ae58b99b00177f12a4d5079",
+        "page": 12,
+        "quote": "Ela é uma interpretação artística, criada para celebrar a Independência, e não um registro fiel do que aconteceu naquele dia."
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1320,
+   "message": {
+    "type": "action",
+    "order": 11,
+    "action": {
+     "id": "h11",
+     "name": "draw_diagram",
+     "args": {
+      "id": "causas_consequencias",
+      "column": "visuals",
+      "title": "Causas e consequências da Independência",
+      "frame": "wide",
+      "view": {
+       "w": 160,
+       "h": 100
+      },
+      "shapes": [
+       {
+        "id": "h_causas",
+        "kind": "text",
+        "x": 80,
+        "y": 5.8,
+        "text": "CAUSAS",
+        "size": "s",
+        "color": "blue"
+       },
+       {
+        "id": "portos",
+        "kind": "rect",
+        "x": 3,
+        "y": 9.3,
+        "w": 48,
+        "h": 20,
+        "angle": 0,
+        "fill": "soft",
+        "color": "blue",
+        "label": {
+         "text": "Portos abertos",
+         "x": 27,
+         "y": 19.3,
+         "size": "m"
+        }
+       },
+       {
+        "id": "portos_s",
+        "kind": "text",
+        "x": 27,
+        "y": 25.8,
+        "text": "1808",
+        "size": "s",
+        "color": "blue"
+       },
+       {
+        "id": "reino",
+        "kind": "rect",
+        "x": 56,
+        "y": 9.3,
+        "w": 48,
+        "h": 20,
+        "angle": 0,
+        "fill": "soft",
+        "color": "blue",
+        "label": {
+         "text": "Reino Unido",
+         "x": 80,
+         "y": 19.3,
+         "size": "m"
+        }
+       },
+       {
+        "id": "reino_s",
+        "kind": "text",
+        "x": 80,
+        "y": 25.8,
+        "text": "1815",
+        "size": "s",
+        "color": "blue"
+       },
+       {
+        "id": "cortes",
+        "kind": "rect",
+        "x": 109,
+        "y": 9.3,
+        "w": 48,
+        "h": 20,
+        "angle": 0,
+        "fill": "soft",
+        "color": "blue",
+        "label": {
+         "text": "Recolonização",
+         "x": 133,
+         "y": 19.3,
+         "size": "m"
+        }
+       },
+       {
+        "id": "cortes_s",
+        "kind": "text",
+        "x": 133,
+        "y": 25.8,
+        "text": "Cortes, 1821",
+        "size": "s",
+        "color": "blue"
+       },
+       {
+        "id": "independencia",
+        "kind": "rect",
+        "x": 46,
+        "y": 39.3,
+        "w": 68,
+        "h": 20,
+        "angle": 0,
+        "fill": "soft",
+        "color": "red",
+        "label": {
+         "text": "Independência",
+         "x": 80,
+         "y": 49.3,
+         "size": "m"
+        }
+       },
+       {
+        "id": "independencia_s",
+        "kind": "text",
+        "x": 80,
+        "y": 55.8,
+        "text": "7 de setembro de 1822",
+        "size": "s",
+        "color": "red"
+       },
+       {
+        "id": "imperio",
+        "kind": "rect",
+        "x": 3,
+        "y": 69.3,
+        "w": 48,
+        "h": 20,
+        "angle": 0,
+        "fill": "soft",
+        "color": "green",
+        "label": {
+         "text": "Império",
+         "x": 27,
+         "y": 79.3,
+         "size": "m"
+        }
+       },
+       {
+        "id": "imperio_s",
+        "kind": "text",
+        "x": 27,
+        "y": 85.8,
+        "text": "D. Pedro I",
+        "size": "s",
+        "color": "green"
+       },
+       {
+        "id": "escravidao",
+        "kind": "rect",
+        "x": 56,
+        "y": 69.3,
+        "w": 48,
+        "h": 20,
+        "angle": 0,
+        "fill": "soft",
+        "color": "green",
+        "label": {
+         "text": "Escravidão",
+         "x": 80,
+         "y": 79.3,
+         "size": "m"
+        }
+       },
+       {
+        "id": "escravidao_s",
+        "kind": "text",
+        "x": 80,
+        "y": 85.8,
+        "text": "foi mantida",
+        "size": "s",
+        "color": "green"
+       },
+       {
+        "id": "guerras",
+        "kind": "rect",
+        "x": 109,
+        "y": 69.3,
+        "w": 48,
+        "h": 20,
+        "angle": 0,
+        "fill": "soft",
+        "color": "green",
+        "label": {
+         "text": "Guerras",
+         "x": 133,
+         "y": 79.3,
+         "size": "m"
+        }
+       },
+       {
+        "id": "guerras_s",
+        "kind": "text",
+        "x": 133,
+        "y": 85.8,
+        "text": "1822 a 1824",
+        "size": "s",
+        "color": "green"
+       },
+       {
+        "x1": 27,
+        "y1": 29.3,
+        "x2": 62,
+        "y2": 38.8,
+        "id": "a1",
+        "kind": "arrow",
+        "color": "ink"
+       },
+       {
+        "x1": 80,
+        "y1": 29.3,
+        "x2": 80,
+        "y2": 38.8,
+        "id": "a2",
+        "kind": "arrow",
+        "color": "ink"
+       },
+       {
+        "x1": 133,
+        "y1": 29.3,
+        "x2": 98,
+        "y2": 38.8,
+        "id": "a3",
+        "kind": "arrow",
+        "color": "ink"
+       },
+       {
+        "x1": 80,
+        "y1": 59.3,
+        "x2": 34,
+        "y2": 68.8,
+        "id": "a4",
+        "kind": "arrow",
+        "color": "ink"
+       },
+       {
+        "x1": 80,
+        "y1": 59.3,
+        "x2": 80,
+        "y2": 68.8,
+        "id": "a5",
+        "kind": "arrow",
+        "color": "ink"
+       },
+       {
+        "x1": 80,
+        "y1": 59.3,
+        "x2": 126,
+        "y2": 68.8,
+        "id": "a6",
+        "kind": "arrow",
+        "color": "ink"
+       },
+       {
+        "id": "h_consequencias",
+        "kind": "text",
+        "x": 80,
+        "y": 93.8,
+        "text": "CONSEQUÊNCIAS",
+        "size": "s",
+        "color": "green"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1440,
+   "message": {
+    "type": "action",
+    "order": 12,
+    "action": {
+     "id": "h12",
+     "name": "speak",
+     "args": {
+      "text": "No quadro de causas e consequências, olha a escravidão: o país ficou independente, mas ela foi mantida.",
+      "purpose": "explain",
+      "sources": [
+       {
+        "material_id": "6ae58b99b00177f12a4d5079",
+        "page": 14,
+        "quote": "Interesse das elites em manter o poder e a escravidão"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1560,
+   "message": {
+    "type": "action",
+    "order": 13,
+    "action": {
+     "id": "h13",
+     "name": "circle_annotate",
+     "args": {
+      "target_id": "causas_consequencias",
+      "text_to_match": "Escravidão",
+      "color": "blue"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1680,
+   "message": {
+    "type": "action",
+    "order": 14,
+    "action": {
+     "id": "h14",
+     "name": "highlight",
+     "args": {
+      "target_id": "causas_consequencias",
+      "color": "yellow",
+      "shape_id": "independencia"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1800,
+   "message": {
+    "type": "action",
+    "order": 15,
+    "action": {
+     "id": "h15",
+     "name": "draw_result",
+     "args": {
+      "element_id": "grito_ipiranga",
+      "url": "/demo/history-ipiranga.svg"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1920,
+   "message": {
+    "type": "action",
+    "order": 16,
+    "action": {
+     "id": "h16",
+     "name": "write_text",
+     "args": {
+      "id": "primeiro_reinado_regencia",
+      "column": "main",
+      "html": "<h3>Depois de 1822: Primeiro Reinado e Regência</h3><ol><li>Em 1824, D. Pedro I <b>outorga</b> a Constituição, com o <b>Poder Moderador</b> nas mãos do imperador.</li><li>Crise, guerra da Cisplatina e inflação: em 7 de abril de 1831, ele <b>abdica</b> em favor do filho de 5 anos.</li><li>De 1831 a 1840, regentes governam e explodem <b>revoltas</b> em várias províncias.</li></ol>",
+      "sources": [
+       {
+        "material_id": "6ae58b99b00177f12a4d5079",
+        "page": 16,
+        "quote": "O texto foi outorgado em 25 de março de 1824."
+       },
+       {
+        "material_id": "6ae58b99b00177f12a4d5079",
+        "page": 19,
+        "quote": "Em 7 de abril de 1831, D. Pedro I abdicou"
+       },
+       {
+        "material_id": "6ae58b99b00177f12a4d5079",
+        "page": 20,
+        "quote": "O período entre 1831 e 1840 ficou conhecido como Período Regencial"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2040,
+   "message": {
+    "type": "action",
+    "order": 17,
+    "action": {
+     "id": "h17",
+     "name": "highlight",
+     "args": {
+      "target_id": "primeiro_reinado_regencia",
+      "color": "green",
+      "text_to_match": "Poder Moderador"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2160,
+   "message": {
+    "type": "action",
+    "order": 18,
+    "action": {
+     "id": "h18",
+     "name": "circle_annotate",
+     "args": {
+      "target_id": "primeiro_reinado_regencia",
+      "text_to_match": "7 de abril de 1831",
+      "color": "green"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2280,
+   "message": {
+    "type": "action",
+    "order": 19,
+    "action": {
+     "id": "h19",
+     "name": "ask_verification",
+     "args": {
+      "id": "q_linha_imperio",
+      "column": "main",
+      "concept": "Cronologia da Independência",
+      "question": "Em que lugar da linha do tempo entra a Revolução Liberal do Porto, que exigiu a volta de D. João VI a Portugal? Diga o ano e entre quais eventos ela fica.",
+      "kind": "place_on_timeline",
+      "verification_id": "ver_demo_historia",
+      "concept_key": "cronologia da independencia"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2400,
+   "message": {
+    "type": "action",
+    "order": 20,
+    "action": {
+     "id": "h20",
+     "name": "speak",
+     "args": {
+      "text": "Agora é com você: encaixa a Revolução do Porto na linha do tempo!",
+      "purpose": "question"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2520,
+   "message": {
+    "type": "script_done",
+    "turn_id": "demo_history_turn"
+   }
+  },
+  {
+   "at_ms": 2540,
+   "message": {
+    "type": "turn_done",
+    "turn_id": "demo_history_turn"
+   }
+  }
+ ]
+}
