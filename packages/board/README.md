@@ -8,23 +8,22 @@ Board renderer, action queue, SSE client, speech queue. Client-safe only.
 
 ## Turn protocol mirror and mock mode
 
-- `src/protocol.ts`: local Zod mirror of the turn protocol and start-screen shapes (docs/16 §3–4, workstreams/contracts-spec.md). Strict, snake_case, closed enums. Shapes marked `PROPOSAL` are not in the spec yet (`turn_id` / `error` stream messages, `ask_verification.id/verification_id/choices`, `MaterialSummary` fields). Person 3 can move these into `@mento/contracts`.
-- `fixtures/*.json`: Rome turn scripts (arrays of `TurnStreamMessage`, fictional pt-BR content), validated in `src/protocol.test.ts`.
-- `src/mock/`: `MOCK_STUDENTS`, `MOCK_MATERIALS`, `FIXTURE_TURNS` and `pickFixture(req, turnIndex)`.
+- `src/protocol.ts`: local mirror of Person 3's planned `@mento/contracts` (PR #5, plan wb-1: citation, actions, speech, stream, events, fixtures). Same names, shapes and limits; delete it and import from `@mento/contracts` once that lands. The start-screen shapes at the end (`StudentSummary`, `MaterialSummary`, `CreateSessionRequest`…) are Person 1's and not in PR #5.
+- `fixtures/*.json`: Rome turns in the `FixtureTurn` format (`{ description, messages: [{ at_ms, message }] }`, fictional pt-BR content): `rome-intro`, `click-and-ask`, `wrong-answer`, `outside-material`. Validated in `src/protocol.test.ts`.
+- `src/mock/`: `MOCK_STUDENTS`, `MOCK_MATERIALS`, `FIXTURE_TURNS`, `pickFixture(req, turnIndex)` and `replayFixture(name, { signal })` (honors `at_ms`; returns quietly on abort).
 - `apps/web/src/lib/api.ts` replays the fixtures when `NEXT_PUBLIC_MOCK_API=1` is set in the root `.env`.
 
 ## Board core (T2 + T3)
 
 | Folder | What |
 |---|---|
-| `src/store/` | `BoardState` (elements by id + per-column order), pure `applyAction(state, action)`, `createBoardStore` with per-element / per-column subscriptions, `useBoardElement` / `useBoardColumn`. Unknown target ids never throw: they go to `onWarning`. |
-| `src/sanitize/` | DOMPurify allowlists: `sanitizeHtml` (h1–h3, p, b, i, br, ul, ol, li, span; `class` only) and `sanitizeSvg` (basic shapes, presentational attributes, no `url(`). Returns `""` without a DOM. Student text is rendered as text, never through here. |
-| `src/speech/` | `SpeechPlayer` (handoffs §2 mirror + optional `progress`/`pause`/`resume`) and `TextSpeechPlayer` (reading time ~15 chars/s, 1.2–8 s). |
-| `src/queue/` | `createActionQueue`: plays strictly by `order`, `speak` gates, `draw` does not, svg chunks applied on `draw_result` or `done`, `pause`/`resume`, synchronous `interrupt()` → `Interrupted` payload. States: idle, thinking, playing, waiting_answer, paused. Override a handler with `handlers: { name: fn }`; add an animation with `reveal: { write_text: hook }`. |
-| `src/renderers/` | `basicRenderers` per element type; replace one with `{ ...basicRenderers, text: MyText }` passed to `<Board renderers>`. |
-| `src/board/` | `<Board store>`: columns main / visuals / side, memoized `ElementFrame` (`data-element-id`, `data-element-type`, `tabIndex=0`), auto-scroll to the newest element (paused 4 s after manual scroll). |
-| `src/session/` | `useTurnPlayer({ sessionId, streamTurn })`: one store + queue; `sendTurn` cuts any running turn and sends `interrupted`. |
-| `src/mock/` | `replayFixture(messages, signal)`: fixture replay with realistic timing (also used by `apps/web/src/lib/api.ts`). |
+| `src/store/` | `BoardState` (elements by id + per-column order), pure `applyAction(state, action)` and `applySvg` (streamed drawings), `createBoardStore` with per-element / per-column subscriptions, `useBoardElement` / `useBoardColumn`. Element types: text, timeline, image, svg, question. Unknown target ids never throw: they go to `onWarning`. |
+| `src/sanitize/` | DOMPurify allowlists: `sanitizeHtml` (h1–h3, p, b, i, br, ul, ol, li, span; no attributes) and `sanitizeSvg` (basic shapes, presentational attributes, no `url(`). Returns `""` without a DOM. Student text is rendered as text, never through here. |
+| `src/speech/` | `SpeechClock` + `TextSpeechPlayer` (text mode: reading time ~15 chars/s, 1.2–8 s; `progress`/`pause`/`resume`). In voice mode the queue plays `speak.audio_url` through the protocol's `SpeechPlayer` (`audio` option). |
+| `src/queue/` | `createActionQueue` over `StreamMessage`: plays strictly by `order`; `speak` gates, `draw` does not. `script_done` ends the script (state → idle or waiting_answer); late actions (`draw_result`) still play until `turn_done`. `svg_chunk`s (200 KB cap per element) are applied on `turn_done`. `speech_alignment` is kept per action (`onAlignment`, `getAlignment`). `error` → `onError({ code, message, recoverable })`; non-recoverable ends the turn. `pause`/`resume`; synchronous `interrupt()` → `{ turn_id, action_id?, spoken_ms?, spoken_chars? }`, or null while the turn id is unknown (it only arrives with `script_done`). Override a handler with `handlers: { name: fn }`; add an animation with `reveal: { write_text: hook }`. |
+| `src/renderers/` | `basicRenderers` per element type; replace one with `{ ...basicRenderers, text: MyText }` passed to `<Board renderers>`. Image URLs must be http(s) on `assetBaseUrl`'s origin. |
+| `src/board/` | `<Board store assetBaseUrl>`: columns main / visuals / side, memoized `ElementFrame` (`data-element-id`, `data-element-type`, `tabIndex=0`), auto-scroll to the newest element (paused 4 s after manual scroll). |
+| `src/session/` | `useTurnPlayer({ sessionId, streamTurn })`: one store + queue; `sendTurn` cuts any running turn and sends `interrupted`. A cut turn whose script was done keeps its stream open only to deliver late `draw_result`s. |
 
 Try it: `/dev/board` replays each fixture locally (no API needed).
 

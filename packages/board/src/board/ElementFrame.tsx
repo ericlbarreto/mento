@@ -2,9 +2,15 @@
 
 import { type ComponentType, memo } from "react";
 import type { RendererMap, RendererProps } from "../renderers";
-import { type BoardStore, useBoardElement } from "../store";
+import { type BoardStore, type HighlightColor, useBoardElement } from "../store";
 
-const markerBg = { yellow: "var(--marker-yellow)", blue: "var(--marker-blue)" } as const;
+// Board markers: yellow/blue are design tokens; green/pink are local soft tints until @mento/ui adds them.
+const markerBg: Record<HighlightColor, string> = {
+  yellow: "var(--marker-yellow)",
+  blue: "var(--marker-blue)",
+  green: "#cdeccf",
+  pink: "#fbd3e4",
+};
 
 /**
  * One board element: subscribes to its own id only, so a new element never re-renders this one.
@@ -32,7 +38,7 @@ export const ElementFrame = memo(function ElementFrame({
       data-status={element.status}
       tabIndex={0}
       className="relative rounded-(--radius-sm) px-2 py-1 outline-none transition-[background-color,box-shadow] duration-(--dur-slow) ease-(--ease-out) focus-visible:shadow-(--focus-ring)"
-      style={highlight ? { backgroundColor: markerBg[highlight.color as keyof typeof markerBg] } : undefined}
+      style={highlight?.kind === "highlight" ? { backgroundColor: markerBg[highlight.color] } : undefined}
     >
       {Renderer ? <Renderer element={element} /> : null}
       {element.outside_material && (

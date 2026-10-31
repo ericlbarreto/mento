@@ -1,46 +1,42 @@
 // Board state shapes (docs/16 §5.1): elements keyed by id + per-column order.
+import type { z } from "zod";
 import type {
-  AnnotateColor,
+  AskVerificationArgs,
   Citation,
+  CircleAnnotateArgs,
   Column,
   DrawArgs,
-  HighlightColor,
-  TimelineEvent,
-  VerificationKind,
+  HighlightArgs,
+  WriteTimelineArgs,
 } from "../protocol";
 
-export type ElementType = "text" | "timeline" | "image" | "svg" | "latex" | "question";
+export type ElementType = "text" | "timeline" | "image" | "svg" | "question";
 export type Author = "tutor" | "student";
 
-export interface Annotation {
-  kind: "highlight" | "circle";
-  color: HighlightColor | AnnotateColor;
-  text_to_match?: string;
-  action_id: string;
-}
+export type HighlightColor = z.infer<typeof HighlightArgs>["color"];
+export type CircleColor = z.infer<typeof CircleAnnotateArgs>["color"];
 
-/** `draw` placeholder and its late result share one shape; `type` flips image/svg on the result. */
+export type Annotation =
+  | { kind: "highlight"; color: HighlightColor; action_id: string }
+  | { kind: "circle"; color: CircleColor; text_to_match: string; action_id: string };
+
+/** `draw` placeholder and its late result share one shape; `type` is image (url) or svg (streamed). */
 export interface DrawData {
   prompt: string;
   is_structured: boolean;
-  max_dimensions: DrawArgs["max_dimensions"];
+  max_dimensions: z.infer<typeof DrawArgs>["max_dimensions"];
   url?: string;
   svg?: string;
 }
 
+type VerificationArgs = z.infer<typeof AskVerificationArgs>;
+
 export interface ElementDataByType {
   text: { html: string };
-  timeline: { events: TimelineEvent[] };
+  timeline: { events: z.infer<typeof WriteTimelineArgs>["events"] };
   image: DrawData;
   svg: DrawData;
-  latex: { latex: string };
-  question: {
-    verification_id: string;
-    concept: string;
-    question: string;
-    kind: VerificationKind;
-    choices?: string[];
-  };
+  question: Pick<VerificationArgs, "verification_id" | "concept" | "concept_key" | "question" | "kind">;
 }
 
 interface ElementBase<T extends ElementType> {
@@ -50,7 +46,7 @@ interface ElementBase<T extends ElementType> {
   column: Column;
   created_at: number;
   data: ElementDataByType[T];
-  /** Only for `draw` elements: placeholder until `draw_result` arrives. */
+  /** Only for `draw` elements: placeholder until the drawing arrives. */
   status?: "placeholder" | "ready";
   sources?: Citation[];
   outside_material?: boolean;

@@ -1,6 +1,6 @@
 "use client";
 
-// Replays fixtures locally (no API, whatever NEXT_PUBLIC_MOCK_API says): the "message" text is the fixture name.
+// Replays fixtures locally (no API, whatever NEXT_PUBLIC_MOCK_API says) through the real queue and board.
 import {
   Board,
   FIXTURE_TURNS,
@@ -11,17 +11,10 @@ import {
   useTurnPlayer,
 } from "@mento/board";
 import { Badge, Button } from "@mento/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const fixtureNames = Object.keys(FIXTURE_TURNS) as FixtureName[];
 
-const isFixture = (name: string): name is FixtureName => name in FIXTURE_TURNS;
-
-const replayStream: StreamTurn = (_sessionId, req, opts) => {
-  const first = req.appended[0];
-  const name = first?.name === "user_message" ? first.text : "";
-  return replayFixture(isFixture(name) ? FIXTURE_TURNS[name] : [], opts?.signal);
-};
 
 const stateLabel: Record<QueueState, string> = {
   idle: "Parado",
@@ -32,14 +25,22 @@ const stateLabel: Record<QueueState, string> = {
 };
 
 export function BoardPlayground() {
+  const fixture = useRef<FixtureName>("rome-intro");
+  // Stable: reads the fixture chosen by the last click.
+  const [replayStream] = useState(() => {
+    const stream: StreamTurn = (_sessionId, _req, opts) => replayFixture(fixture.current, { signal: opts?.signal });
+    return stream;
+  });
   const player = useTurnPlayer({ sessionId: "dev", streamTurn: replayStream });
   const [lastInterrupted, setLastInterrupted] = useState<string | null>(null);
   // Fixtures reference this app's /brand files.
   const [assetBaseUrl, setAssetBaseUrl] = useState("");
   useEffect(() => setAssetBaseUrl(window.location.origin), []);
 
-  const play = (name: FixtureName) =>
-    void player.sendTurn({ appended: [{ name: "user_message", kind: "chat", text: name }], modality: "text" });
+  const play = (name: FixtureName) => {
+    fixture.current = name;
+    void player.sendTurn({ appended: [], modality: "text" });
+  };
 
   return (
     <main className="flex h-dvh flex-col bg-(--paper)">

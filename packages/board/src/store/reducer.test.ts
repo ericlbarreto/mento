@@ -1,12 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import { FIXTURE_TURNS } from "../mock";
-import type { TutorAction } from "../protocol";
-import { applyAction, applyActions } from "./reducer";
+import type { Action } from "../protocol";
+import { applyAction, applyActions, applySvg } from "./reducer";
 import { createBoardStore } from "./store";
 import { emptyBoard } from "./types";
 
-const actionsOf = (name: keyof typeof FIXTURE_TURNS): TutorAction[] =>
-  FIXTURE_TURNS[name].flatMap((m) => ("action" in m ? [m] : [])).sort((a, b) => a.order - b.order).map((m) => m.action);
+const actionsOf = (name: keyof typeof FIXTURE_TURNS): Action[] =>
+  FIXTURE_TURNS[name].messages
+    .flatMap(({ message: m }) => (m.type === "action" ? [m] : []))
+    .sort((a, b) => a.order - b.order)
+    .map((m) => m.action);
 
 const types = (s: ReturnType<typeof emptyBoard>) => [...s.elements.values()].map((e) => `${e.id}:${e.type}`);
 
@@ -18,20 +21,21 @@ describe("applyAction with the Rome fixtures", () => {
       "title:text",
       "colosseum:image",
       "timeline_rome:timeline",
-      "el_republic_end:text",
-      "el_q_republic_end:question",
+      "republic_end:text",
+      "q_republic_end:question",
     ]);
-    expect(s.columns.main).toEqual(["title", "timeline_rome", "el_republic_end", "el_q_republic_end"]);
+    expect(s.columns.main).toEqual(["title", "timeline_rome", "republic_end", "q_republic_end"]);
+    expect(s.elements.get("q_republic_end")?.data).toMatchObject({ verification_id: "ver_1", kind: "explain" });
     expect(s.columns.visuals).toEqual(["colosseum"]);
     expect(s.elements.get("title")?.annotations).toEqual([{ kind: "highlight", color: "yellow", action_id: "act_intro_2" }]);
     expect(s.elements.get("timeline_rome")?.annotations[0]).toMatchObject({ kind: "circle", text_to_match: "27 a.C.", color: "red" });
-    expect(s.elements.get("el_republic_end")?.sources?.[0]?.page).toBe(12);
+    expect(s.elements.get("republic_end")?.sources?.[0]?.page).toBe(12);
 
-    for (const name of ["rome-click-27bc", "rome-wrong-answer", "rome-outside-material"] as const) {
+    for (const name of ["click-and-ask", "wrong-answer", "outside-material"] as const) {
       s = applyActions(s, actionsOf(name), { onWarning });
     }
-    expect(s.columns.side).toEqual(["el_side_27bc", "el_outside"]);
-    expect(s.columns.main).toContain("el_reexplain");
+    expect(s.columns.side).toEqual(["side_27bc", "outside_colosseum"]);
+    expect(s.columns.main).toContain("reexplain");
     expect(s.elements.get("timeline_rome")?.annotations).toHaveLength(2);
     expect(onWarning).not.toHaveBeenCalled();
   });
@@ -46,8 +50,11 @@ describe("applyAction with the Rome fixtures", () => {
     const s2 = applyAction(s1, result);
     expect(s2.elements.get("colosseum")).toMatchObject({ type: "image", status: "ready", data: { url: "/brand/mascot.png" } });
 
-    const svg = applyAction(s1, { id: "a", name: "draw_result", args: { element_id: "colosseum", svg: "<svg></svg>" } });
+    const svg = applySvg(s1, "colosseum", "<svg></svg>");
     expect(svg.elements.get("colosseum")).toMatchObject({ type: "svg", status: "ready", data: { svg: "<svg></svg>" } });
+    const onWarning = vi.fn();
+    expect(applySvg(s1, "nope", "<svg></svg>", { onWarning })).toBe(s1);
+    expect(onWarning).toHaveBeenCalledOnce();
   });
 
   it("updates and removes elements", () => {
@@ -61,13 +68,14 @@ describe("applyAction with the Rome fixtures", () => {
 
   it("warns (never throws) on unknown targets and leaves the board unchanged", () => {
     const onWarning = vi.fn();
-    const s = emptyBoard();
-    const bad: TutorAction[] = [
+    const s = applyAction(emptyBoard(), { id: "a0", name: "write_text", args: { id: "title", column: "main", html: "<h1>x</h1>" } });
+    const bad: Action[] = [
       { id: "b1", name: "highlight", args: { target_id: "nope", color: "yellow" } },
       { id: "b2", name: "circle_annotate", args: { target_id: "nope", text_to_match: "x", color: "red" } },
       { id: "b3", name: "update_element", args: { id: "nope", html: "<p>x</p>" } },
       { id: "b4", name: "remove_element", args: { id: "nope" } },
       { id: "b5", name: "draw_result", args: { element_id: "nope", url: "/x.png" } },
+      { id: "b6", name: "draw_result", args: { element_id: "title", url: "/x.png" } }, // not a drawing
     ];
     for (const a of bad) expect(applyAction(s, a, { onWarning })).toBe(s);
     expect(onWarning).toHaveBeenCalledTimes(bad.length);

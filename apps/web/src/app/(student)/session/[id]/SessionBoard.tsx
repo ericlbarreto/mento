@@ -29,10 +29,8 @@ export function SessionBoard({ sessionId, topic }: { sessionId: string; topic?: 
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    const first: TurnInput = {
-      appended: [{ name: "user_message", kind: "chat", text: "Vamos começar!" }],
-      modality: "text",
-    };
+    // Opening turn: no student message; the tutor starts from the session (topic set at createSession).
+    const first: TurnInput = { modality: "text", appended: [] };
     lastRequest.current = first;
     void sendTurn(first);
   }, [sendTurn]);

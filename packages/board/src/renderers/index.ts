@@ -1,5 +1,4 @@
 import { DrawRenderer } from "./basic/DrawRenderer";
-import { LatexRenderer } from "./basic/LatexRenderer";
 import { QuestionRenderer } from "./basic/QuestionRenderer";
 import { TextRenderer } from "./basic/TextRenderer";
 import { TimelineRenderer } from "./basic/TimelineRenderer";
@@ -14,6 +13,5 @@ export const basicRenderers: RendererMap = {
   timeline: TimelineRenderer,
   image: DrawRenderer,
   svg: DrawRenderer,
-  latex: LatexRenderer,
   question: QuestionRenderer,
 };

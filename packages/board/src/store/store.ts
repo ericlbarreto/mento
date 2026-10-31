@@ -1,7 +1,7 @@
 // Board store: the reducer behind fine-grained subscriptions, so React components can subscribe to one
 // element or one column (useSyncExternalStore) and adding an element never re-renders the others.
-import type { Column, TutorAction } from "../protocol";
-import { applyAction } from "./reducer";
+import type { Action, Column } from "../protocol";
+import { applyAction, applySvg } from "./reducer";
 import { type BoardState, COLUMNS, type ElementState, emptyBoard } from "./types";
 
 type Listener = () => void;
@@ -10,7 +10,9 @@ export interface BoardStore {
   getState(): BoardState;
   getElement(id: string): ElementState | undefined;
   getColumn(column: Column): readonly string[];
-  dispatch(action: TutorAction): void;
+  dispatch(action: Action): void;
+  /** Completes a streamed (svg_chunk) drawing. */
+  applySvg(element_id: string, svg: string): void;
   reset(): void;
   /** Any change. */
   subscribe(listener: Listener): () => void;
@@ -64,6 +66,7 @@ export function createBoardStore(opts: BoardStoreOptions = {}): BoardStore {
     getElement: (id) => state.elements.get(id),
     getColumn: (column) => state.columns[column],
     dispatch: (action) => commit(applyAction(state, action, { onWarning: opts.onWarning })),
+    applySvg: (element_id, svg) => commit(applySvg(state, element_id, svg, { onWarning: opts.onWarning })),
     reset: () => commit(emptyBoard()),
     subscribe: (listener) => {
       all.add(listener);

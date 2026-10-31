@@ -1,25 +1,17 @@
-// SpeechPlayer: local mirror of the interface in workstreams/handoffs-and-insights-pipeline.md §2.
-// Person 3 implements the voice player; this file owns the text-mode default (`TextSpeechPlayer`).
+// Text-mode speech clock. In voice mode the queue plays `speak.audio_url` through the protocol's
+// `SpeechPlayer` (implemented in @mento/voice/client); without audio, each line "lasts" its reading time.
 // `speak` is the clock of the action queue: it resolves when the line is "finished".
 
-export interface SpeechWord {
-  word: string;
-  start_ms: number;
-  end_ms: number;
-}
-
-export interface SpeechPlayer {
+export interface SpeechClock {
   /** Resolves when finished, or as soon as `stop()` is called. */
-  speak(text: string, opts?: { style?: string; voice?: string }): Promise<void>;
+  speak(text: string, opts?: { style?: string }): Promise<void>;
   stop(): void;
-  onWord?(cb: (w: SpeechWord) => void): void;
-  /** 0..1 output amplitude for the orb. */
-  level?(): number;
-  // Local additions (optional, so any handoff-§2 player still fits):
   /** 0..1 share of the current line already spoken (for `interrupted.spoken_chars`). */
   progress?(): number;
   pause?(): void;
   resume?(): void;
+  /** 0..1 pseudo-amplitude for the orb. */
+  level?(): number;
 }
 
 const CHARS_PER_SECOND = 15;
@@ -32,7 +24,7 @@ export function readingTimeMs(text: string): number {
 }
 
 /** Text mode: no audio; each line "lasts" its reading time so the board keeps a natural pace. */
-export class TextSpeechPlayer implements SpeechPlayer {
+export class TextSpeechPlayer implements SpeechClock {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private finish: (() => void) | null = null;
   private duration = 0;
