@@ -1,4 +1,4 @@
-import { SessionDetailResponse } from "@mento/contracts";
+import { Event, SessionDetailResponse } from "@mento/contracts";
 import { describe, expect, it } from "vitest";
 import { replayEvents } from ".";
 import { applyActions, emptyBoard } from "../store";
@@ -96,5 +96,20 @@ describe("replayEvents", () => {
   it("a fresh session has nothing to replay", () => {
     const fresh = replayEvents(detail.events.slice(0, 1));
     expect(fresh).toEqual({ actions: [], transcript: [], openVerification: null, lastTurnId: null, tutorActionCount: 0 });
+  });
+  it("keeps a stored circle_annotate on its timeline after replay", () => {
+    // Stored shape of the live turn's actions (tutor_action payloads, same session).
+    const events = [
+      act("turn_9", 1, "act_9_1", "write_timeline", {
+        id: "linha_republica",
+        column: "main",
+        events: [{ date: "509 a.C.", label: "Data tradicional da implantação da República" }],
+      }),
+      act("turn_9", 2, "act_9_2", "circle_annotate", { target_id: "linha_republica", text_to_match: "509 a.C.", color: "red" }),
+    ];
+    const board = applyActions(emptyBoard(), replayEvents(events.map((e) => Event.parse(e))).actions);
+    expect(board.elements.get("linha_republica")?.annotations).toEqual([
+      { kind: "circle", color: "red", text_to_match: "509 a.C.", action_id: "act_9_2" },
+    ]);
   });
 });

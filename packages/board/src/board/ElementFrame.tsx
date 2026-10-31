@@ -1,8 +1,9 @@
 "use client";
 
-import { type ComponentType, memo } from "react";
+import { type ComponentType, memo, useMemo, useRef } from "react";
 import type { RendererMap, RendererProps } from "../renderers";
-import { type BoardStore, type HighlightColor, useBoardElement } from "../store";
+import { type Annotation, type BoardStore, type HighlightColor, useBoardElement } from "../store";
+import { CircleLayer } from "./CircleLayer";
 
 // Board markers: yellow/blue are design tokens; green/pink are local soft tints until @mento/ui adds them.
 const markerBg: Record<HighlightColor, string> = {
@@ -26,6 +27,12 @@ export const ElementFrame = memo(function ElementFrame({
   renderers: RendererMap;
 }) {
   const element = useBoardElement(store, id);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const annotations = element?.annotations;
+  const circles = useMemo(
+    () => (annotations ?? []).filter((a): a is Extract<Annotation, { kind: "circle" }> => a.kind === "circle"),
+    [annotations],
+  );
   if (!element) return null;
   const Renderer = renderers[element.type] as ComponentType<RendererProps> | undefined;
   // Stand-in until the hand-drawn marker (T5): the latest highlight tints the element.
@@ -40,7 +47,8 @@ export const ElementFrame = memo(function ElementFrame({
       className="relative rounded-(--radius-sm) px-2 py-1 outline-none transition-[background-color,box-shadow] duration-(--dur-slow) ease-(--ease-out) focus-visible:shadow-(--focus-ring)"
       style={highlight?.kind === "highlight" ? { backgroundColor: markerBg[highlight.color] } : undefined}
     >
-      {Renderer ? <Renderer element={element} /> : null}
+      <div ref={contentRef}>{Renderer ? <Renderer element={element} /> : null}</div>
+      <CircleLayer contentRef={contentRef} circles={circles} version={element.data} />
       {element.outside_material && (
         <span className="mt-1 inline-flex rounded-(--radius-sm) bg-(--accent-soft) px-2 py-0.5 text-xs font-bold text-(--accent-ink)">
           Fora do material
