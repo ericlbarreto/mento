@@ -6,15 +6,15 @@ import {
   CreateSessionRequest,
   CreateSessionResponse,
   EndSessionRequest,
-  FIXTURE_TURNS,
   MOCK_MATERIALS,
   MOCK_STUDENTS,
   MaterialSummary,
   type SessionEndReason,
+  StreamMessage,
   StudentSummary,
   TurnRequest,
-  TurnStreamMessage,
   pickFixture,
+  replayFixture,
 } from "@mento/board";
 import { z } from "zod";
 
@@ -101,7 +101,7 @@ export async function endSession(
 // ---- Turns ----
 
 /**
- * Streams one tutor turn (docs/16 §3.2); every message is validated with TurnStreamMessage.
+ * Streams one tutor turn (`event: <type>` / `data: <StreamMessage>`); every message is validated with StreamMessage.
  * Abort (both modes): when `signal` aborts, the generator stops yielding and returns cleanly; it never
  * throws an AbortError. Other failures (HTTP status, invalid message) throw.
  */
@@ -109,7 +109,7 @@ export async function* streamTurn(
   session_id: string,
   req: TurnRequest,
   opts: { signal?: AbortSignal } = {},
-): AsyncGenerator<TurnStreamMessage> {
+): AsyncGenerator<StreamMessage> {
   const body = TurnRequest.parse(req);
   const { signal } = opts;
   if (MOCK_API) {
@@ -126,7 +126,7 @@ export async function* streamTurn(
     if (!res.ok) throw new Error(`API ${res.status} on /sessions/${session_id}/turn`);
     for await (const { data } of readSse(res)) {
       if (signal?.aborted) return;
-      yield TurnStreamMessage.parse(data);
+      yield StreamMessage.parse(data);
     }
   } catch (err) {
     if (signal?.aborted) return;
@@ -134,20 +134,11 @@ export async function* streamTurn(
   }
 }
 
-/** Replays a fixture with realistic timing (~1.2 s to the first action, 150–400 ms gaps, ~2.5 s before a draw_result). */
-async function* mockTurn(session_id: string, req: TurnRequest, signal?: AbortSignal): AsyncGenerator<TurnStreamMessage> {
+/** Replays the fixture `pickFixture` chooses for this session's turn (timing: each message's `at_ms`). */
+async function* mockTurn(session_id: string, req: TurnRequest, signal?: AbortSignal): AsyncGenerator<StreamMessage> {
   const turnIndex = mockTurnCounts.get(session_id) ?? 0;
   mockTurnCounts.set(session_id, turnIndex + 1);
-  let firstAction = true;
-  for (const msg of FIXTURE_TURNS[pickFixture(req, turnIndex)]) {
-    let wait = 150 + Math.random() * 250;
-    if ("turn_id" in msg) wait = 0;
-    else if ("action" in msg && firstAction) wait = 1200;
-    else if ("action" in msg && msg.action.name === "draw_result") wait = 2500;
-    if ("action" in msg) firstAction = false;
-    if (!(await delay(wait, signal))) return;
-    yield msg;
-  }
+  yield* replayFixture(pickFixture(req, turnIndex), { signal });
 }
 
 /** Resolves true after `ms`, or false as soon as `signal` aborts. */
