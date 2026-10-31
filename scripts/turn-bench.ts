@@ -1,6 +1,6 @@
 export {};
 
-// Usage: `pnpm turn:bench [runs]` (latency), or `pnpm turn:bench board` (D78: the board only when the reply continues
+// Usage: `pnpm turn:bench [runs]` (latency), or `pnpm turn:bench board` (D80: the board only when the reply continues
 // the lesson on it; also the pace of questions and pictures). BENCH_STUDENT sets the student id of the board session.
 const API = process.env.API_URL ?? "http://localhost:4000";
 const MODE = process.argv[2] === "board" ? "board" : "latency";
@@ -69,7 +69,7 @@ async function latencyBench() {
   console.log(`errors: ${errors}`);
 }
 
-// ---- Board-relevance mode (D78) ----
+// ---- Board-relevance mode (D80) ----
 // The board gets text only when the reply continues the lesson on it; side questions get a spoken answer; the
 // student can ask to put something on the board. Targets per category (board = any board action, pointing included):
 //   teaching ≥ 90 %, side (meta, off_topic, clarification) ≤ 20 %, board_request 100 % (and it writes something);
@@ -124,7 +124,7 @@ async function boardBench() {
       const d = m.data as { action?: { name: string; args: Record<string, unknown> } };
       return m.type === "action" && d.action ? [{ at: m.at, name: d.action.name, args: d.action.args }] : [];
     });
-    // The Plan C card (removed by D78) is still counted, so the run against the old engine is comparable.
+    // The Plan C card (removed by D80) is still counted, so the run against the old engine is comparable.
     const isFallback = (a: SeenAction) => a.name === "write_text" && String(a.args.id ?? "").startsWith("board_fallback_");
     const board = acts.filter((a) => BOARD.has(a.name));
     // A question is a speak with a question mark, or a verification card.

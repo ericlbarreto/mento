@@ -55,7 +55,7 @@ interface TurnState {
   material_ids?: string[];
   pending: Promise<unknown>[];
   ttsActions: string[];
-  /** Successful board actions of this reply (all rounds), for the log; a reply with none is valid (D78). */
+  /** Successful board actions of this reply (all rounds), for the log; a reply with none is valid (D80). */
   boardActions: number;
   firstBoardActionMs?: number;
   /** Name of the last action the model got onto the board or the voice (all rounds). */
@@ -89,7 +89,7 @@ const DRAW_REJECTED = "rejected: this reply already has its picture (at most one
 
 /**
  * A reply that stopped for tool results is complete when it asked a verification or ends on a speak (any purpose,
- * with or without anything on the board: a spoken-only answer is valid, D78). It is cut when it stopped on a board
+ * with or without anything on the board: a spoken-only answer is valid, D80). It is cut when it stopped on a board
  * action or before any speak.
  */
 function replyComplete(state: TurnState): boolean {

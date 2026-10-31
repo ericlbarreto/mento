@@ -57,7 +57,7 @@ describe("TurnEngine: the script", () => {
       stopEvent(),
     ]]);
     const { messages } = await run(engine, session, opening);
-    // only the valid speak passes (a spoken-only reply gets no card, D78)
+    // only the valid speak passes (a spoken-only reply gets no card, D80)
     expect(actionNames(messages)).toEqual(["speak"]);
     expect(messages.some((m) => m.type === "error")).toBe(false);
   });
@@ -364,7 +364,7 @@ describe("TurnEngine: pictures keep pace with the text", () => {
   });
 });
 
-describe("TurnEngine: the board only when it continues the lesson (D78)", () => {
+describe("TurnEngine: the board only when it continues the lesson (D80)", () => {
   const speakEv = (text: string, purpose?: string) => toolEvent("speak", { text, ...(purpose ? { purpose } : {}) });
   const writeEv = (id: string) => toolEvent("write_text", { id, column: "main", html: "<p>Roma</p>" });
   const actions = (ms: StreamMessage[]) => ms.flatMap((m) => (m.type === "action" ? [m.action] : []));

@@ -1,6 +1,6 @@
 # Plan C — Every tutor reply writes or draws on the board
 
-> **Partly superseded by D78 (2026-10-31):** the tutor no longer writes on the board in every reply, and the engine's held speak and `board_fallback_*` card are removed. The board gets text only when the reply continues the lesson on it; side questions get a voice-only answer, and the student can ask to put something on the board. See `docs/10-decisions.md` (D78).
+> **Partly superseded by D80 (2026-10-31):** the tutor no longer writes on the board in every reply, and the engine's held speak and `board_fallback_*` card are removed. The board gets text only when the reply continues the lesson on it; side questions get a voice-only answer, and the student can ask to put something on the board. See `docs/10-decisions.md` (D80).
 
 ## FINAL (merged after independent reviews: Minerva = acceptance with re-measured data, LLM-agent engineer = mechanism)
 Both reviewers reject the draft's "extra round after the question": the client plays actions in order behind each `speak`, so anything added after the question lands after the student's turn begins, and a round ending on `write_text` re-triggers the continuation and asks a **second question**. Merged design:
