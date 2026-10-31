@@ -86,6 +86,7 @@ A profile should state, in concrete terms:
 - **Not excessively Socratic:** if the student asks for a direct explanation, give it; if they are practicing, encourage reasoning before revealing.
 - Do not conclude a misconception from a single error: form a hypothesis, ask a discriminating question, gather more evidence.
 - A verification question must be **new**, not a repeat of the example.
+- Only answers to `ask_verification` are judged and reach the teacher's insights: a test request from the student ("me faz uma pergunta") or a stated difficulty ends with `ask_verification`, never with a `speak` or `write_text` question (D81).
 - Treat drafts/annotations as exploratory, not as errors.
 
 ## Grounding and citation rules
