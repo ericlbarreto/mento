@@ -5,17 +5,17 @@
 
 ## 0. What is stored where today (read this first)
 
-| Data | Where it lives now | Can the teacher side read it? |
+| Data | Where it lives | Read it with |
 |---|---|---|
-| Subjects (matérias) | MongoDB, collection `subjects` | Yes |
-| Materials (books) | MongoDB, collection `materials` | Yes |
-| Passages + embeddings | MongoDB, collection `chunks` (Atlas Vector Search + Atlas Search indexes) | Yes (normally not needed) |
-| **Sessions** | **In memory** in the API process (`InMemoryTurnRepository`) | **No**: lost on restart, not in the database |
-| **Conversation events** (messages, tutor actions, questions, hints, answers, timings) | **In memory** (same repository) | **No** |
-| **Evidence** (judged answers) | **In memory** (`InMemoryEvidenceStore`) | **No** |
-| Class context, learner summary | Not implemented (the in-memory repository returns defaults: `8º ano`, no gaps) | — |
+| Subjects (matérias) | MongoDB `subjects` | `MongoSubjectStore`, `GET /api/subjects` |
+| Materials (books) | MongoDB `materials` | `MaterialModel`, `MongoChunkStore.listCatalog` |
+| Passages + embeddings | MongoDB `chunks` | (normally not needed) |
+| **Sessions** | MongoDB `sessions` | `SessionModel`, `MongoTurnRepository.listSessions` / `getSessionSummary`, `GET /api/sessions` |
+| **Conversation events** | MongoDB `events` (one document per event, ordered by `_id`) | `EventModel`, `MongoTurnRepository.listEvents`, `GET /api/sessions/:id` |
+| **Evidence** (judged answers) | MongoDB `evidence` | `EvidenceModel` |
+| Class context, learner summary | **Not implemented**: `MongoTurnRepository.getClassContext` returns `8º ano` with no description and `getLearnerSummary` returns no gaps | Person 1 (see §4) |
 
-The tutor only talks to storage through two small interfaces (§4). **To get conversations into MongoDB, implement those two interfaces with Mongoose and plug them into `apps/api/src/container.ts`.** Nothing in the tutor changes. Until that lands, the shapes below are exactly what you will receive.
+Since 2026-10-30 the API stores every conversation in MongoDB (`MongoTurnRepository`, `MongoEvidenceStore` in `@mento/db`). What is still missing for the teacher side is **reading** this data to build insights, and **providing** the class context and the learner summary back to the tutor.
 
 ## 1. Subjects and materials (MongoDB)
 
@@ -145,7 +145,7 @@ interface EvidenceInput {
 
 The same data is also appended as the `evidence_recorded` event (with `evidence_id`). Match concepts across sessions with `concept_key` (`normalizeConcept` from `@mento/contracts`).
 
-## 4. The two interfaces to implement with MongoDB
+## 4. The two storage interfaces (implemented in MongoDB; what Person 1 extends)
 
 ### `TurnRepository` (`packages/tutor/src/repository.ts`)
 
@@ -177,11 +177,16 @@ Notes:
 interface EvidenceStore { insertEvidence(e: EvidenceInput): Promise<{ id: string }>; }
 ```
 
-### Wiring (one file)
+### What is implemented, what is yours
 
-In `apps/api/src/container.ts`, `createContainer` builds `repo` (today `withCatalog(new InMemoryTurnRepository(...), …)`) and `evidence` (today `new InMemoryEvidenceStore()`). Replace them with your Mongo implementations; tests already inject fakes through `buildApp(config, { repo, evidence })`, so the routes need no change.
+`MongoTurnRepository` (`packages/db/src/mongo-turn-repository.ts`) implements everything above on `sessions` and `events`, and `MongoEvidenceStore` writes `evidence`; `apps/api/src/container.ts` wires both. Two methods are placeholders for you:
 
-Suggested collections (a proposal, yours to decide): `sessions` (`student_id`, `modality`, `subject_id`, `started_at`, `ended_at`, `end_reason`), `events` (`session_id` indexed, `ts`, `type`, `payload`), `evidence` (fields of §3 + `ts`), and your own `analyses` / `insights` / `students` / `class_context`.
+- `getClassContext()`: read your `class_context` (grade level + teacher description).
+- `getLearnerSummary(student_id)`: return the student's open gaps and recent progress from your `insights`.
+
+Implement them in that class (or subclass it), and start your analysis when a `session_ended` event is appended (for example in `endSession`, after the event is stored, asynchronously).
+
+Stored shapes: `sessions` `{ student_id, modality, subject: { id, name, key } | null, subject_id, topic?, title, started_at, last_activity_at, ended_at, end_reason, turn_count }`; `events` `{ session_id, ts, type, payload }`; `evidence` = §3 fields + `ts`. Your own collections (`students`, `class_context`, `analyses`, `insights`) are yours to design.
 
 ## 5. From events and evidence to insights
 
@@ -201,5 +206,5 @@ Rules that still apply (`workstreams/handoffs-and-insights-pipeline.md` §4.5): 
 ## 6. How to generate real data to test with
 
 1. `pnpm dev`, open `http://localhost:3000/dev/conversation`, pick História, choose **texto**, start, ask a question, answer the question the tutor puts on the board (that produces `verification_asked`, `verification_answered` and, a few seconds later, `evidence_recorded`), then click **Encerrar** (`session_ended`).
-2. Until the Mongo repository exists, these events live only in the API process. A quick way to look at them while developing is to add a dev route that returns `repo.listEvents(id)` (the route file `routes/sessions.ts` already handles sessions).
+2. Read them back with `GET /api/sessions?student_id=demo` and `GET /api/sessions/:id`, or directly in MongoDB (`sessions`, `events`, `evidence`).
 3. Fixture alternative without the LLM: `fixtures/turns/*.json` shows the turn stream; the event shapes are in §2.
