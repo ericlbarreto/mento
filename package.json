@@ -20,7 +20,8 @@
     "ingest": "tsx scripts/ingest.ts",
     "pregenerate": "tsx scripts/pregenerate-images.ts",
     "turn": "tsx scripts/turn-cli.ts",
-    "fixtures:check": "tsx scripts/fixture-check.ts"
+    "fixtures:check": "tsx scripts/fixture-check.ts",
+    "voice:smoke": "tsx scripts/voice-smoke.ts"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

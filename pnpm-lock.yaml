@@ -436,10 +436,19 @@ importers:
       '@mento/contracts':
         specifier: workspace:*
         version: link:../packages/contracts
+      '@mento/voice':
+        specifier: workspace:*
+        version: link:../packages/voice
+      ws:
+        specifier: ^8.22.0
+        version: 8.22.0
     devDependencies:
       '@types/node':
         specifier: ^24.19.2
         version: 24.19.2
+      '@types/ws':
+        specifier: ^8.18.2
+        version: 8.18.2
       typescript:
         specifier: ~6.0.3
         version: 6.0.3

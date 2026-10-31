@@ -143,3 +143,15 @@ Phase 2, only if measured to help: Flux (`/v2/listen`, ~260 ms end-of-turn detec
 4. Gemini: time per image for both candidates (3 images × 2 rounds), text/frame leakage, style consistency; billing enabled.
 5. Retrieval: blind test of ~20 Portuguese questions on the real book for Voyage `voyage-4` vs `gemini-embedding-2`; Portuguese analyzer in Atlas Search; time to embed a query; whether the book's PDF has a text layer (decides whether Reducto is ever needed); vector search on the team's Atlas tier.
 6. Open: the ZDR status of the Anthropic account (students may be minors); whether the tutor's `purpose`/`hint_level` is reliably set.
+
+### Day-0 results (measured 2026-10-30, from the founder's network in Brazil)
+
+| Check | Result |
+|---|---|
+| ElevenLabs `eleven_flash_v2_5`, HTTP `with-timestamps` (one 75-character sentence, ~5.3 s of audio, premade voice used only for the measurement) | First (and only) byte after 455–475 ms; 16 word timings, accents correct |
+| ElevenLabs `eleven_flash_v2_5`, WebSocket `stream-input` with `auto_mode` | First audio chunk after 342–452 ms; same 16 word timings. **Meets the ≤ 600 ms target**; `TTS_MODE=ws` stays the default |
+| Deepgram Nova-3 `pt-BR` streaming (server key, 24 kHz linear16 of the TTS audio) | Heard "27 antes de Cristo, o senado deu a Otávio o título de Augusto." (dropped the first word "Em"; `smart_format` turned "vinte e sete" into "27"). Portuguese streaming works |
+| Deepgram temporary token (`POST /v1/auth/grant`) | **HTTP 403** with the current key: the key needs the Member role or higher. Browser subprotocol for the JWT still to verify |
+| ElevenLabs voice list | The current key lacks `voices_read`; the pt-BR voice still has to be chosen in the ElevenLabs UI (`ELEVENLABS_VOICE_ID`) |
+| Gemini images | Free tier (limit 0) on the key in `.env`: billing not enabled yet |
+
