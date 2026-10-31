@@ -55,6 +55,14 @@ interface TurnState {
   material_ids?: string[];
   pending: Promise<unknown>[];
   ttsActions: string[];
+  /** Successful board actions of this reply (all rounds); the bridge line and `speak`s never count. */
+  boardActions: number;
+  firstBoardActionMs?: number;
+  /** A question `speak` that arrived before any board action: sent later, in order (Plan C). */
+  held?: { block: ToolBlock; result: { outcome: string; is_error: boolean } };
+  /** The question was held once already this turn (hold and fallback happen at most once). */
+  heldOnce: boolean;
+  fallback: boolean;
 }
 
 interface RoundResult {
@@ -66,15 +74,32 @@ interface RoundResult {
 
 /** Rounds per reply: the model often stops after one or two tool calls to wait for their results. */
 const MAX_ROUNDS = 4;
+const NO_BOARD_TEXT = "Nothing is on the board yet in this reply: your next call is `write_text` or `draw`. ";
 const CONTINUE_TEXT =
   "Continue the same reply: circle the key words you explain (call circle_annotate right before the speak that says each one), add another picture with draw if anything new appears, explain what you put on the board, then end with one question to the student.";
+
+/** Board actions that count for "every reply writes or draws on the board" (pointing at an element counts). */
+const BOARD_ACTIONS = new Set(["write_text", "write_timeline", "draw", "update_element", "circle_annotate", "highlight"]);
+const FALLBACK_MAX_CHARS = 120;
+
+const isQuestion = (block: ToolBlock): boolean =>
+  block.name === "speak" && (safeJson(block.raw_input) as { purpose?: string } | null)?.purpose === "question";
+
+const escapeHtml = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/** The deterministic card written when a reply reached its question with nothing on the board. */
+function fallbackCard(question: string, id: string): ToolBlock {
+  const text = question.replace(/\s+/g, " ").trim();
+  const short = text.length > FALLBACK_MAX_CHARS ? `${text.slice(0, FALLBACK_MAX_CHARS - 1)}…` : text;
+  return { id: "board_fallback", name: "write_text", raw_input: JSON.stringify({ id, column: "side", html: `<p><b>${escapeHtml(short)}</b></p>` }) };
+}
 
 /** The reply is complete when it asked a verification or its last successful action is a question. */
 function endsWithQuestion(result: RoundResult): boolean {
   const ok = result.results.filter((r) => !r.is_error && r.block.name !== "search_materials");
   if (ok.some((r) => r.block.name === "ask_verification")) return true;
   const last = ok.at(-1);
-  return last?.block.name === "speak" && (safeJson(last.block.raw_input) as { purpose?: string } | null)?.purpose === "question";
+  return last !== undefined && isQuestion(last.block);
 }
 
 const BRIDGE_TEXT = "Deixa eu pensar um instante…";
@@ -185,6 +210,7 @@ export class TurnEngine {
       session_id, student_id: session.student_id, modality: req.modality, turn_id, rt, emit, signal, persist, t0, material_ids,
       timing: { context_ready_ms: Math.round(this.now() - t0) },
       order: 0, actionSeq: 0, emitted: 0, passages: [...passages], pending: [], ttsActions: [],
+      boardActions: 0, heldOnce: false, fallback: false,
     };
 
     const system = buildSystem({ prompts, classContext, summary, catalog, subject: session.subject });
@@ -216,7 +242,7 @@ export class TurnEngine {
           content: r.block.name === "search_materials" ? (found.get(r.block.id) ?? "(no results)") : r.outcome,
           is_error: r.is_error || undefined,
         }));
-        if (!search) toolResults.push({ type: "text", text: CONTINUE_TEXT });
+        if (!search) toolResults.push({ type: "text", text: state.boardActions === 0 ? NO_BOARD_TEXT + CONTINUE_TEXT : CONTINUE_TEXT });
         messages = [...messages, { role: "assistant", content: assistant }, { role: "user", content: toolResults }];
       }
     } catch (err) {
@@ -227,6 +253,7 @@ export class TurnEngine {
     }
 
     if (signal.aborted) return this.abort(state);
+    this.log("board actions", { turn_id, board_actions: state.boardActions, board_fallback: state.fallback, first_board_action_ms: state.firstBoardActionMs });
 
     state.timing.script_done_ms = Math.round(this.now() - t0);
     emit({ type: "script_done", turn_id });
@@ -239,6 +266,7 @@ export class TurnEngine {
   }
 
   private abort(state: TurnState): { turn_id: string } {
+    state.held = undefined;
     for (const id of state.ttsActions) this.deps.tts?.cancel?.(id);
     return { turn_id: state.turn_id };
   }
@@ -262,8 +290,9 @@ export class TurnEngine {
 
   private async consume(state: TurnState, model: string, system: ReturnType<typeof buildSystem>, messages: LlmMessage[]): Promise<RoundResult> {
     const result: RoundResult = { searches: [], results: [] };
+    state.held = undefined; // a retried round starts over
     const bridge = setTimeout(() => {
-      if (state.emitted === 0 && !state.signal.aborted) {
+      if (state.emitted === 0 && !state.held && !state.signal.aborted) {
         void this.handleBlock(state, { id: "bridge", name: "speak", raw_input: JSON.stringify({ text: BRIDGE_TEXT }) });
       }
     }, this.deps.bridgeAfterMs ?? 3000);
@@ -276,9 +305,18 @@ export class TurnEngine {
         } else if (ev.type === "stop") {
           result.stop_reason = ev.stop_reason;
         } else if (ev.type === "tool_block") {
+          // The model kept going after a held question: send it now, in its place.
+          if (state.held) await this.releaseHeld(state);
+          if (state.signal.aborted) break;
           if (ev.block.name === "search_materials") {
             result.searches.push(ev.block);
             result.results.push({ block: ev.block, outcome: "", is_error: false });
+          } else if (state.boardActions === 0 && !state.heldOnce && isQuestion(ev.block)) {
+            // A question with nothing on the board: hold it until we know whether the model writes something.
+            const entry = { block: ev.block, outcome: "ok", is_error: false };
+            state.held = { block: ev.block, result: entry };
+            state.heldOnce = true;
+            result.results.push(entry);
           } else {
             const outcome = await this.handleBlock(state, ev.block);
             result.results.push({ block: ev.block, outcome: outcome ?? "ok", is_error: outcome !== null });
@@ -288,7 +326,33 @@ export class TurnEngine {
     } finally {
       clearTimeout(bridge);
     }
+    if (state.held && !state.signal.aborted) {
+      // End of the round and still nothing on the board: write the question as a card, then ask it.
+      if (state.boardActions === 0) await this.writeFallback(state, state.held.block);
+      await this.releaseHeld(state);
+    }
+    if (state.signal.aborted) state.held = undefined;
     return result;
+  }
+
+  private async releaseHeld(state: TurnState): Promise<void> {
+    const held = state.held;
+    if (!held) return;
+    state.held = undefined;
+    const outcome = await this.handleBlock(state, held.block);
+    held.result.outcome = outcome ?? "ok";
+    held.result.is_error = outcome !== null;
+  }
+
+  private async writeFallback(state: TurnState, question: ToolBlock): Promise<void> {
+    const text = String((safeJson(question.raw_input) as { text?: unknown } | null)?.text ?? "").trim();
+    if (!text) return;
+    let id = `board_fallback_${state.rt.turnNo}`;
+    for (let n = 2; state.rt.board.has(id); n++) id = `board_fallback_${state.rt.turnNo}_${n}`;
+    if ((await this.handleBlock(state, fallbackCard(text, id))) === null) {
+      state.fallback = true;
+      this.log("board_fallback", { turn_id: state.turn_id, element_id: id });
+    }
   }
 
   /** Validate, send and record one tool call. Returns null on success or the reason it was dropped. */
@@ -333,6 +397,10 @@ export class TurnEngine {
     });
     if (state.emitted === 0) state.timing.first_action_ms = Math.round(this.now() - state.t0);
     state.emitted += 1;
+    if (BOARD_ACTIONS.has(action.name)) {
+      state.boardActions += 1;
+      state.firstBoardActionMs ??= Math.round(this.now() - state.t0);
+    }
 
     if (action.name === "ask_verification") {
       rt.verSeq += 1;
