@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ClassAnalysis } from "./_components/ClassAnalysis";
-import { IconCalendar, IconChevronRight, IconFlag, IconLightbulb, IconSearch, IconShield } from "./_components/icons";
+import { IconCalendar, IconChevronRight, IconFlag, IconLightbulb, IconSearch, IconShield, IconUsers } from "./_components/icons";
 import { Avatar, Card, Chip, MetricCard, SimulatedBadge } from "./_components/ui";
 import { relativeDate } from "./_lib/format";
 import { studentStatus } from "./_lib/status";
@@ -133,7 +133,8 @@ export default function StudentsTab() {
         {students.some((s) => s.is_simulated) && <SimulatedBadge />}
       </header>
 
-      <section aria-label="Resumo da turma" className="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <section aria-label="Resumo da turma" className="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Alunos" value={students.length} unit="na turma" note={`${rows.filter((r) => r.conversations > 0).length} já conversaram com o tutor`} icon={<IconUsers size={18} />} />
         <MetricCard label="Lacunas" value={open.length} unit="abertas" note={`em ${withGaps} de ${students.length} alunos`} icon={<IconFlag size={18} />} tone="danger" />
         <MetricCard label="Insights" value={insights.length} unit="para você" note="tirados das lacunas da turma" icon={<IconLightbulb size={18} />} tone="warn" />
         <MetricCard label="Intervenções" value={pending} unit="para decidir" note="propostas para a próxima aula" icon={<IconCalendar size={18} />} />

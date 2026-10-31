@@ -88,3 +88,22 @@ export interface ClassContext {
 
 /** One teacher, one subject (prototype). */
 export const SUBJECT = "História";
+
+/** One question of an exercise list. `answer` and `explanation` only go to the teacher's copy. */
+export interface Exercise {
+  id: string;
+  kind: "choice" | "open";
+  prompt: string;
+  options?: string[];
+  answer: string;
+  explanation: string;
+  concept: string;
+}
+
+/** Questions generated from an intervention, to practise the class's gaps (Nice #18; mock until the API exists). */
+export interface ExerciseSet {
+  intervention_id: string;
+  title: string;
+  exercises: Exercise[];
+  generated_at: string;
+}

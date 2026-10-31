@@ -3,7 +3,8 @@
 // so wiring the real API later only replaces the bodies here.
 import { createContext, useContext, useMemo, useState } from "react";
 import { MOCK_CLASS_CONTEXT, MOCK_GAPS, MOCK_INSIGHTS, MOCK_INTERVENTIONS, MOCK_MATERIALS, MOCK_SESSIONS, MOCK_STUDENTS } from "./mock";
-import type { ClassContext, ClassInsight, Gap, Intervention, InterventionStatus, Material, SessionItem, Student } from "./types";
+import { mockExerciseSet } from "./exercises";
+import type { ClassContext, ClassInsight, ExerciseSet, Gap, Intervention, InterventionStatus, Material, SessionItem, Student } from "./types";
 
 export interface StudentRow extends Student {
   conversations: number;
@@ -20,7 +21,10 @@ interface TeacherStore {
   materials: Material[];
   classContext: ClassContext;
   rows: StudentRow[];
+  /** Exercise list per intervention id; "generating" while the request runs. */
+  exerciseSets: Record<string, ExerciseSet | "generating">;
   setInterventionStatus(id: string, status: InterventionStatus): void; // PATCH /interventions/:id (to agree with Person 1)
+  generateExercises(interventionId: string): void; // POST /interventions/:id/exercises (to agree on)
   // POST /materials (multipart): the real call must also send the teacher's single `subject_id` (D64, D67).
   uploadMaterial(input: { title: string; file: File }): Promise<Material>;
 }
@@ -40,6 +44,7 @@ export function TeacherStoreProvider({ children }: { children: React.ReactNode }
   const insights = MOCK_INSIGHTS;
   const [interventions, setInterventions] = useState(MOCK_INTERVENTIONS);
   const [materials, setMaterials] = useState(MOCK_MATERIALS);
+  const [exerciseSets, setExerciseSets] = useState<Record<string, ExerciseSet | "generating">>({});
   const classContext = MOCK_CLASS_CONTEXT;
 
   const value = useMemo<TeacherStore>(() => {
@@ -61,6 +66,20 @@ export function TeacherStoreProvider({ children }: { children: React.ReactNode }
       materials,
       classContext,
       rows,
+      exerciseSets,
+      generateExercises(interventionId) {
+        setExerciseSets((all) => ({ ...all, [interventionId]: "generating" }));
+        // The API will ask the LLM for questions on the intervention's gaps; the mock returns a fixed list.
+        setTimeout(() => {
+          const set = mockExerciseSet(interventionId);
+          setExerciseSets((all) => {
+            const next = { ...all };
+            if (set) next[interventionId] = set;
+            else delete next[interventionId];
+            return next;
+          });
+        }, 1500);
+      },
       setInterventionStatus(id, status) {
         setInterventions((list) => list.map((i) => (i.id === id ? { ...i, status } : i)));
       },
@@ -80,7 +99,7 @@ export function TeacherStoreProvider({ children }: { children: React.ReactNode }
         return material;
       },
     };
-  }, [students, sessions, gaps, insights, interventions, materials, classContext]);
+  }, [students, sessions, gaps, insights, interventions, materials, classContext, exerciseSets]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
