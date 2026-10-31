@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import type { Column } from "@mento/contracts";
 import { type RendererMap, basicRenderers } from "../renderers";
 import { type BoardStore, useBoardColumn } from "../store";
-import { type BoardEnv, BoardEnvProvider } from "./context";
+import { type BoardEnv, BoardEnvProvider, type VerificationEnv } from "./context";
 import { ElementFrame } from "./ElementFrame";
 
 /** Pause auto-scroll for this long after the student scrolls by hand. */
@@ -30,14 +30,16 @@ export interface BoardProps {
   /** See BoardEnv.assetBaseUrl. */
   assetBaseUrl: string;
   onWarning?: (message: string) => void;
+  /** See BoardEnv.verification. */
+  verification?: VerificationEnv;
 }
 
 /** The whiteboard: columns left to right, horizontal scroll as they fill (docs/16 §5.1). */
-export function Board({ store, renderers, className, assetBaseUrl, onWarning }: BoardProps) {
+export function Board({ store, renderers, className, assetBaseUrl, onWarning, verification }: BoardProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const manualAt = useRef(0);
   const map = useMemo(() => ({ ...basicRenderers, ...renderers }), [renderers]);
-  const env = useMemo<BoardEnv>(() => ({ assetBaseUrl, onWarning }), [assetBaseUrl, onWarning]);
+  const env = useMemo<BoardEnv>(() => ({ assetBaseUrl, onWarning, verification }), [assetBaseUrl, onWarning, verification]);
 
   // Smooth auto-scroll to the newest element, unless the student is scrolling.
   useEffect(() => {
