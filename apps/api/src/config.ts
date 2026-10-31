@@ -47,5 +47,6 @@ const schema = z.object({
 export type Config = z.infer<typeof schema>;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  return schema.parse(env);
+  // Hosts such as Render give the port as PORT; API_PORT still wins when both are set.
+  return schema.parse({ ...env, API_PORT: env.API_PORT ?? env.PORT });
 }

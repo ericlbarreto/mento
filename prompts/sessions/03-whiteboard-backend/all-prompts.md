@@ -617,3 +617,12 @@
 ## 115. 2026-10-31
 
 > E, irmão, só quero que ele gere um pouco mais de imagem e circule também no jeito correto. Tente melhorar um pouquinho isso, por favor, e ajeite os conflitos, mergeie a main na sua branch.
+
+## 116. 2026-10-31
+
+> Adiciona os prompts
+
+
+## 117. 2026-10-31
+
+> É o seguinte, meu querido: quero fazer deploy na Render, principalmente do backend, que é o que fica em apps/api, porque o web já está deployado. Aí eu preciso dos comandos de build. Se você puder me gerar os comandos de build, ficarei feliz.
