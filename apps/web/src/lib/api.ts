@@ -6,6 +6,10 @@
 // - NEXT_PUBLIC_TURN_SOURCE=fixture: real sessions and history, but turns come from GET /api/dev/fixture-turn (no
 //   LLM key needed). Fixture turns are not stored on the server.
 import {
+  BoardEditRequest,
+  BoardEditResponse,
+  boardEditEvent,
+  isBoardEditEvent,
   CreateSessionRequest,
   CreateSessionResponse,
   EndSessionRequest,
@@ -155,6 +159,29 @@ export async function endSession(id: string, reason: SessionEndReason, opts: { k
   if (!res.ok) throw await toApiError(res);
 }
 
+// ---- Board edits (plan F, D79) ----
+
+/**
+ * The student deletes or moves a board element: POST /api/sessions/:id/board. Idempotent on `edit_id`; 404
+ * `element_not_found` / `session_not_found` reject with ApiError. `keepalive: true` is for `pagehide` (a deletion
+ * still held for undo): best effort, never throws, resolves null. With NEXT_PUBLIC_TURN_SOURCE=fixture the turns
+ * are not stored on the server, so edits stay local (resolves "applied").
+ */
+export async function editBoard(id: string, edit: BoardEditRequest, opts: { keepalive?: boolean } = {}): Promise<BoardEditResponse | null> {
+  const body = BoardEditRequest.parse(edit);
+  if (MOCK_API) return mock.editBoard(id, body);
+  if (TURN_SOURCE_FIXTURE) return { ok: true, result: "applied" };
+  const url = `${API_URL}/api${sessionPath(id)}/board`;
+  const init = { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) };
+  if (opts.keepalive) {
+    await fetch(url, { ...init, keepalive: true }).catch(() => undefined);
+    return null;
+  }
+  const res = await fetch(url, init);
+  if (!res.ok) throw await toApiError(res);
+  return BoardEditResponse.parse(await res.json());
+}
+
 // ---- Turns ----
 
 type OnMessage = (message: StreamMessage) => void;
@@ -164,6 +191,13 @@ type OnMessage = (message: StreamMessage) => void;
  * Errors before the stream (404, 503 `tutor_unavailable`, 400) reject with ApiError. When `signal` aborts it
  * resolves quietly (never an AbortError). With NEXT_PUBLIC_TURN_SOURCE=fixture the turn is a fixture replay.
  */
+/** Reopens an ended session (idempotent: an active one answers "already_active"). */
+export async function resumeSession(id: string): Promise<void> {
+  if (MOCK_API) return;
+  const res = await fetch(`${API_URL}/api${sessionPath(id)}/resume`, { method: "POST" });
+  if (!res.ok) throw await toApiError(res);
+}
+
 export async function streamTurn(id: string, req: TurnRequest, onMessage: OnMessage, opts: { signal?: AbortSignal } = {}): Promise<void> {
   const body = TurnRequest.parse(req);
   const { signal } = opts;
@@ -173,12 +207,21 @@ export async function streamTurn(id: string, req: TurnRequest, onMessage: OnMess
     return streamFixtureTurn(name, onMessage, { signal, round });
   }
   try {
-    const res = await fetch(`${API_URL}/api${sessionPath(id)}/turn`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "text/event-stream" },
-      body: JSON.stringify(body),
-      signal,
-    });
+    const send = () =>
+      fetch(`${API_URL}/api${sessionPath(id)}/turn`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "text/event-stream" },
+        body: JSON.stringify(body),
+        signal,
+      });
+    let res = await send();
+    // Leaving the page ends the lesson; coming back continues it: resume the same session, then send again.
+    if (res.status === 409) {
+      const err = await toApiError(res);
+      if (err.error !== "session_ended") throw err;
+      await resumeSession(id);
+      res = await send();
+    }
     if (!res.ok) throw await toApiError(res);
     await readSse(res, (data) => onMessage(StreamMessage.parse(data)));
   } catch (err) {
@@ -334,6 +377,33 @@ const mock = (() => {
       record(s, "session_ended", { reason });
       s.summary.ended_at = s.summary.last_activity_at;
       s.summary.end_reason = reason;
+    },
+
+    /** Same answers as the server (contracts-spec §18), and the edit is stored so reopen/replay shows it. */
+    editBoard(id: string, edit: BoardEditRequest): BoardEditResponse {
+      const s = find(id);
+      const present = new Set<string>();
+      const known = new Set<string>();
+      const editIds = new Set<string>();
+      for (const e of s.events) {
+        const p = (e.payload ?? {}) as { name?: string; args?: { id?: unknown }; element_id?: string; edit_id?: string };
+        if (e.type === "tutor_action" && typeof p.args?.id === "string") {
+          if (p.name === "remove_element") present.delete(p.args.id);
+          else if (p.name !== "update_element") {
+            present.add(p.args.id);
+            known.add(p.args.id);
+          }
+        } else if (isBoardEditEvent(e.type)) {
+          if (p.edit_id) editIds.add(p.edit_id);
+          if (e.type === "board_element_removed" && p.element_id) present.delete(p.element_id);
+        }
+      }
+      if (editIds.has(edit.edit_id)) return { ok: true, result: "already_applied" };
+      if (!known.has(edit.element_id)) throw new ApiError(404, "element_not_found");
+      if (!present.has(edit.element_id)) return { ok: true, result: "already_removed" };
+      const { type, payload } = boardEditEvent(edit);
+      record(s, type, payload);
+      return { ok: true, result: "applied" };
     },
 
     /** Replays the next fixture and stores the turn's events like the server does (for history and reopen). */

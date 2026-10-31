@@ -3,6 +3,7 @@ export * from "./canonical";
 export * from "./conversation-source";
 export * from "./session-mapper";
 export * from "./mongo-conversation-source";
+export * from "./subject-scope";
 export * from "./input";
 export * from "./diagnose";
 export * from "./rules";

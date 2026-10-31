@@ -24,6 +24,8 @@ describe("subjectIcon", () => {
   it("maps known keys and falls back to the book", () => {
     expect(subjectIcon("history")).toBe("landmark");
     expect(subjectIcon("math")).toBe("ruler");
+    expect(subjectIcon("biology")).toBe("leaf");
+    expect(subjectIcon("physics")).toBe("zap");
     expect(subjectIcon("generic")).toBe("book");
     expect(subjectIcon("geography")).toBe("book");
   });

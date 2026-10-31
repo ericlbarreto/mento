@@ -1,0 +1,555 @@
+{
+ "description": "Demo board (Física): energy on a roller coaster with an image, an energy chart, a force diagram, circles and highlights. Scripted, not recorded.",
+ "messages": [
+  {
+   "at_ms": 0,
+   "message": {
+    "type": "action",
+    "order": 0,
+    "action": {
+     "id": "d0",
+     "name": "speak",
+     "args": {
+      "text": "Bora entender a energia numa montanha-russa? Olha o quadro!",
+      "purpose": "explain"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 120,
+   "message": {
+    "type": "action",
+    "order": 1,
+    "action": {
+     "id": "d1",
+     "name": "write_text",
+     "args": {
+      "id": "energia_resumo",
+      "column": "main",
+      "html": "<h2>Energia na montanha-russa</h2><p>No alto, o carrinho guarda <b>energia potencial</b>. Na descida, ela vira <b>energia cinética</b>: o movimento.</p><ul><li>Potencial: Ep = m · g · h</li><li>Cinética: Ec = m · v² / 2</li><li>Mecânica: Em = Ep + Ec</li></ul><p>Sem atrito, a energia mecânica <b>se conserva</b>: ela só muda de forma.</p>"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 240,
+   "message": {
+    "type": "action",
+    "order": 2,
+    "action": {
+     "id": "d2",
+     "name": "draw",
+     "args": {
+      "id": "montanha_russa",
+      "column": "visuals",
+      "prompt": "Carrinho no alto da montanha-russa, prestes a descer",
+      "is_structured": false,
+      "max_dimensions": {
+       "w": 520,
+       "h": 390
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 360,
+   "message": {
+    "type": "action",
+    "order": 3,
+    "action": {
+     "id": "d3",
+     "name": "speak",
+     "args": {
+      "text": "Repare: a energia não some, ela troca de forma.",
+      "purpose": "explain"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 480,
+   "message": {
+    "type": "action",
+    "order": 4,
+    "action": {
+     "id": "d4",
+     "name": "highlight",
+     "args": {
+      "target_id": "energia_resumo",
+      "color": "yellow",
+      "text_to_match": "energia potencial"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 600,
+   "message": {
+    "type": "action",
+    "order": 5,
+    "action": {
+     "id": "d5",
+     "name": "highlight",
+     "args": {
+      "target_id": "energia_resumo",
+      "color": "pink",
+      "text_to_match": "energia cinética"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 720,
+   "message": {
+    "type": "action",
+    "order": 6,
+    "action": {
+     "id": "d6",
+     "name": "circle_annotate",
+     "args": {
+      "target_id": "energia_resumo",
+      "text_to_match": "Em = Ep + Ec",
+      "color": "red"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 840,
+   "message": {
+    "type": "action",
+    "order": 7,
+    "action": {
+     "id": "d7",
+     "name": "draw_diagram",
+     "args": {
+      "id": "grafico_energia",
+      "column": "visuals",
+      "title": "Ep (azul) e Ec (vermelho) na descida",
+      "frame": "wide",
+      "view": {
+       "w": 160,
+       "h": 100
+      },
+      "shapes": [
+       {
+        "id": "eixos",
+        "kind": "axes",
+        "x_axis": {
+         "x1": 14,
+         "y1": 88,
+         "x2": 152,
+         "y2": 88
+        },
+        "y_axis": {
+         "x1": 14,
+         "y1": 88,
+         "x2": 14,
+         "y2": 8
+        },
+        "ticks": [
+         {
+          "axis": "x",
+          "x": 48.5,
+          "y": 88,
+          "label": {
+           "text": "5",
+           "x": 48.5,
+           "y": 94,
+           "size": "s"
+          }
+         },
+         {
+          "axis": "x",
+          "x": 83,
+          "y": 88,
+          "label": {
+           "text": "10",
+           "x": 83,
+           "y": 94,
+           "size": "s"
+          }
+         },
+         {
+          "axis": "x",
+          "x": 117.5,
+          "y": 88,
+          "label": {
+           "text": "15",
+           "x": 117.5,
+           "y": 94,
+           "size": "s"
+          }
+         },
+         {
+          "axis": "x",
+          "x": 152,
+          "y": 88,
+          "label": {
+           "text": "20",
+           "x": 152,
+           "y": 94,
+           "size": "s"
+          }
+         },
+         {
+          "axis": "y",
+          "x": 14,
+          "y": 54.7,
+          "label": {
+           "text": "50",
+           "x": 9.5,
+           "y": 54.7,
+           "size": "s"
+          }
+         },
+         {
+          "axis": "y",
+          "x": 14,
+          "y": 21.3,
+          "label": {
+           "text": "100",
+           "x": 8.3,
+           "y": 21.3,
+           "size": "s"
+          }
+         }
+        ],
+        "x_label": {
+         "text": "queda (m)",
+         "x": 137.4,
+         "y": 83.5,
+         "size": "m"
+        },
+        "y_label": {
+         "text": "energia (kJ)",
+         "x": 36,
+         "y": 9,
+         "size": "m"
+        }
+       },
+       {
+        "id": "potencial",
+        "kind": "polyline",
+        "points": [
+         [
+          14,
+          21.3
+         ],
+         [
+          152,
+          88
+         ]
+        ],
+        "closed": false,
+        "smooth": false,
+        "fill": "none",
+        "color": "blue"
+       },
+       {
+        "id": "cinetica",
+        "kind": "polyline",
+        "points": [
+         [
+          14,
+          88
+         ],
+         [
+          152,
+          21.3
+         ]
+        ],
+        "closed": false,
+        "smooth": false,
+        "fill": "none",
+        "color": "red"
+       },
+       {
+        "x1": 14,
+        "y1": 21.3,
+        "x2": 152,
+        "y2": 21.3,
+        "id": "mecanica",
+        "kind": "line",
+        "dashed": true,
+        "ground": false,
+        "color": "green",
+        "label": {
+         "text": "Em = 100 kJ",
+         "x": 83,
+         "y": 16.3,
+         "size": "m"
+        }
+       },
+       {
+        "id": "meio",
+        "kind": "point",
+        "x": 83,
+        "y": 54.7,
+        "color": "ink",
+        "label": {
+         "text": "Ep = Ec",
+         "x": 91.5,
+         "y": 46.1,
+         "size": "m"
+        }
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 960,
+   "message": {
+    "type": "action",
+    "order": 8,
+    "action": {
+     "id": "d8",
+     "name": "speak",
+     "args": {
+      "text": "No gráfico, a linha azul cai e a vermelha sobe. No meio da queda, as duas são iguais.",
+      "purpose": "explain"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1080,
+   "message": {
+    "type": "action",
+    "order": 9,
+    "action": {
+     "id": "d9",
+     "name": "circle_annotate",
+     "args": {
+      "target_id": "grafico_energia",
+      "text_to_match": "Ep = Ec",
+      "color": "blue"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1200,
+   "message": {
+    "type": "action",
+    "order": 10,
+    "action": {
+     "id": "d10",
+     "name": "write_text",
+     "args": {
+      "id": "exemplo_conta",
+      "column": "main",
+      "html": "<h3>Exemplo</h3><p>Carrinho de 500 kg a 20 m de altura (g = 10 m/s²):</p><ol><li>Ep = 500 · 10 · 20</li><li>Ep = 100 000 J = 100 kJ</li><li>Lá embaixo, Ec = 100 kJ, então v = 20 m/s</li></ol>"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1320,
+   "message": {
+    "type": "action",
+    "order": 11,
+    "action": {
+     "id": "d11",
+     "name": "highlight",
+     "args": {
+      "target_id": "exemplo_conta",
+      "color": "green",
+      "text_to_match": "100 kJ"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1440,
+   "message": {
+    "type": "action",
+    "order": 12,
+    "action": {
+     "id": "d12",
+     "name": "draw_diagram",
+     "args": {
+      "id": "forcas_carrinho",
+      "column": "visuals",
+      "title": "Forças no carrinho na descida",
+      "frame": "wide",
+      "view": {
+       "w": 160,
+       "h": 100
+      },
+      "shapes": [
+       {
+        "id": "trilho",
+        "kind": "polyline",
+        "points": [
+         [
+          15,
+          85
+         ],
+         [
+          145,
+          85
+         ],
+         [
+          15,
+          30
+         ]
+        ],
+        "closed": true,
+        "smooth": false,
+        "fill": "soft",
+        "color": "ink"
+       },
+       {
+        "id": "carrinho",
+        "kind": "rect",
+        "x": 65.7,
+        "y": 39.1,
+        "w": 22,
+        "h": 16,
+        "angle": -22.9,
+        "fill": "none",
+        "color": "ink",
+        "label": {
+         "text": "500 kg",
+         "x": 78.3,
+         "y": 43.4,
+         "size": "m"
+        }
+       },
+       {
+        "x1": 76.7,
+        "y1": 47.1,
+        "x2": 76.7,
+        "y2": 81.1,
+        "id": "peso",
+        "kind": "arrow",
+        "color": "blue",
+        "label": {
+         "text": "Peso",
+         "x": 76.7,
+         "y": 89.2,
+         "size": "m"
+        }
+       },
+       {
+        "x1": 79.9,
+        "y1": 39.7,
+        "x2": 90.4,
+        "y2": 14.7,
+        "id": "normal",
+        "kind": "arrow",
+        "color": "green",
+        "label": {
+         "text": "Normal",
+         "x": 93.8,
+         "y": 6.8,
+         "size": "m"
+        }
+       },
+       {
+        "x1": 86.9,
+        "y1": 51.4,
+        "x2": 107.7,
+        "y2": 60.2,
+        "id": "velocidade",
+        "kind": "arrow",
+        "color": "red",
+        "label": {
+         "text": "v",
+         "x": 112.6,
+         "y": 62.3,
+         "size": "m"
+        }
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1560,
+   "message": {
+    "type": "action",
+    "order": 13,
+    "action": {
+     "id": "d13",
+     "name": "circle_annotate",
+     "args": {
+      "target_id": "forcas_carrinho",
+      "text_to_match": "Peso",
+      "color": "green"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1680,
+   "message": {
+    "type": "action",
+    "order": 14,
+    "action": {
+     "id": "d14",
+     "name": "draw_result",
+     "args": {
+      "element_id": "montanha_russa",
+      "url": "/demo/montanha-russa.svg"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1800,
+   "message": {
+    "type": "action",
+    "order": 15,
+    "action": {
+     "id": "d15",
+     "name": "ask_verification",
+     "args": {
+      "id": "q_energia",
+      "column": "main",
+      "concept": "Conservação de energia",
+      "question": "Se o carrinho começasse a 45 m de altura, qual seria a energia cinética lá embaixo?",
+      "kind": "transfer",
+      "verification_id": "ver_demo",
+      "concept_key": "conservacao de energia"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1920,
+   "message": {
+    "type": "action",
+    "order": 16,
+    "action": {
+     "id": "d16",
+     "name": "speak",
+     "args": {
+      "text": "Agora é com você: tenta responder no quadro!",
+      "purpose": "question"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2040,
+   "message": {
+    "type": "script_done",
+    "turn_id": "demo_turn"
+   }
+  },
+  {
+   "at_ms": 2060,
+   "message": {
+    "type": "turn_done",
+    "turn_id": "demo_turn"
+   }
+  }
+ ]
+}

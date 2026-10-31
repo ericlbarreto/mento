@@ -1,0 +1,716 @@
+{
+ "description": "Demo board (Biologia): hormones and negative feedback with a glands image, the hypothalamus → pituitary → gonads chain, a qualitative glucose chart, circles, highlights and citations. Scripted, not recorded.",
+ "messages": [
+  {
+   "at_ms": 0,
+   "message": {
+    "type": "action",
+    "order": 0,
+    "action": {
+     "id": "b0",
+     "name": "speak",
+     "args": {
+      "text": "Bora ver como o corpo manda mensagens sem usar nervos? Olha o quadro!",
+      "purpose": "explain"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 120,
+   "message": {
+    "type": "action",
+    "order": 1,
+    "action": {
+     "id": "b1",
+     "name": "write_text",
+     "args": {
+      "id": "endocrino_resumo",
+      "column": "main",
+      "html": "<h2>Hormônios: mensagens pelo sangue</h2><p>O <b>sistema endócrino</b> é formado por <b>glândulas endócrinas</b>, que lançam <b>hormônios</b> direto no sangue.</p><ul><li>O sangue leva o hormônio a todo o corpo.</li><li>Mas ele só age nos <b>órgãos-alvo</b>: células com receptores que o reconhecem.</li><li>A <b>hipófise</b> é a \"glândula mestra\": controla a tireoide, as adrenais e as gônadas.</li></ul>",
+      "sources": [
+       {
+        "material_id": "6ae58c4dc54e8af46024b34e",
+        "page": 9,
+        "quote": "órgãos que produzem substâncias chamadas hormônios e as lançam diretamente no sangue"
+       },
+       {
+        "material_id": "6ae58c4dc54e8af46024b34e",
+        "page": 9,
+        "quote": "Ela é chamada muitas vezes de \"glândula mestra\""
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 240,
+   "message": {
+    "type": "action",
+    "order": 2,
+    "action": {
+     "id": "b2",
+     "name": "draw",
+     "args": {
+      "id": "corpo_glandulas",
+      "column": "visuals",
+      "prompt": "Silhueta do corpo humano com as principais glândulas endócrinas",
+      "is_structured": false,
+      "max_dimensions": {
+       "w": 460,
+       "h": 540
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 360,
+   "message": {
+    "type": "action",
+    "order": 3,
+    "action": {
+     "id": "b3",
+     "name": "speak",
+     "args": {
+      "text": "Cada glândula fica num lugar do corpo, mas o hormônio viaja pelo sangue e só age onde tem receptor.",
+      "purpose": "explain",
+      "sources": [
+       {
+        "material_id": "6ae58c4dc54e8af46024b34e",
+        "page": 9,
+        "quote": "cada hormônio só age nas células que têm receptores capazes de reconhecê-lo"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 480,
+   "message": {
+    "type": "action",
+    "order": 4,
+    "action": {
+     "id": "b4",
+     "name": "highlight",
+     "args": {
+      "target_id": "endocrino_resumo",
+      "color": "yellow",
+      "text_to_match": "direto no sangue"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 600,
+   "message": {
+    "type": "action",
+    "order": 5,
+    "action": {
+     "id": "b5",
+     "name": "highlight",
+     "args": {
+      "target_id": "endocrino_resumo",
+      "color": "pink",
+      "text_to_match": "órgãos-alvo"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 720,
+   "message": {
+    "type": "action",
+    "order": 6,
+    "action": {
+     "id": "b6",
+     "name": "circle_annotate",
+     "args": {
+      "target_id": "endocrino_resumo",
+      "text_to_match": "glândula mestra",
+      "color": "red"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 840,
+   "message": {
+    "type": "action",
+    "order": 7,
+    "action": {
+     "id": "b7",
+     "name": "draw_diagram",
+     "args": {
+      "id": "cadeia_hormonios",
+      "column": "visuals",
+      "title": "Os três andares e o freio (retroalimentação)",
+      "frame": "wide",
+      "view": {
+       "w": 160,
+       "h": 100
+      },
+      "shapes": [
+       {
+        "id": "hipotalamo",
+        "kind": "rect",
+        "x": 6,
+        "y": 3,
+        "w": 45.6,
+        "h": 15.9,
+        "angle": 0,
+        "fill": "soft",
+        "color": "ink",
+        "label": {
+         "text": "Hipotálamo",
+         "x": 28.8,
+         "y": 10.9,
+         "size": "m"
+        }
+       },
+       {
+        "id": "hipofise",
+        "kind": "rect",
+        "x": 6,
+        "y": 36.8,
+        "w": 45.6,
+        "h": 15.9,
+        "angle": 0,
+        "fill": "soft",
+        "color": "ink",
+        "label": {
+         "text": "Hipófise",
+         "x": 28.8,
+         "y": 44.7,
+         "size": "m"
+        }
+       },
+       {
+        "id": "gonadas",
+        "kind": "rect",
+        "x": 6,
+        "y": 70.5,
+        "w": 45.6,
+        "h": 15.9,
+        "angle": 0,
+        "fill": "soft",
+        "color": "ink",
+        "label": {
+         "text": "Gônadas",
+         "x": 28.8,
+         "y": 78.4,
+         "size": "m"
+        }
+       },
+       {
+        "id": "hormonios",
+        "kind": "rect",
+        "x": 83.4,
+        "y": 70.5,
+        "w": 69.4,
+        "h": 15.9,
+        "angle": 0,
+        "fill": "soft",
+        "color": "blue",
+        "label": {
+         "text": "Hormônios sexuais",
+         "x": 118.1,
+         "y": 78.4,
+         "size": "m"
+        }
+       },
+       {
+        "x1": 19.9,
+        "y1": 18.9,
+        "x2": 19.9,
+        "y2": 36.7,
+        "id": "estimula",
+        "kind": "arrow",
+        "color": "green"
+       },
+       {
+        "id": "estimula_txt",
+        "kind": "text",
+        "x": 35.7,
+        "y": 27.8,
+        "text": "estimula",
+        "size": "m",
+        "color": "green"
+       },
+       {
+        "x1": 19.9,
+        "y1": 52.6,
+        "x2": 19.9,
+        "y2": 70.5,
+        "id": "fsh_lh",
+        "kind": "arrow",
+        "color": "green"
+       },
+       {
+        "id": "fsh_lh_txt",
+        "kind": "text",
+        "x": 36.7,
+        "y": 61.5,
+        "text": "FSH e LH",
+        "size": "m",
+        "color": "green"
+       },
+       {
+        "x1": 51.6,
+        "y1": 78.4,
+        "x2": 83.3,
+        "y2": 78.4,
+        "id": "produz",
+        "kind": "arrow",
+        "color": "green"
+       },
+       {
+        "x1": 118.1,
+        "y1": 70.5,
+        "x2": 118.1,
+        "y2": 10.9,
+        "id": "volta",
+        "kind": "line",
+        "dashed": true,
+        "ground": false,
+        "color": "red"
+       },
+       {
+        "x1": 118.1,
+        "y1": 10.9,
+        "x2": 51.6,
+        "y2": 10.9,
+        "id": "freio_topo",
+        "kind": "arrow",
+        "color": "red"
+       },
+       {
+        "x1": 118.1,
+        "y1": 44.7,
+        "x2": 51.6,
+        "y2": 44.7,
+        "id": "freio_meio",
+        "kind": "arrow",
+        "color": "red"
+       },
+       {
+        "id": "freio_txt",
+        "kind": "text",
+        "x": 85.3,
+        "y": 27.8,
+        "text": "freio",
+        "size": "m",
+        "color": "red"
+       },
+       {
+        "id": "efeito",
+        "kind": "text",
+        "x": 118.1,
+        "y": 94.3,
+        "text": "efeito: mudanças da puberdade",
+        "size": "s",
+        "color": "blue"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 960,
+   "message": {
+    "type": "action",
+    "order": 8,
+    "action": {
+     "id": "b8",
+     "name": "speak",
+     "args": {
+      "text": "O hipotálamo estimula a hipófise, que manda FSH e LH para as gônadas. Quando os hormônios sexuais sobem, eles freiam o começo da cadeia.",
+      "purpose": "explain",
+      "sources": [
+       {
+        "material_id": "6ae58c4dc54e8af46024b34e",
+        "page": 10,
+        "quote": "Quando a taxa de hormônios sexuais no sangue aumenta, o hipotálamo e a hipófise \"percebem\" e reduzem sua estimulação."
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1080,
+   "message": {
+    "type": "action",
+    "order": 9,
+    "action": {
+     "id": "b9",
+     "name": "circle_annotate",
+     "args": {
+      "target_id": "cadeia_hormonios",
+      "text_to_match": "freio",
+      "color": "red"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1200,
+   "message": {
+    "type": "action",
+    "order": 10,
+    "action": {
+     "id": "b10",
+     "name": "highlight",
+     "args": {
+      "target_id": "cadeia_hormonios",
+      "color": "yellow",
+      "shape_id": "hipofise"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1320,
+   "message": {
+    "type": "action",
+    "order": 11,
+    "action": {
+     "id": "b11",
+     "name": "draw_result",
+     "args": {
+      "element_id": "corpo_glandulas",
+      "url": "/demo/biology-glandulas.svg"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1440,
+   "message": {
+    "type": "action",
+    "order": 12,
+    "action": {
+     "id": "b12",
+     "name": "write_text",
+     "args": {
+      "id": "glicose_passos",
+      "column": "main",
+      "html": "<h3>Retroalimentação negativa: a glicose</h3><ol><li>Depois do almoço, a glicose no sangue sobe.</li><li>O pâncreas libera mais insulina.</li><li>As células absorvem glicose; o fígado guarda uma parte.</li><li>A glicose volta ao normal.</li><li>O pâncreas reduz a insulina.</li></ol><p>O <b>efeito freia a causa</b>: assim o corpo mantém o equilíbrio interno, a <b>homeostase</b>.</p>",
+      "sources": [
+       {
+        "material_id": "6ae58c4dc54e8af46024b34e",
+        "page": 10,
+        "quote": "O pâncreas percebe esse aumento e libera mais insulina no sangue."
+       },
+       {
+        "material_id": "6ae58c4dc54e8af46024b34e",
+        "page": 10,
+        "quote": "Esse tipo de controle, em que o efeito freia a causa, é chamado de retroalimentação negativa"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1560,
+   "message": {
+    "type": "action",
+    "order": 13,
+    "action": {
+     "id": "b13",
+     "name": "highlight",
+     "args": {
+      "target_id": "glicose_passos",
+      "color": "green",
+      "text_to_match": "efeito freia a causa"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1680,
+   "message": {
+    "type": "action",
+    "order": 14,
+    "action": {
+     "id": "b14",
+     "name": "draw_diagram",
+     "args": {
+      "id": "grafico_glicose",
+      "column": "visuals",
+      "title": "Glicose no sangue depois do almoço (esquema, sem números)",
+      "frame": "wide",
+      "view": {
+       "w": 160,
+       "h": 100
+      },
+      "shapes": [
+       {
+        "id": "eixos",
+        "kind": "axes",
+        "x_axis": {
+         "x1": 14,
+         "y1": 88.6,
+         "x2": 152,
+         "y2": 88.6
+        },
+        "y_axis": {
+         "x1": 14,
+         "y1": 88.6,
+         "x2": 14,
+         "y2": 8.6
+        },
+        "ticks": [],
+        "x_label": {
+         "text": "tempo",
+         "x": 143.9,
+         "y": 84.1,
+         "size": "m"
+        },
+        "y_label": {
+         "text": "glicose no sangue",
+         "x": 44.1,
+         "y": 9.6,
+         "size": "m"
+        }
+       },
+       {
+        "x1": 14,
+        "y1": 50.7,
+        "x2": 152,
+        "y2": 50.7,
+        "id": "faixa_alta",
+        "kind": "line",
+        "dashed": true,
+        "ground": false,
+        "color": "green"
+       },
+       {
+        "x1": 14,
+        "y1": 68.2,
+        "x2": 152,
+        "y2": 68.2,
+        "id": "faixa_baixa",
+        "kind": "line",
+        "dashed": true,
+        "ground": false,
+        "color": "green"
+       },
+       {
+        "id": "curva",
+        "kind": "polyline",
+        "points": [
+         [
+          14,
+          59.5
+         ],
+         [
+          37,
+          59.5
+         ],
+         [
+          48.5,
+          47.8
+         ],
+         [
+          60,
+          33.3
+         ],
+         [
+          71.5,
+          28.9
+         ],
+         [
+          83,
+          33.3
+         ],
+         [
+          94.5,
+          44.9
+         ],
+         [
+          106,
+          55.1
+         ],
+         [
+          117.5,
+          58.7
+         ],
+         [
+          152,
+          59.5
+         ]
+        ],
+        "closed": false,
+        "smooth": true,
+        "fill": "none",
+        "color": "red"
+       },
+       {
+        "id": "almoco",
+        "kind": "point",
+        "x": 37,
+        "y": 59.5,
+        "color": "ink"
+       },
+       {
+        "id": "almoco_txt",
+        "kind": "text",
+        "x": 37,
+        "y": 76.9,
+        "text": "almoço",
+        "size": "s",
+        "color": "ink"
+       },
+       {
+        "id": "insulina",
+        "kind": "point",
+        "x": 71.5,
+        "y": 28.9,
+        "color": "blue",
+        "label": {
+         "text": "pâncreas libera insulina",
+         "x": 93.8,
+         "y": 6.6,
+         "size": "m"
+        }
+       },
+       {
+        "id": "normal",
+        "kind": "point",
+        "x": 117.5,
+        "y": 58.7,
+        "color": "green"
+       },
+       {
+        "id": "normal_txt",
+        "kind": "text",
+        "x": 117.5,
+        "y": 76.9,
+        "text": "volta ao normal",
+        "size": "s",
+        "color": "green"
+       },
+       {
+        "id": "faixa_txt",
+        "kind": "text",
+        "x": 133.6,
+        "y": 43.5,
+        "text": "faixa saudável",
+        "size": "s",
+        "color": "green"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1800,
+   "message": {
+    "type": "action",
+    "order": 15,
+    "action": {
+     "id": "b15",
+     "name": "speak",
+     "args": {
+      "text": "No gráfico, a glicose sobe depois do almoço, a insulina entra em ação e ela volta para a faixa saudável.",
+      "purpose": "explain",
+      "sources": [
+       {
+        "material_id": "6ae58c4dc54e8af46024b34e",
+        "page": 10,
+        "quote": "Assim, a quantidade de glicose fica dentro de uma faixa saudável ao longo do dia."
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1920,
+   "message": {
+    "type": "action",
+    "order": 16,
+    "action": {
+     "id": "b16",
+     "name": "circle_annotate",
+     "args": {
+      "target_id": "grafico_glicose",
+      "text_to_match": "volta ao normal",
+      "color": "green"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2040,
+   "message": {
+    "type": "action",
+    "order": 17,
+    "action": {
+     "id": "b17",
+     "name": "highlight",
+     "args": {
+      "target_id": "glicose_passos",
+      "color": "blue",
+      "text_to_match": "homeostase"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2160,
+   "message": {
+    "type": "action",
+    "order": 18,
+    "action": {
+     "id": "b18",
+     "name": "ask_verification",
+     "args": {
+      "id": "q_glucagon",
+      "column": "main",
+      "concept": "Retroalimentação negativa",
+      "question": "E se você ficar muitas horas sem comer? O que acontece com a glicose, que hormônio o pâncreas libera e o que o fígado faz?",
+      "kind": "transfer",
+      "verification_id": "ver_demo_bio",
+      "concept_key": "retroalimentacao negativa"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2280,
+   "message": {
+    "type": "action",
+    "order": 19,
+    "action": {
+     "id": "b19",
+     "name": "speak",
+     "args": {
+      "text": "Agora é com você: tenta responder no quadro!",
+      "purpose": "question"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2400,
+   "message": {
+    "type": "script_done",
+    "turn_id": "demo_turn_bio"
+   }
+  },
+  {
+   "at_ms": 2420,
+   "message": {
+    "type": "turn_done",
+    "turn_id": "demo_turn_bio"
+   }
+  }
+ ]
+}

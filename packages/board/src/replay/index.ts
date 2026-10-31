@@ -1,7 +1,8 @@
 // Rebuilds a reopened session from its stored events (GET /api/sessions/:id): the board actions, the
 // transcript, the open question and the last turn id. Payloads are `unknown` on the wire, so every field is
 // checked; anything malformed is skipped, never thrown.
-import { Action, type Citation, type Event } from "@mento/contracts";
+import { Action, type Citation, type Event, boardEditOf, isBoardEditEvent } from "@mento/contracts";
+import type { BoardEdit } from "../store";
 
 export interface TranscriptLine {
   role: "student" | "tutor";
@@ -20,9 +21,14 @@ export interface OpenVerification {
   question?: string;
 }
 
+/** One board change, in event order: a tutor action or a student edit (plan F). */
+export type ReplayStep = { kind: "action"; action: Action } | { kind: "edit"; edit: BoardEdit };
+
 export interface ReplayResult {
   /** Board actions in event order (not by `order`, which restarts every turn); invalid ones are skipped. */
   actions: Action[];
+  /** The actions interleaved with the student's board edits, in event order: what restore() replays. */
+  steps: ReplayStep[];
   transcript: TranscriptLine[];
   /** The last verification_asked with no later verification_answered for the same id. */
   openVerification: OpenVerification | null;
@@ -36,6 +42,7 @@ const str = (v: unknown): string | undefined => (typeof v === "string" && v.leng
 
 export function replayEvents(events: readonly Event[]): ReplayResult {
   const actions: Action[] = [];
+  const steps: ReplayStep[] = [];
   const transcript: TranscriptLine[] = [];
   let openVerification: OpenVerification | null = null;
   let lastTurnId: string | null = null;
@@ -50,6 +57,7 @@ export function replayEvents(events: readonly Event[]): ReplayResult {
         const parsed = Action.safeParse({ id: p.action_id, name: p.name, args: p.args });
         if (!parsed.success) break;
         actions.push(parsed.data);
+        steps.push({ kind: "action", action: parsed.data });
         if (parsed.data.name === "speak") {
           const { text, sources } = parsed.data.args;
           transcript.push({ role: "tutor", text, at: event.ts, ...(sources?.length ? { sources } : {}) });
@@ -73,9 +81,15 @@ export function replayEvents(events: readonly Event[]): ReplayResult {
         if (openVerification && openVerification.verification_id === p.verification_id) openVerification = null;
         break;
       }
-      default:
+      default: {
+        if (!isBoardEditEvent(event.type)) break;
+        const parsed = boardEditOf(event.type, p);
+        if (!parsed) break;
+        const { edit_id: _, ...edit } = parsed;
+        steps.push({ kind: "edit", edit });
         break;
+      }
     }
   }
-  return { actions, transcript, openVerification, lastTurnId, tutorActionCount };
+  return { actions, steps, transcript, openVerification, lastTurnId, tutorActionCount };
 }

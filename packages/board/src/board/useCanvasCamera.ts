@@ -4,6 +4,7 @@
 // looks where the tutor draws. The camera lives in refs and is written straight to the DOM (no React render per move).
 import { useEffect, useRef, useState } from "react";
 import type { BoardStore, ElementState } from "../store";
+import type { BoardWriter } from "./writer";
 import {
   type Camera,
   type Inset,
@@ -40,19 +41,30 @@ export interface CanvasControls {
   recenter(): void;
   /** Resume following now (the "Voltar para a aula" pill). */
   resume(): void;
+  /** Pans by screen pixels (drag auto-scroll); counts as a manual move. */
+  panBy(dx: number, dy: number): void;
+  /** Suspends the follow camera for the next 4 s (a block is being dragged). */
+  hold(): void;
+  /** Called after every camera change (the edit toolbar keeps its place on screen). */
+  subscribe(listener: () => void): () => void;
 }
 
+/** Below this zoom the block toolbar is hidden (too small to aim at). */
+export const TOOLBAR_MIN_SCALE = 0.6;
+
 type Point = { x: number; y: number };
-type Engine = CanvasControls;
+type Engine = Omit<CanvasControls, "subscribe">;
 
 const isEditable = (t: EventTarget | null) =>
   t instanceof Element && !!t.closest("input, textarea, select, button, a, [contenteditable]");
 
-export function useCanvasCamera(store: BoardStore, mainWidth: number) {
+/** With a `writer`, the camera looks at the element being written instead of jumping to the newest one. */
+export function useCanvasCamera(store: BoardStore, mainWidth: number, writer?: BoardWriter) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const paperRef = useRef<HTMLDivElement>(null);
   const engine = useRef<Engine | null>(null);
+  const [cameraListeners] = useState(() => new Set<() => void>());
   // False after a manual pan/zoom until the camera follows again: shows the "Voltar para a aula" pill.
   const [following, setFollowing] = useState(true);
 
@@ -76,7 +88,13 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number) {
 
     const vp = () => ({ w: viewport.clientWidth, h: viewport.clientHeight });
     const worldSize = () => ({ w: world.offsetWidth, h: world.offsetHeight });
-    const inset = (): Inset => ({ top: 24, right: 32, bottom: Math.min(260, vp().h * 0.35), left: 32 });
+    // The host may publish how much of the board's bottom its overlays cover (caption, orb, notices) as
+    // `--board-safe-bottom` (px); without it, keep a fixed band clear.
+    const safeBottom = () => {
+      const v = parseFloat(getComputedStyle(viewport).getPropertyValue("--board-safe-bottom"));
+      return Number.isFinite(v) && v > 0 ? Math.min(v, vp().h * 0.7) : Math.min(260, vp().h * 0.35);
+    };
+    const inset = (): Inset => ({ top: 24, right: 32, bottom: safeBottom(), left: 32 });
     const fitScale = () => initialCamera(vp(), mainWidth).scale;
 
     const write = () => {
@@ -84,6 +102,11 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number) {
       const tile = PAPER_TILE_PX * cam.scale;
       paper.style.backgroundSize = `${tile}px ${tile}px`;
       paper.style.backgroundPosition = `${cam.x}px ${cam.y}px`;
+      // Screen-sized overlays inside the world (the block toolbar) divide by this.
+      viewport.style.setProperty("--board-scale", String(cam.scale));
+      if (cam.scale < TOOLBAR_MIN_SCALE) viewport.dataset.zoomedOut = "";
+      else delete viewport.dataset.zoomedOut;
+      cameraListeners.forEach((l) => l());
     };
     const set = (next: Camera) => {
       cam = clampCamera(next, vp(), worldSize());
@@ -136,6 +159,8 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number) {
     const follow = (id: string) => {
       lastId = id;
       if (performance.now() - manualAt < MANUAL_IDLE_MS) return;
+      // Still waiting for the pen: the writer focuses it when it starts.
+      if (writer?.isQueued(id)) return;
       const el = elementById(id);
       if (!el) return;
       setFollowingOnce(true);
@@ -172,6 +197,11 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number) {
       zoomOut: () => zoomBy(1 / ZOOM_STEP),
       recenter,
       resume,
+      panBy(dx, dy) {
+        markManual();
+        set({ ...cam, x: cam.x + dx, y: cam.y + dy });
+      },
+      hold: markManual,
     };
 
     // --- Pointer: drag to pan, two fingers to pinch, fling on release.
@@ -397,6 +427,14 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number) {
     // --- Store: new elements, draw_result replacing a placeholder and highlight/circle move the camera.
     let prevElements: ReadonlyMap<string, ElementState> = store.getState().elements;
     const unsubscribeAdded = store.subscribeAdded(scheduleFollow);
+    // The tutor moved a block: look at it once the reflow (240 ms) settled.
+    let moveTimer: ReturnType<typeof setTimeout> | undefined;
+    const unsubscribeLayout = store.subscribeLayout(({ kind, id, by }) => {
+      if (kind !== "move" || by !== "tutor") return;
+      lastId = id;
+      clearTimeout(moveTimer);
+      moveTimer = setTimeout(() => requestAnimationFrame(() => follow(id)), 260);
+    });
     const unsubscribeAll = store.subscribe(() => {
       const next = store.getState().elements;
       if (next.size === 0 && prevElements.size > 0) {
@@ -412,6 +450,17 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number) {
         if (drawn || el.annotations.length > prev.annotations.length) scheduleFollow(id);
       }
       prevElements = next;
+    });
+
+    // The pen starts an element (frame it once) or its caret's line leaves the safe area (bring that line in).
+    const unsubscribeFocus = writer?.subscribeFocus(({ id, rect }) => {
+      lastId = id;
+      if (performance.now() - manualAt < MANUAL_IDLE_MS) return;
+      const el = rect ? null : elementById(id);
+      if (!rect && !el) return;
+      setFollowingOnce(true);
+      const target = followTarget(cam, vp(), rect ?? rectOf(el as Element), inset());
+      if (target) animateTo(target);
     });
 
     const resize = new ResizeObserver(() => set(cam));
@@ -441,7 +490,10 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number) {
       stop();
       clearTimeout(followTimer);
       unsubscribeAdded();
+      unsubscribeLayout();
+      clearTimeout(moveTimer);
       unsubscribeAll();
+      unsubscribeFocus?.();
       resize.disconnect();
       engine.current = null;
       viewport.removeEventListener("pointerdown", onPointerDown);
@@ -461,13 +513,19 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number) {
       window.removeEventListener("keyup", onWindowKeyUp);
       window.removeEventListener("blur", releaseSpace);
     };
-  }, [store, mainWidth]);
+  }, [store, mainWidth, writer, cameraListeners]);
 
   const controls: CanvasControls = {
     zoomIn: () => engine.current?.zoomIn(),
     zoomOut: () => engine.current?.zoomOut(),
     recenter: () => engine.current?.recenter(),
     resume: () => engine.current?.resume(),
+    panBy: (dx, dy) => engine.current?.panBy(dx, dy),
+    hold: () => engine.current?.hold(),
+    subscribe: (listener) => {
+      cameraListeners.add(listener);
+      return () => cameraListeners.delete(listener);
+    },
   };
   return { viewportRef, worldRef, paperRef, following, controls };
 }

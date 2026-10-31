@@ -1,6 +1,7 @@
 export * from "./action-pipeline";
 export * from "./anthropic-llm";
 export * from "./board";
+export * from "./diagram/resolve";
 export * from "./hooks";
 export * from "./llm";
 export * from "./prompt-builder";

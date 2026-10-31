@@ -42,6 +42,11 @@ export interface ActionQueue {
   push(message: StreamMessage): void;
   /** The stream closed (with or without turn_done): play what arrived and finish the turn. */
   endTurn(): void;
+  /**
+   * Real pause: no new action starts, the text clock and the board's handwriting freeze, late drawings
+   * (draw_result) are held. Pushed messages keep buffering. The voice output is the caller's (the queue does
+   * not own the AudioContext). interrupt() / beginTurn() clear it.
+   */
   pause(): void;
   resume(): void;
   /**
@@ -81,10 +86,14 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
   let paused = false;
   let running = false;
   let current: Action | null = null;
+  // The script is played; waiting for the board to finish writing before the turn ends.
+  let draining = false;
   let nextOrder = 0;
   const pending = new Map<number, Action>();
   const completedOutOfBand = new Set<number>();
   const deferredDrawResults = new Map<string, Extract<Action, { name: "draw_result" }>>();
+  // draw_result messages that arrived while paused: applied on resume (or at once when the turn is cut).
+  const heldDrawResults: Extract<Action, { name: "draw_result" }>[] = [];
   const svgChunks = new Map<string, string[]>();
   const oversized = new Set<string>();
   const alignments = new Map<string, WordTiming[]>();
@@ -96,7 +105,7 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
   let lastState: QueueState = "idle";
   const derive = (): QueueState => {
     if (paused) return "paused";
-    if (current) return "playing";
+    if (current || draining) return "playing";
     if (turnActive && !scriptDone) return playedAny ? "playing" : "thinking";
     if (pending.size > 0) return "playing";
     return waitingAnswer ? "waiting_answer" : "idle";
@@ -108,12 +117,27 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
     opts.onStateChange?.(s);
   };
 
+  /** A finished drawing lands on its placeholder now, or after the `draw` action played. */
+  const applyDrawResult = (result: Extract<Action, { name: "draw_result" }>) => {
+    const element = store.getElement(result.args.element_id);
+    if (element?.status === "placeholder") store.dispatch(result);
+    else deferredDrawResults.set(result.args.element_id, result);
+  };
+
   const resetTurn = () => {
+    // Drawings held by a pause are not lost when the turn is cut: their placeholders get them.
+    for (const result of heldDrawResults.splice(0)) {
+      if (store.getElement(result.args.element_id)?.status === "placeholder") store.dispatch(result);
+    }
     generation++;
     abort.abort();
     abort = new AbortController();
     speech.stop();
     audio?.stop();
+    // Nothing stays half-written: the board finishes its writing at once.
+    store.animation.settle();
+    store.animation.setPaused(false);
+    draining = false;
     pending.clear();
     completedOutOfBand.clear();
     deferredDrawResults.clear();
@@ -132,9 +156,24 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
     pausedTotal = 0;
   };
 
+  // Handlers see a clock that starts paused when the queue is: a speak whose audio fails while paused falls back
+  // to the text clock without running it.
+  const handlerSpeech: SpeechClock = {
+    speak(text, o) {
+      const done = speech.speak(text, o);
+      if (paused) speech.pause?.();
+      return done;
+    },
+    stop: () => speech.stop(),
+    progress: () => speech.progress?.() ?? 0,
+    pause: () => speech.pause?.(),
+    resume: () => speech.resume?.(),
+    level: () => speech.level?.() ?? 0,
+  };
+
   const makeContext = (signal: AbortSignal): HandlerContext => ({
     store,
-    speech,
+    speech: handlerSpeech,
     audio,
     signal,
     setCaption: (c) => opts.onCaption?.(c),
@@ -209,6 +248,14 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
       }
       if (!paused && turnDone && pending.size === 0) {
         flushSvg();
+        // The turn ends (orb listens, mic opens) only once the board has written everything.
+        if (store.animation.isBusy()) {
+          draining = true;
+          emit();
+          await store.animation.whenIdle();
+          if (gen !== generation) return;
+          draining = false;
+        }
         turnActive = false;
       }
     } finally {
@@ -269,9 +316,8 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
           }
           if (msg.action.name === "draw_result") {
             completedOutOfBand.add(msg.order);
-            const element = store.getElement(msg.action.args.element_id);
-            if (element?.status === "placeholder") store.dispatch(msg.action);
-            else deferredDrawResults.set(msg.action.args.element_id, msg.action);
+            if (paused) heldDrawResults.push(msg.action);
+            else applyDrawResult(msg.action);
             void pump();
             return;
           }
@@ -324,6 +370,7 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
       paused = true;
       pausedAt = Date.now();
       speech.pause?.();
+      store.animation.setPaused(true);
       emit();
     },
 
@@ -332,6 +379,8 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
       paused = false;
       pausedTotal += Date.now() - pausedAt;
       speech.resume?.();
+      store.animation.setPaused(false);
+      for (const result of heldDrawResults.splice(0)) applyDrawResult(result);
       emit();
       void pump();
     },

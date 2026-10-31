@@ -20,6 +20,8 @@ describe("turn-taking", () => {
   it("keeps the mic open while the tutor talks (the browser cancels the echo); only the student's own mute closes it", () => {
     expect(micMuted({ userMuted: false })).toBe(false);
     expect(micMuted({ userMuted: true })).toBe(true);
+    // A paused tutor holds the mic: no barge-in until the student continues.
+    expect(micMuted({ userMuted: false, paused: true })).toBe(true);
   });
 
   it("barges in only while the tutor holds the floor or speaks", () => {
@@ -32,6 +34,7 @@ describe("turn-taking", () => {
     const base = { permission: "granted", unavailable: false, sttState: "listening", userMuted: false } as const;
     expect(micStatus(base)).toBe("listening");
     expect(micStatus({ ...base, sttState: "muted", userMuted: true })).toBe("muted");
+    expect(micStatus({ ...base, sttState: "muted", paused: true })).toBe("muted");
     expect(micStatus({ ...base, permission: "denied", sttState: "idle" })).toBe("denied");
     expect(micStatus({ ...base, unavailable: true, sttState: "error" })).toBe("unavailable");
     expect(micStatus({ ...base, permission: "asking", sttState: "idle" })).toBe("asking");

@@ -116,3 +116,24 @@ describe("stored conversations → analysis bundle (BR-27)", () => {
     expect(finding!.evidence.map((e) => e.quote)).toEqual(["na república o rei é eleito", "o augusto era presidente"]);
   });
 });
+
+describe("the student's board edits never reach the analysis (plan F, rule 6)", () => {
+  it("drops board_element_removed / board_element_moved from the bundle and from the analysis input", () => {
+    const events = [
+      ev("user_message", { kind: "chat", text: "oi" }),
+      speak("Na República, o poder era do Senado.", 50),
+      ev("board_element_removed", { element_id: "titulo", edit_id: "e1" }),
+      ev("board_element_moved", { element_id: "nota", column: "side", after_id: null, edit_id: "e2" }),
+      ev("user_message", { kind: "chat", text: "entendi" }),
+    ];
+    const bundle = toSessionBundle({ session, events, evidence: [] }, materials(material()));
+    expect(bundle.events.map((e) => e.type)).toEqual(["user_message", "tutor_action", "user_message"]);
+
+    // Even a bundle built elsewhere with these events gives an input without them (not even as counts or turns).
+    const leaky = { ...bundle, events: [...bundle.events, { id: "x", session_id: "s1", seq: 99, ts: bundle.events[0]!.ts, type: "board_element_removed", payload: { element_id: "a", edit_id: "e3" } } as (typeof bundle.events)[number]] };
+    const input = buildAnalysisInput({ trigger: leaky, history: [leaky], material: material(), class_context: null });
+    const text = JSON.stringify(input);
+    for (const needle of ["board_element", "edit_id", '"titulo"', '"nota"']) expect(text).not.toContain(needle);
+    expect(input.sessions[0]!.turns.map((t) => t.event_id)).not.toContain("x");
+  });
+});

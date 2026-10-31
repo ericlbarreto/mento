@@ -10,11 +10,32 @@ import {
   replayFixture,
   useTurnPlayer,
 } from "@mento/board";
+import type { Action, StreamMessage } from "@mento/contracts";
 import { Badge, Button } from "@mento/ui";
 import { useEffect, useRef, useState } from "react";
 
 const fixtureNames = Object.keys(FIXTURE_TURNS) as FixtureName[];
 
+// Local handwriting checks (not recorded fixtures): long lines that wrap, math text, an update while writing,
+// a marker sweep and a circle to interrupt mid-stroke.
+const act = (order: number, action: Action, at_ms: number) => ({ at_ms, message: { type: "action", order, action } as StreamMessage });
+const HANDWRITING_TURN: { at_ms: number; message: StreamMessage }[] = [
+  act(0, { id: "hw_1", name: "write_text", args: { id: "hw_math", column: "main", html: "<h2>Equações</h2><p>Se x² + 3 = 7, então x² = 4 e x = 2 ou x = −2. Metade de 8 é ½ · 8 = 4; a água é H₂O.</p>" } }, 0),
+  act(1, { id: "hw_2", name: "speak", args: { text: "Vamos resolver juntos, passo a passo." } }, 50),
+  act(2, { id: "hw_3", name: "write_text", args: { id: "hw_long", column: "main", html: "<p>Um texto mais longo quebra em várias linhas no quadro: <b>cada linha</b> é escrita da esquerda para a direita, e a caneta volta para o começo da linha seguinte com um pequeno arco, como uma mão de verdade.</p><ul><li>primeiro item</li><li>segundo item</li></ul>" } }, 100),
+  act(3, { id: "hw_4", name: "update_element", args: { id: "hw_long", html: "<p>Um texto mais longo quebra em várias linhas no quadro: <b>cada linha</b> é escrita da esquerda para a direita, e a caneta volta para o começo da linha seguinte com um pequeno arco, como uma mão de verdade.</p><ul><li>primeiro item</li><li>segundo item</li><li>terceiro item (atualizado)</li></ul>" } }, 300),
+  act(4, { id: "hw_5", name: "highlight", args: { target_id: "hw_long", color: "yellow" } }, 350),
+  act(5, { id: "hw_6", name: "circle_annotate", args: { target_id: "hw_math", text_to_match: "x = 2", color: "blue" } }, 400),
+  act(6, { id: "hw_7", name: "speak", args: { text: "Repare na resposta circulada." } }, 450),
+  { at_ms: 500, message: { type: "turn_done", turn_id: "hw_turn" } },
+];
+type TurnName = FixtureName | "handwriting";
+const sleep = (ms: number, signal?: AbortSignal) =>
+  new Promise<boolean>((resolve) => {
+    if (signal?.aborted) return resolve(false);
+    const t = setTimeout(() => resolve(true), ms);
+    signal?.addEventListener("abort", () => (clearTimeout(t), resolve(false)), { once: true });
+  });
 
 const stateLabel: Record<QueueState, string> = {
   idle: "Parado",
@@ -25,11 +46,27 @@ const stateLabel: Record<QueueState, string> = {
 };
 
 export function BoardPlayground() {
-  const fixture = useRef<FixtureName>("rome-intro");
+  const fixture = useRef<TurnName>("rome-intro");
+  // Every board action played so far, for "Reabrir" (restore without animation, like a reopened session).
+  const played = useRef<Action[]>([]);
   // Stable: reads the fixture chosen by the last click.
   const [replayStream] = useState(() => {
     const stream: StreamTurn = async (_sessionId, _req, onMessage, opts) => {
-      for await (const m of replayFixture(fixture.current, { signal: opts?.signal })) onMessage(m);
+      const record = (m: StreamMessage) => {
+        if (m.type === "action" && m.action.name !== "speak") played.current.push(m.action);
+        onMessage(m);
+      };
+      const name = fixture.current;
+      if (name === "handwriting") {
+        let last = 0;
+        for (const { at_ms, message } of HANDWRITING_TURN) {
+          if (!(await sleep(at_ms - last, opts?.signal))) return;
+          last = at_ms;
+          record(message);
+        }
+        return;
+      }
+      for await (const m of replayFixture(name, { signal: opts?.signal })) record(m);
     };
     return stream;
   });
@@ -39,7 +76,7 @@ export function BoardPlayground() {
   const [assetBaseUrl, setAssetBaseUrl] = useState("");
   useEffect(() => setAssetBaseUrl(window.location.origin), []);
 
-  const play = (name: FixtureName) => {
+  const play = (name: TurnName) => {
     fixture.current = name;
     void player.sendTurn({ appended: [], modality: "text" });
   };
@@ -53,6 +90,21 @@ export function BoardPlayground() {
             {name}
           </Button>
         ))}
+        <Button size="sm" variant="secondary" onClick={() => play("handwriting")}>
+          handwriting
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            const actions = [...played.current];
+            player.clear();
+            played.current = actions;
+            player.restore(actions.map((action) => ({ kind: "action" as const, action })), null);
+          }}
+        >
+          Reabrir
+        </Button>
         <span className="mx-2 h-6 w-px bg-(--line)" aria-hidden />
         {player.queueState === "paused" ? (
           <Button size="sm" onClick={player.resume}>
@@ -78,6 +130,7 @@ export function BoardPlayground() {
           variant="ghost"
           onClick={() => {
             player.clear();
+            played.current = [];
             setLastInterrupted(null);
           }}
         >

@@ -3,7 +3,7 @@
 // Glue between the turn stream and the board: one store + one action queue per session.
 // `streamTurn` is injected (same signature as apps/web/src/lib/api.ts) so the dev page can replay fixtures.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Action, SpeechPlayer, StreamMessage, TurnRequest, WordTiming } from "@mento/contracts";
+import type { SpeechPlayer, StreamMessage, TurnRequest, WordTiming } from "@mento/contracts";
 import {
   type ActionQueue,
   type Caption,
@@ -13,6 +13,7 @@ import {
   type RevealMap,
   createActionQueue,
 } from "../queue";
+import type { ReplayStep } from "../replay";
 import { type SpeechClock, TextSpeechPlayer } from "../speech";
 import { type BoardStore, createBoardStore } from "../store";
 
@@ -59,10 +60,10 @@ export interface TurnPlayer {
   /** Interrupts and empties the board (dev / new topic). */
   clear(): void;
   /**
-   * Redraws a reopened session without animation or audio (actions from replayEvents) and remembers its last
-   * turn id for the next interruption.
+   * Redraws a reopened session without animation or audio (steps from replayEvents: tutor actions and student
+   * edits, in event order) and remembers its last turn id for the next interruption.
    */
-  restore(actions: readonly Action[], lastTurnId: string | null): void;
+  restore(steps: readonly ReplayStep[], lastTurnId: string | null): void;
 }
 
 /** One streamed turn. `detached`: superseded after script_done; it only delivers late drawings now. */
@@ -173,8 +174,13 @@ export function useTurnPlayer({ sessionId, streamTurn, speech, audio, handlers, 
   }, [cut, store]);
 
   const restore = useCallback(
-    (actions: readonly Action[], lastTurnId: string | null) => {
-      for (const action of actions) store.dispatch(action);
+    (steps: readonly ReplayStep[], lastTurnId: string | null) => {
+      store.instant(() => {
+        for (const step of steps) {
+          if (step.kind === "action") store.dispatch(step.action);
+          else store.applyEdit(step.edit);
+        }
+      });
       queue.setLastTurnId(lastTurnId);
     },
     [queue, store],

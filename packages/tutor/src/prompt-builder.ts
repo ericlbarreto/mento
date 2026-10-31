@@ -83,6 +83,16 @@ export interface UserMessageInput {
   passages: Chunk[];
   appended: TurnRequest["appended"];
   interrupted?: TurnRequest["interrupted"];
+  /** Tutor replies in a row, newest first, that asked the student nothing (undefined before the first reply). */
+  repliesWithoutQuestion?: number;
+}
+
+/** Pace note: check a concept after two replies without a question, and do not ask right after a question. */
+function paceNote(n: number | undefined): string | null {
+  if (n === undefined) return null;
+  if (n === 0) return "Your last reply asked the student a question: do not ask another one in this reply unless the student must choose a path. Close with a statement.";
+  if (n >= 2) return `Your last ${n} replies asked the student nothing: if this reply teaches on the board, end it by checking the key concept with \`ask_verification\`; a voice-only side answer does not check.`;
+  return "Your last reply asked nothing: close this one with a statement, or check the key concept if you have just finished explaining it.";
 }
 
 /** Everything that changes per turn, as one user message (kept after the cache breakpoint). */
@@ -100,6 +110,7 @@ export function buildUserMessage(input: UserMessageInput): string {
       }
     } else {
       lines.push(`The student answered the question ${a.element_id} (${a.verification_id}): "${a.answer}"`);
+      lines.push("If this is not an attempt to answer but a request (for example to move, place or delete something on the board) or another question, do what it asks with the tools and leave the question for later.");
     }
   }
   if (input.interrupted) {
@@ -121,7 +132,26 @@ export function buildUserMessage(input: UserMessageInput): string {
     `## Passages from the teacher's materials\n${formatPassages(input.passages)}`,
     `## New input\n${lines.join("\n")}`,
     `## Modality\n${modality}`,
+    ...(paceNote(input.repliesWithoutQuestion) ? [`## Pace\n${paceNote(input.repliesWithoutQuestion)}`] : []),
   ].join("\n\n");
+}
+
+/** How many of the latest tutor replies in a row asked nothing (no `?` in a speak, no verification). */
+export function repliesWithoutQuestion(events: Event[]): number | undefined {
+  const asked = new Map<string, boolean>();
+  for (const e of events) {
+    const p = e.payload as { turn_id?: unknown; name?: unknown; args?: { text?: unknown } } | null;
+    if (e.type !== "tutor_action" || !p || typeof p.turn_id !== "string") continue;
+    const ask = p.name === "ask_verification" || (p.name === "speak" && typeof p.args?.text === "string" && p.args.text.includes("?"));
+    asked.set(p.turn_id, (asked.get(p.turn_id) ?? false) || ask);
+  }
+  if (asked.size === 0) return undefined;
+  let n = 0;
+  for (const a of [...asked.values()].reverse()) {
+    if (a) break;
+    n += 1;
+  }
+  return n;
 }
 
 /** Transcript lines from the event log: student messages and answers, and the tutor's spoken text. */

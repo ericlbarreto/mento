@@ -1,24 +1,30 @@
 // Board state shapes (docs/16 §5.1): elements keyed by id + per-column order.
 import type { z } from "zod";
 import type {
+  Action,
   AskVerificationArgs,
   Citation,
   CircleAnnotateArgs,
   Column,
+  DiagramBody,
   DrawArgs,
   HighlightArgs,
   WriteTimelineArgs,
 } from "@mento/contracts";
 
-export type ElementType = "text" | "timeline" | "image" | "svg" | "question";
+export type ElementType = "text" | "timeline" | "image" | "svg" | "question" | "diagram";
 export type Author = "tutor" | "student";
 
 export type HighlightColor = z.infer<typeof HighlightArgs>["color"];
 export type CircleColor = z.infer<typeof CircleAnnotateArgs>["color"];
 
+/**
+ * `text_to_match` on a highlight: only that passage is marked (several passages coexist); without it the whole
+ * block is.
+ * `shape_id`: the annotation targets one shape of a diagram instead of the whole element / a text match. */
 export type Annotation =
-  | { kind: "highlight"; color: HighlightColor; action_id: string }
-  | { kind: "circle"; color: CircleColor; text_to_match: string; action_id: string };
+  | { kind: "highlight"; color: HighlightColor; action_id: string; shape_id?: string; text_to_match?: string }
+  | { kind: "circle"; color: CircleColor; text_to_match: string; action_id: string; shape_id?: string };
 
 /** `draw` placeholder and its late result share one shape; `type` is image (url) or svg (streamed). */
 export interface DrawData {
@@ -37,6 +43,8 @@ export interface ElementDataByType {
   image: DrawData;
   svg: DrawData;
   question: Pick<VerificationArgs, "verification_id" | "concept" | "concept_key" | "question" | "kind">;
+  /** `draw_diagram`: resolved by the server, absolute geometry inside `view`. */
+  diagram: DiagramBody;
 }
 
 interface ElementBase<T extends ElementType> {
@@ -51,15 +59,51 @@ interface ElementBase<T extends ElementType> {
   sources?: Citation[];
   outside_material?: boolean;
   annotations: Annotation[];
+  /** Pinned at a free spot of the board (plan G): px at zoom 1 from the world's top-left. Absent = in its column's flow. */
+  pos?: { x: number; y: number };
+  /** Attached by the tutor (`place_element`) to another block, drawn on that side of it and moved with it. */
+  near?: { id: string; side: PlaceSide };
 }
+
+export type PlaceSide = "right" | "left" | "below" | "above";
 
 export type ElementState = { [T in ElementType]: ElementBase<T> }[ElementType];
 export type ElementOf<T extends ElementType> = ElementBase<T>;
 
 export interface BoardState {
   elements: ReadonlyMap<string, ElementState>;
-  /** Element ids per column, in insertion order. Arrays are replaced (never mutated) on change. */
+  /** Element ids per column, top to bottom (the tutor appends; the student may reorder). Arrays are replaced (never mutated) on change. */
   columns: Readonly<Record<Column, readonly string[]>>;
+  /** Ids the student deleted (plan F): tutor actions on them are dropped, a late draw_result included. */
+  removed: ReadonlySet<string>;
+  /** Pinned elements (plan G), out of the column flow, in stacking order (last on top). Replaced on change. */
+  free: readonly string[];
+  /** Elements attached to another one (`near`), out of the column flow. Replaced on change. */
+  attached: readonly string[];
+}
+
+/** A student board edit (BoardEditRequest without its edit_id). A move is absolute: into `column`, right after `after_id` (null = top). */
+export type BoardEdit =
+  | { op: "remove"; element_id: string }
+  | { op: "move"; element_id: string; column: Column; after_id: string | null }
+  | { op: "place"; element_id: string; x: number; y: number };
+
+/** The tutor reorganizes the board with `move_element` (same absolute move as the student's). */
+export type MoveElementAction = Extract<Action, { name: "move_element" }>;
+export type BoardAction = Action;
+
+/** A layout change the board animates (FLIP reflow), announced right before the store commits it. */
+export interface LayoutChange {
+  kind: "move" | "remove" | "restore" | "place";
+  id: string;
+  by: Author;
+}
+
+/** What undo needs to put a deleted element back where it was. */
+export interface RemovedElement {
+  element: ElementState;
+  /** The element right above it in its column when it was deleted (null = it was the first; ignored when pinned). */
+  after_id: string | null;
 }
 
 export const COLUMNS: readonly Column[] = ["main", "visuals", "side"];
@@ -67,4 +111,7 @@ export const COLUMNS: readonly Column[] = ["main", "visuals", "side"];
 export const emptyBoard = (): BoardState => ({
   elements: new Map(),
   columns: { main: [], visuals: [], side: [] },
+  removed: new Set(),
+  free: [],
+  attached: [],
 });

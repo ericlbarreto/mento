@@ -2,12 +2,13 @@
 
 // Owner: Person 2. The tutoring session (Stitch S2 loading, S3 board + chat, S4 chat closed): composes the shared
 // chrome, the PR #6 board, captions, orb, controls and chat around useSessionController. Plan 2026-10-30-2330 §3.
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { Board, MOCK_STUDENTS, type StudentSummary } from "@mento/board";
-import { Footer, Orb, TopBar, type TopBarNavItem } from "@mento/ui";
-import { API_URL, MOCK_API, apiUrl, getSession, getVoiceToken, listSessions, listStudents, streamTurn } from "@/lib/api";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
+import { Board, type BoardEditingEnv, MOCK_STUDENTS, type StudentSummary, createEditOutbox } from "@mento/board";
+import { Orb, TopBar, type TopBarNavItem } from "@mento/ui";
+import { API_URL, MOCK_API, apiUrl, getSession, getVoiceToken, listSessions, listStudents, streamTurn, editBoard } from "@/lib/api";
 import { CaptionBar } from "../_components/caption/CaptionBar";
 import { ChatPanel } from "../_components/chat/ChatPanel";
+import { isPauseShortcut } from "../_components/controls/pauseShortcut";
 import { InputControls, PlaybackControls } from "../_components/controls/SessionControls";
 import { SessionHeader } from "../_components/header/SessionHeader";
 import { HistoryDrawer } from "../_components/history/HistoryDrawer";
@@ -52,8 +53,25 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
         opts,
       )) as typeof streamTurn,
   }));
-  const c = useSessionController({ sessionId, api, audio, holdVoiceOpening: !MOCK_API });
+  // Plan F: the student's deletes and moves. A delete waits out its undo window (or the next turn, or pagehide).
+  const warnRef = useRef<(m: string) => void>(() => undefined);
+  const [outbox] = useState(() =>
+    createEditOutbox({
+      send: (edit, opts) => editBoard(sessionId, edit, opts),
+      onError: (edit, err) => warnRef.current(`board ${edit.op} (${edit.element_id}) not saved: ${err instanceof Error ? err.message : String(err)}`),
+    }),
+  );
+  const c = useSessionController({ sessionId, api, audio, holdVoiceOpening: !MOCK_API, flushEdits: () => outbox.flush() });
   const { player, session, setSelection, releaseOpening } = c;
+  useEffect(() => {
+    warnRef.current = player.warn;
+  }, [player.warn]);
+  // Registered before useEndSession's listener: the held delete leaves before the end request.
+  useEffect(() => {
+    const onPageHide = () => void outbox.flush({ keepalive: true });
+    window.addEventListener("pagehide", onPageHide);
+    return () => window.removeEventListener("pagehide", onPageHide);
+  }, [outbox]);
 
   // The spoken conversation: mic + STT, turn-taking, barge-in. Final captions go out like typed messages, so a
   // board selection ("Sobre: …" chip) turns the spoken question into click-and-ask.
@@ -72,6 +90,7 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
     tutorText,
     onFinal: (caption) => c.sendMessage(caption.text, "speech", caption),
     onBargeIn: c.interrupt,
+    paused: c.paused,
   });
   const canOpen = !!session && voice.canOpen;
   useEffect(() => {
@@ -82,8 +101,8 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
   // "Continuar por texto" closes the mic notice and opens the chat (the notice comes back if the mic state changes).
   const [noticeClosedFor, setNoticeClosedFor] = useState<string | null>(null);
 
-  // Leaving the page (tab close / reload) ends the lesson (keepalive, reason "beacon"): that is what sends the
-  // conversation to the teacher-side analysis. Coming back reopens it paused (below); there is no end button.
+  // Leaving the page ("Voltar ao início": reason "user_left"; tab close / reload: "beacon") ends the lesson (keepalive):
+  // that is what sends the conversation to the teacher-side analysis. Coming back reopens it paused (below); there is no end button.
   useEndSession({ sessionId, onEnded: () => undefined });
 
   // A reopened lesson starts paused: "Retomar conversa" is the click that unlocks the audio and the mic.
@@ -141,8 +160,9 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
     requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
   }, []);
 
-  // Click-and-ask: a click (or a text selection) on a board element sets the "Sobre: …" chip.
-  const selectFrom = (target: EventTarget | null) => {
+  // Click-and-ask: a click (or a text selection) on a board element sets the "Sobre: …" chip. A tap does not focus
+  // the chat (no keyboard popping up): the student types or speaks when ready.
+  const selectFrom = (target: EventTarget | null, touch = false) => {
     if (!(target instanceof Element) || target.closest("[data-board-control], input, textarea, button, a")) return false;
     const el = target.closest<HTMLElement>("[data-element-id]");
     const id = el?.dataset.elementId;
@@ -150,15 +170,45 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
     const sel = window.getSelection();
     const selected = sel && !sel.isCollapsed && sel.anchorNode && el.contains(sel.anchorNode) ? sel.toString() : "";
     setSelection(makeSelection(id, el.innerText || el.textContent || "", selected));
-    focusChat();
+    if (touch) setChatOpen(true);
+    else focusChat();
     return true;
   };
   const onBoardClick = (e: MouseEvent) => {
-    selectFrom(e.target);
+    const native = e.nativeEvent as globalThis.MouseEvent & { pointerType?: string };
+    selectFrom(e.target, native.pointerType === "touch" || native.pointerType === "pen");
   };
   const onBoardKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter" && e.target instanceof HTMLElement && e.target.dataset.elementId && selectFrom(e.target)) e.preventDefault();
   };
+
+  // The caption, orb and notices cover the bottom of the board: tell the board's camera how much, so what the
+  // tutor writes is framed above them.
+  const boardAreaRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const area = boardAreaRef.current;
+    const overlay = overlayRef.current;
+    if (!area || !overlay) return;
+    const update = () => area.style.setProperty("--board-safe-bottom", `${Math.ceil(overlay.offsetHeight) + 16}px`);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(overlay);
+    return () => ro.disconnect();
+  }, []);
+
+  const selectionId = c.selection?.element_id;
+  const editing = useMemo<BoardEditingEnv>(
+    () => ({
+      outbox,
+      lockedIds: c.lockedIds,
+      // Deleting the block the chip points at clears the chip.
+      onRemoved: (id) => {
+        if (selectionId === id) setSelection(null);
+      },
+    }),
+    [outbox, c.lockedIds, selectionId, setSelection],
+  );
 
   const verification = { openElementId: c.openQuestion?.element_id ?? null, answered: c.answered, onAnswer: c.answerQuestion };
 
@@ -166,6 +216,21 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
     audio?.setMuted(!muted);
     setMuted(!muted);
   };
+
+  // Space pauses / continues (not while typing, nor on a focused button, nor behind the "Retomar conversa" modal).
+  const pauseKey = useRef({ toggle: c.togglePause, enabled: false });
+  useEffect(() => {
+    pauseKey.current = { toggle: c.togglePause, enabled: (c.paused || c.canPause) && !resumeOpen };
+  });
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (!pauseKey.current.enabled || !isPauseShortcut(e)) return;
+      e.preventDefault();
+      pauseKey.current.toggle();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const retry = () => {
     if (c.retry() === "dismissed") focusChat();
@@ -176,9 +241,10 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
   const title = session?.title ?? "Nova conversa";
 
   return (
-    <div className="flex min-h-dvh flex-col bg-(--paper)">
+    // The lesson fills the screen exactly: no page scroll and no footer; only the board pans and the chat scrolls inside.
+    <div className="flex h-dvh flex-col overflow-hidden bg-(--paper)">
       <TopBar nav={NAV} classLabel="8º ano" studentName={student?.name} />
-      <div className="relative flex h-[calc(100dvh-4rem)] min-h-[600px]">
+      <div className="relative flex min-h-0 flex-1">
         <main className={`relative flex min-w-0 flex-1 flex-col ${dotted}`}>
           <div className="shrink-0 px-6 pt-4 pb-1">
             <SessionHeader
@@ -191,15 +257,16 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
             />
           </div>
           {/* Click-and-ask listens here (bubbling from the board elements); Enter on a focused element does the same. */}
-          <div className="relative min-h-0 flex-1" onClick={onBoardClick} onKeyDown={onBoardKeyDown}>
+          <div ref={boardAreaRef} className="relative min-h-0 flex-1" onClick={onBoardClick} onKeyDown={onBoardKeyDown}>
             <Board
               store={player.store}
               assetBaseUrl={assetBaseUrl}
               onWarning={player.warn}
               verification={verification}
-              className={`min-h-0 [&_[data-element-id]]:cursor-pointer [&>section]:pb-72 [&>section]:scroll-pb-72 ${dotted}`}
+              editing={editing}
+              className={`min-h-0 [&_[data-element-id]]:cursor-pointer ${dotted}`}
             />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 px-6 pb-5">
+            <div ref={overlayRef} className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 px-6 pb-5">
               {voiceOn && noticeClosedFor !== voice.status && (
                 <VoiceNotice
                   status={voice.status}
@@ -209,22 +276,41 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
                   }}
                 />
               )}
+              {c.paused && (
+                <span
+                  role="status"
+                  className="pointer-events-none rounded-(--radius-pill) bg-(--ink) px-3 py-1 text-xs font-bold tracking-wide text-(--paper) uppercase shadow-(--shadow-float)"
+                >
+                  Pausado
+                </span>
+              )}
               {captionsOn && caption && (
                 <CaptionBar caption={caption} speaking={c.speakingId === caption.action_id} progress={c.captionProgress} />
               )}
               {voiceOn && <InterimCaption text={voice.interim} />}
               <div className="flex w-full items-end justify-between gap-4">
                 <PlaybackControls
+                  paused={c.paused}
+                  canPause={c.canPause}
+                  onTogglePause={c.togglePause}
                   muted={muted}
                   onToggleMute={toggleMute}
                   captionsOn={captionsOn}
                   onToggleCaptions={() => setCaptionsOn((on) => !on)}
                 />
-                {/* In voice sessions the orb mutes / unmutes the mic; otherwise it opens the chat. */}
+                {/* Paused, the orb continues the lesson. In voice sessions it mutes / unmutes the mic; otherwise it opens the chat. */}
                 <button
                   type="button"
-                  onClick={micUsable ? voice.toggleMic : focusChat}
-                  aria-label={micUsable ? (voice.status === "listening" ? "Silenciar o microfone" : "Falar com o Mento") : "Escrever para o Mento"}
+                  onClick={c.paused ? c.resume : micUsable ? voice.toggleMic : focusChat}
+                  aria-label={
+                    c.paused
+                      ? "Continuar"
+                      : micUsable
+                        ? voice.status === "listening"
+                          ? "Silenciar o microfone"
+                          : "Falar com o Mento"
+                        : "Escrever para o Mento"
+                  }
                   className="pointer-events-auto rounded-full outline-none focus-visible:shadow-(--focus-ring)"
                 >
                   <Orb state={voiceOn ? voiceOrbState(c.orbState, voice.status) : c.orbState} size={120} getLevel={c.level} perkKey={c.selection?.element_id} />
@@ -273,7 +359,6 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
         />
         {voice.needsTap && !resumeOpen && <VoiceStartGate onStart={() => void voice.start()} onTextOnly={voice.continueWithText} busy={voice.gate === "unlocking"} />}
       </div>
-      <Footer />
       <HistoryDrawer
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}

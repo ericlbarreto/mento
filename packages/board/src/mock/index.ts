@@ -1,9 +1,15 @@
 // Mock data for running the whiteboard without the API (NEXT_PUBLIC_MOCK_API=1). Fictional data only.
 // Turns replay the repo's recorded fixtures (fixtures/turns, Person 3), the same files GET /api/dev/fixture-turn serves.
-import { FixtureTurn, type StreamMessage, type SubjectSummary } from "@mento/contracts";
+import { DiagramArgs, FixtureTurn, type StreamMessage, type SubjectSummary } from "@mento/contracts";
 import { z } from "zod";
 import romeIntro from "../../../../fixtures/turns/rome-intro.json";
 import clickAndAsk from "../../../../fixtures/turns/click-and-ask.json";
+import newtonBlocks from "../../../../fixtures/turns/newton-blocks.json";
+import demoBoard from "../../../../fixtures/turns/demo-board.json";
+import demoBoardHistory from "../../../../fixtures/turns/demo-board-history.json";
+import demoBoardBiology from "../../../../fixtures/turns/demo-board-biology.json";
+import demoBoardMath from "../../../../fixtures/turns/demo-board-math.json";
+import diagramExamples from "../../../../fixtures/diagrams/examples.json";
 
 /** Student as the start screen shows it. Local until Person 1's students contract lands (PR #7). */
 export const StudentSummary = z.object({ id: z.string().min(1), name: z.string().min(1), is_simulated: z.boolean().optional() });
@@ -36,8 +42,20 @@ export const MOCK_SUBJECTS: SubjectSummary[] = [
 export const FIXTURE_TURNS = {
   "rome-intro": FixtureTurn.parse(romeIntro),
   "click-and-ask": FixtureTurn.parse(clickAndAsk),
+  "newton-blocks": FixtureTurn.parse(newtonBlocks),
+  "demo-board": FixtureTurn.parse(demoBoard),
+  "demo-board-history": FixtureTurn.parse(demoBoardHistory),
+  "demo-board-biology": FixtureTurn.parse(demoBoardBiology),
+  "demo-board-math": FixtureTurn.parse(demoBoardMath),
 } satisfies Record<string, FixtureTurn>;
 export type FixtureName = keyof typeof FIXTURE_TURNS;
+
+/** Resolved draw_diagram examples (fixtures/diagrams, the golden set of the resolver) for the /dev/diagrams gallery. */
+export const DIAGRAM_EXAMPLES: { name: string; description: string; args: DiagramArgs }[] = diagramExamples.examples.map((e) => ({
+  name: e.name,
+  description: e.description,
+  args: DiagramArgs.parse(e.output),
+}));
 
 /**
  * Picks the mock reply for the `turnIndex`-th turn of a session: rome-intro, then click-and-ask (which builds on

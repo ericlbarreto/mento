@@ -2,7 +2,8 @@
 // Person 3's PcmPlayer as soon as the queue reaches the speak (the fetch starts right away; the audio streams).
 // Browsers only start an AudioContext inside a user gesture (or after one, Chrome's sticky activation), so
 // `unlock()` is called from the student's click: it creates the context and plays two silent samples. Until
-// then play() rejects at once and the queue falls back to the text clock (captions only). Muting cuts the output only.
+// then play() rejects at once and the queue falls back to the text clock (captions only). Muting cuts the output only;
+// pausing suspends the AudioContext, so the voice stops mid-word and resumes from the same sample.
 import type { SpeechPlayer, WordTiming } from "@mento/contracts";
 import { PcmPlayer } from "@mento/voice/client";
 
@@ -17,6 +18,11 @@ export interface SessionAudio extends SpeechPlayer {
   unlock(): Promise<boolean>;
   /** Downloads a speak's audio ahead of time (called when the action arrives, while earlier lines still play). */
   prefetch(audio_url: string): void;
+  /** Freezes the tutor's voice where it is (AudioContext.suspend); the line's download keeps going. */
+  pause(): void;
+  /** Continues the voice from the same point. */
+  resume(): void;
+  readonly paused: boolean;
   readonly unlocked: boolean;
 }
 
@@ -27,7 +33,11 @@ export function createSessionAudio(
   let pcm: SpeechPlayer | null = null;
   let muted = false;
   let unlocked = false;
+  let paused = false;
   const player = () => (pcm ??= createPlayer());
+  // PcmPlayer schedules its buffers on the AudioContext clock, so suspending the context freezes the voice (and
+  // what is scheduled after it) on the exact sample. TODO(P3): public pause/resume on PcmPlayer.
+  const context = () => (pcm as unknown as { ctx?: AudioContext | null } | null)?.ctx ?? null;
   // PcmPlayer has no volume API: its graph is source → analyser → destination, so muting disconnects the
   // analyser from the speakers (the analyser still feeds the orb level). TODO(P3): a public setVolume on PcmPlayer.
   let outputConnected = true;
@@ -62,6 +72,21 @@ export function createSessionAudio(
     get unlocked() {
       return unlocked;
     },
+    get paused() {
+      return paused;
+    },
+    pause() {
+      if (paused) return;
+      paused = true;
+      const ctx = context();
+      if (ctx && ctx.state === "running") void ctx.suspend().catch(() => undefined);
+    },
+    resume() {
+      if (!paused) return;
+      paused = false;
+      const ctx = context();
+      if (ctx && ctx.state === "suspended" && unlocked) void ctx.resume().catch(() => undefined);
+    },
     unlock() {
       if (unlocked) return Promise.resolve(true);
       // play() calls AudioContext.resume() synchronously, so a call from a click handler counts as the gesture.
@@ -89,7 +114,8 @@ export function createSessionAudio(
     },
     stop: () => pcm?.stop(),
     onWord: (cb: (word: WordTiming) => void) => player().onWord(cb),
-    level: () => (pcm && !muted ? pcm.level() : 0),
+    // A suspended analyser keeps its last frame: report silence while paused.
+    level: () => (pcm && !muted && !paused ? pcm.level() : 0),
     setMuted(next) {
       muted = next;
       // A real mute: the line keeps playing (captions and pacing unchanged), only the output is cut, so

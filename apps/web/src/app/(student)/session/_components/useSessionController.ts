@@ -47,12 +47,19 @@ export interface ChatLine extends TranscriptLine {
 
 type TurnInput = Omit<TurnRequest, "interrupted">;
 
+/** The tutor's voice, plus the AudioContext suspend / resume behind the real pause (SessionAudio). */
+export type SessionVoiceOutput = SpeechPlayer & { pause?(): void; resume?(): void };
+
+
+/** Actions that put a new block on the board (locked while their turn plays). */
+const CREATES_ELEMENT = new Set<Action["name"]>(["write_text", "write_timeline", "draw", "draw_diagram", "ask_verification"]);
 
 /**
  * Sessions whose opening turn this page already sent. Module-level so a remount (StrictMode, fast refresh,
  * back/forward) never sends it twice; an explicit retry bypasses it.
  */
 const openingSent = new Set<string>();
+const NO_IDS: ReadonlySet<string> = new Set();
 
 /** Wraps every default handler so the page knows which action is playing (speak vs. drawing on the board). */
 function trackHandlers(onStart: (a: Action) => void, onEnd: (a: Action) => void): HandlerMap {
@@ -76,11 +83,12 @@ export function useSessionController({
   audio,
   openingDelay = openingDelayMs,
   holdVoiceOpening = false,
+  flushEdits,
 }: {
   sessionId: string;
   api: SessionApi;
   /** Tutor voice for `speak.audio_url` (absent in mock mode). */
-  audio?: SpeechPlayer;
+  audio?: SessionVoiceOutput;
   /** ms to wait before the opening turn, from the session's started_at (tests pass () => 0). */
   openingDelay?: (startedAt: string | undefined) => number;
   /**
@@ -88,6 +96,11 @@ export function useSessionController({
    * student chose text only), so the greeting is heard instead of falling back to captions.
    */
   holdVoiceOpening?: boolean;
+  /**
+   * Plan F: sends the student's held board edits (a delete in its undo window) and resolves when they reached the
+   * API, or returns null when there is nothing to wait for. Called before every turn, so the tutor sees the edits.
+   */
+  flushEdits?: () => Promise<void> | null;
 }) {
   const [phase, setPhase] = useState<SessionPhase>("loading");
   /** The lesson was reopened with board content: the page shows it paused until the student resumes. */
@@ -105,9 +118,13 @@ export function useSessionController({
   const [dismissedError, setDismissedError] = useState<string | null>(null);
 
   const apiRef = useRef(api);
+  const flushRef = useRef(flushEdits);
   useEffect(() => {
     apiRef.current = api;
+    flushRef.current = flushEdits;
   });
+  /** Blocks created by the turn being sent or played: the student cannot edit them until the tutor is done. */
+  const [turnIds, setTurnIds] = useState<ReadonlySet<string>>(() => new Set());
 
   /** The error thrown by the last turn request (ApiError before the stream), to tell 503 from 404 on screen. */
   const lastTurnError = useRef<unknown>(undefined);
@@ -144,6 +161,8 @@ export function useSessionController({
   }, []);
 
   const speakStartedAt = useRef(0);
+  /** Pause bookkeeping for the alignment clock: when the current pause began, and ms paused in this speak. */
+  const pauseClock = useRef<{ since: number | null; total: number }>({ since: null, total: 0 });
   const speakingRef = useRef<string | null>(null);
   const alignments = useRef(new Map<string, WordTiming[]>());
   const onActionStart = (action: Action) => {
@@ -151,6 +170,7 @@ export function useSessionController({
     if (action.name === "speak") {
       speakingRef.current = action.id;
       speakStartedAt.current = performance.now();
+      pauseClock.current.total = 0;
       setSpeakingId(action.id);
       const { text, sources, outside_material } = action.args;
       setLines((ls) =>
@@ -160,6 +180,10 @@ export function useSessionController({
       );
     } else if (action.name === "ask_verification") {
       setOpenQuestion({ verification_id: action.args.verification_id, element_id: action.args.id });
+    }
+    if (CREATES_ELEMENT.has(action.name)) {
+      const id = (action.args as { id: string }).id;
+      setTurnIds((ids) => (ids.has(id) ? ids : new Set(ids).add(id)));
     }
   };
   const onActionEnd = (action: Action) => {
@@ -188,7 +212,7 @@ export function useSessionController({
     handlers,
     onAlignment: (id, words) => alignments.current.set(id, words),
   });
-  const { sendTurn, restore, store } = player;
+  const { sendTurn, restore, store, interrupt: interruptPlayer } = player;
 
   // Survives StrictMode's simulated unmount (the cleanup runs, then the effect again, synchronously).
   const mounted = useRef(true);
@@ -199,6 +223,14 @@ export function useSessionController({
     };
   }, []);
 
+  /** Leaves a pause: the voice output runs again (the queue resumes itself, or a cut already reset it). */
+  const endPause = useCallback(() => {
+    const clock = pauseClock.current;
+    if (clock.since !== null) clock.total += performance.now() - clock.since;
+    clock.since = null;
+    audio?.resume?.();
+  }, [audio]);
+
   const lastRequest = useRef<TurnInput | null>(null);
   const send = useCallback(
     (req: TurnInput) => {
@@ -207,10 +239,18 @@ export function useSessionController({
       setSpeakingId(null);
       setTurnOpen(true);
       setScriptDone(false);
+      setTurnIds(new Set());
       // sendTurn cuts a running turn first (stop speech, abort the fetch, keep the board) and adds `interrupted`.
-      void sendTurn(req);
+      // A paused reply is cut the same way; the voice output comes back for the new turn.
+      // A held board edit goes first: cut now, stream once the edit reached the API.
+      const edits = flushRef.current?.();
+      if (edits) {
+        interruptPlayer();
+        void edits.finally(() => void sendTurn(req));
+      } else void sendTurn(req);
+      endPause();
     },
-    [sendTurn],
+    [sendTurn, endPause, interruptPlayer],
   );
 
   const sendOpening = useCallback(
@@ -247,7 +287,7 @@ export function useSessionController({
     if (!mounted.current) return;
     // Reopen: redraw without animation or audio, rebuild the chat, reopen the pending question.
     const replay = replayEvents(detail.events);
-    restore(replay.actions, replay.lastTurnId);
+    restore(replay.steps, replay.lastTurnId);
     setSession(detail.session);
     modalityRef.current = detail.session.modality;
     setLines(replay.transcript.map((line, i) => ({ ...line, id: `replay_${i}` })));
@@ -299,6 +339,7 @@ export function useSessionController({
    */
   const interrupt = () => {
     player.interrupt();
+    endPause();
     speakingRef.current = null;
     setSpeakingId(null);
     setTurnOpen(false);
@@ -337,7 +378,9 @@ export function useSessionController({
       if (speakingRef.current !== action_id) return 1;
       const words = alignments.current.get(action_id);
       if (words?.length) {
-        const elapsed = performance.now() - speakStartedAt.current;
+        const now = performance.now();
+        const { since, total } = pauseClock.current;
+        const elapsed = now - speakStartedAt.current - total - (since !== null ? now - since : 0);
         return words.filter((w) => w.start_ms <= elapsed).length / words.length;
       }
       return speech.progress();
@@ -345,14 +388,38 @@ export function useSessionController({
     [speech],
   );
 
+  const { queueState } = player;
   const floor = tutorHasFloor({ turnOpen, scriptDone, queueState: player.queueState });
   // Latch: once released, late drawings (draw_result after script_done) do not take the floor back.
   useEffect(() => {
     if (turnOpen && !floor) setTurnOpen(false);
   }, [turnOpen, floor]);
 
+  const paused = queueState === "paused";
+  const lockedIds = floor ? turnIds : NO_IDS;
+  /** Something to pause: the tutor is thinking, talking or writing (or already paused). */
+  const canPause = phase === "ready" && (paused || floor || queueState === "thinking" || queueState === "playing");
+  /**
+   * Real pause (the founder's "pausar a resposta"): the voice stops mid-word (AudioContext suspended), no new
+   * action starts, the pen and the caption freeze; the stream keeps buffering. resume() continues from there.
+   */
+  const pause = () => {
+    if (!canPause || paused) return;
+    player.pause();
+    audio?.pause?.();
+    pauseClock.current.since = performance.now();
+  };
+  const resume = () => {
+    if (!paused) return;
+    player.resume();
+    endPause();
+  };
+  // Any other way out of the pause (a cut, a new turn) also brings the voice back.
+  useEffect(() => {
+    if (!paused) endPause();
+  }, [paused, endPause]);
+
   const turnError = player.error && player.error !== dismissedError ? describeError(lastTurnError.current, player.error) : null;
-  const { queueState } = player;
   const annotating = phase === "ready" && queueState === "playing" && speakingId === null;
   const orbState: OrbState =
     phase !== "ready"
@@ -383,14 +450,21 @@ export function useSessionController({
     setSelection,
     sendMessage,
     interrupt,
+    paused,
+    canPause,
+    pause,
+    resume,
+    togglePause: () => (paused ? resume() : pause()),
     /** The tutor is talking (or about to): the mic stays muted unless the student opened it. */
     tutorHasFloor: floor,
+    /** Plan F: blocks of the turn still playing (no edit toolbar). */
+    lockedIds,
     releaseOpening,
     answerQuestion,
     retry,
     captionProgress,
     /** Orb ring level while speaking (voice output, else the text clock's pseudo-level). */
-    level: () => (speakingRef.current ? Math.max(audio?.level() ?? 0, speech.level()) : 0),
+    level: () => (speakingRef.current && pauseClock.current.since === null ? Math.max(audio?.level() ?? 0, speech.level()) : 0),
     player,
   };
 }

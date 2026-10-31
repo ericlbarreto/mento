@@ -18,9 +18,9 @@ export function tutorHasFloor({ turnOpen, scriptDone, queueState }: { turnOpen: 
 /**
  * The mic stays open while the tutor talks, so the student can interrupt through speakers (no headphones): the
  * browser cancels the echo (echoCancellation in startMic) and `judgeCaption` ignores what still leaks through.
- * Only the student's own mute closes it.
+ * Only the student's own mute closes it, or a pause (the paused tutor cannot be barged in on).
  */
-export const micMuted = ({ userMuted }: { userMuted: boolean }): boolean => userMuted;
+export const micMuted = ({ userMuted, paused = false }: { userMuted: boolean; paused?: boolean }): boolean => userMuted || paused;
 
 /** Barge-in only while the tutor has the floor; otherwise speech is just the student's next message. */
 export const shouldBargeIn = (floor: boolean, speakingId: string | null) => floor || speakingId !== null;
@@ -50,11 +50,13 @@ export function micStatus({
   unavailable,
   sttState,
   userMuted,
+  paused = false,
 }: {
   permission: "unknown" | "asking" | "granted" | "denied";
   unavailable: boolean;
   sttState: "idle" | "connecting" | "listening" | "muted" | "error";
   userMuted: boolean;
+  paused?: boolean;
 }): MicStatus {
   if (permission === "denied") return "denied";
   if (unavailable) return "unavailable";
@@ -62,8 +64,7 @@ export function micStatus({
   if (sttState === "error") return "error";
   if (sttState === "connecting") return "connecting";
   if (sttState === "idle") return "off";
-  if (userMuted) return "muted";
-  return micMuted({ userMuted }) ? "muted" : "listening";
+  return micMuted({ userMuted, paused }) ? "muted" : "listening";
 }
 
 /** The orb listens when the mic is open and the tutor is not busy (an open question keeps "waiting"). */

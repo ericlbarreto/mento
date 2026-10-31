@@ -76,3 +76,26 @@ describe("session history", () => {
     expect(ListSessionsQuery.safeParse({ limit: "500" }).success).toBe(false);
   });
 });
+
+describe("BoardEditRequest", () => {
+  it("accepts a remove and an absolute move", async () => {
+    const { BoardEditRequest } = await import("./sessions");
+    expect(BoardEditRequest.parse({ op: "remove", edit_id: "e1", element_id: "titulo" }).op).toBe("remove");
+    expect(BoardEditRequest.parse({ op: "move", edit_id: "e2", element_id: "titulo", column: "side", after_id: null }).op).toBe("move");
+    expect(BoardEditRequest.safeParse({ op: "move", edit_id: "e3", element_id: "titulo" }).success).toBe(false);
+  });
+});
+
+describe("board edit events (plan G)", () => {
+  it("maps each op to its stored event and back, and validates a place", async () => {
+    const { BoardEditRequest, boardEditEvent, boardEditOf } = await import("./sessions");
+    const place = { op: "place" as const, edit_id: "e1", element_id: "causas", x: 224, y: 264 };
+    expect(BoardEditRequest.safeParse(place).success).toBe(true);
+    expect(BoardEditRequest.safeParse({ ...place, x: -5 }).success).toBe(false);
+    const event = boardEditEvent(place);
+    expect(event).toEqual({ type: "board_element_placed", payload: { edit_id: "e1", element_id: "causas", x: 224, y: 264 } });
+    expect(boardEditOf(event.type, event.payload)).toEqual(place);
+    expect(boardEditEvent({ op: "remove", edit_id: "e2", element_id: "a" }).type).toBe("board_element_removed");
+    expect(boardEditOf("board_element_moved", { element_id: "a" })).toBeNull();
+  });
+});

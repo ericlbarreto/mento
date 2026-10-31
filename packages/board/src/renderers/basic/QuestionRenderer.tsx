@@ -29,7 +29,9 @@ export function QuestionRenderer({ element }: RendererProps<"question">) {
   return (
     <div className="rounded-(--radius-lg) border-2 border-dashed border-(--mento-blue) bg-(--mento-blue-soft) px-5 py-4">
       <p className="text-xs font-bold tracking-wide text-(--mento-blue-strong) uppercase">Pergunta para você</p>
-      <p className="mt-1 font-(family-name:--font-board) text-[28px] leading-snug text-(--ink)">{question}</p>
+      <p data-board-write="" className="mt-1 font-(family-name:--font-board) text-[28px] leading-snug text-(--ink)">
+        {question}
+      </p>
       {open && (
         // data-board-control: clicks here are not click-and-ask selections.
         <form onSubmit={submit} className="mt-3 flex flex-wrap items-center gap-2" data-board-control="">

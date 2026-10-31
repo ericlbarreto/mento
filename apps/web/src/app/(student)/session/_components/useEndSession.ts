@@ -1,7 +1,7 @@
 "use client";
 
-// Owner: Person 2. End-of-conversation lifecycle (decision D63): the student ends it explicitly, or the tab is
-// closed or reloaded (pagehide). There is no client idle timer; the server ends a session after 60 min idle. Ends at most once per mount.
+// Owner: Person 2. End-of-conversation lifecycle (decision D63): the student ends it explicitly, leaves through an
+// in-app link, or the tab is closed or reloaded (pagehide). There is no client idle timer; the server ends a session after 60 min idle. Ends at most once per mount.
 import { useCallback, useEffect, useRef } from "react";
 import type { SessionEndReason } from "@mento/contracts";
 import { endSession as apiEndSession } from "@/lib/api";
@@ -61,9 +61,17 @@ export function useEndSession({
       navigating.current = false;
       closeSent.current = false;
     };
+    // A same-origin link that leaves this page ("Voltar ao início") leaves the lesson: it ends it (reason "user_left")
+    // so the teacher-side analysis runs. Client-side navigations never fire `pagehide`, so this is the only signal.
     const onClick = (e: MouseEvent) => {
+      // A modified or non-primary click opens another tab or window: the student stays in the lesson.
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const link = e.target instanceof Element ? e.target.closest("a[href]") : null;
-      if (link instanceof HTMLAnchorElement && link.origin === window.location.origin && !link.target) navigating.current = true;
+      if (!(link instanceof HTMLAnchorElement) || link.origin !== window.location.origin || link.target) return;
+      navigating.current = true;
+      if (link.pathname === window.location.pathname || ended.current || closeSent.current) return;
+      closeSent.current = true;
+      void latest.current.end(sessionId, "user_left", { keepalive: true }).catch(() => undefined);
     };
     window.addEventListener("pagehide", onPageHide);
     window.addEventListener("pageshow", onPageShow);

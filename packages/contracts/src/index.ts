@@ -2,6 +2,7 @@ export * from "./ping";
 export * from "./health";
 export * from "./concept";
 export * from "./actions";
+export * from "./diagram";
 export * from "./stream";
 export * from "./student";
 export * from "./class-context";

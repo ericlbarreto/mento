@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { StreamMessage, type Chunk, type Retriever, type TurnRequest } from "@mento/contracts";
-import { LlmError } from "./llm";
+import { LlmError, type LlmClient } from "./llm";
 import { InMemoryTurnRepository, ScriptedLlm, stopEvent, toolEvent } from "./testing";
 import { TurnEngine, SessionNotFoundError, type TurnEngineDeps } from "./turn-engine";
 import { noopDraw, noopJudge, type DrawPipeline, type Judge, type TtsStarter } from "./hooks";
@@ -57,6 +57,7 @@ describe("TurnEngine: the script", () => {
       stopEvent(),
     ]]);
     const { messages } = await run(engine, session, opening);
+    // only the valid speak passes (a spoken-only reply gets no card, D80)
     expect(actionNames(messages)).toEqual(["speak"]);
     expect(messages.some((m) => m.type === "error")).toBe(false);
   });
@@ -255,7 +256,7 @@ describe("TurnEngine: continuing the reply", () => {
   const speakEv = (text: string, purpose?: string) => toolEvent("speak", { text, ...(purpose ? { purpose } : {}) });
   const writeEv = (id: string) => toolEvent("write_text", { id, column: "main", html: "<p>x</p>" });
 
-  it("asks the model to continue when it stopped for tool results before ending with a question", async () => {
+  it("asks the model to continue when it stopped for tool results right after a board action", async () => {
     const { engine, session, llm } = await setup([
       [speakEv("Júlio César foi um general."), writeEv("cesar"), stopEvent("tool_use")],
       [speakEv("Ele conquistou a Gália."), speakEv("Por que o Senado tinha medo dele?", "question"), stopEvent("tool_use")],
@@ -271,7 +272,7 @@ describe("TurnEngine: continuing the reply", () => {
     expect(types(messages).filter((x) => x === "script_done")).toHaveLength(1);
   });
 
-  it("stops after an ask_verification, after end_turn, and after at most four rounds", async () => {
+  it("stops after an ask_verification, after end_turn, and after at most one extra round", async () => {
     const verify = await setup([
       [speakEv("Vamos ver."), toolEvent("ask_verification", { id: "q1", column: "main", concept: "César", question: "Explique com suas palavras.", kind: "explain" }), stopEvent("tool_use")],
       [speakEv("nunca"), stopEvent()],
@@ -283,9 +284,135 @@ describe("TurnEngine: continuing the reply", () => {
     await run(ended.engine, ended.session, opening);
     expect(ended.llm.calls).toHaveLength(1);
 
-    const endless = await setup([[speakEv("mais um passo"), stopEvent("tool_use")]]);
+    const endless = await setup([[writeEv("passo"), speakEv("mais um passo"), writeEv("outro"), stopEvent("tool_use")]]);
     await run(endless.engine, endless.session, opening);
-    expect(endless.llm.calls).toHaveLength(4);
+    expect(endless.llm.calls).toHaveLength(2);
+  });
+
+  it("completes a reply that closes with a statement: no question needed", async () => {
+    const { engine, session, llm } = await setup([
+      [speakEv("Júlio César foi um general."), writeEv("cesar"), speakEv("Ele conquistou a Gália."), speakEv("Se ficar alguma dúvida, é só falar.", "explain"), stopEvent("tool_use")],
+      [speakEv("nunca"), stopEvent()],
+    ]);
+    const { messages } = await run(engine, session, say("Quem foi Júlio César?"));
+    expect(llm.calls).toHaveLength(1);
+    expect(actionNames(messages)).toEqual(["speak", "write_text", "speak", "speak"]);
+  });
+
+  it("continues a cut reply (it stopped on a board action) once, and never asks for a question", async () => {
+    const { engine, session, llm } = await setup([
+      [speakEv("Olha o quadro."), writeEv("cesar"), stopEvent("tool_use")],
+      [speakEv("César foi um general."), stopEvent()],
+    ]);
+    const { messages } = await run(engine, session, say("Quem foi Júlio César?"));
+    expect(llm.calls).toHaveLength(2);
+    expect(actionNames(messages)).toEqual(["speak", "write_text", "speak"]);
+    const nudge = (llm.calls[1]!.messages[2]!.content as { type: string; text?: string }[]).find((b) => b.type === "text");
+    expect(nudge?.text).toMatch(/close with a short speak/);
+    expect(nudge?.text).not.toMatch(/end with one question/);
+  });
+
+  it("continues a reply that stopped before any speak", async () => {
+    const { engine, session, llm } = await setup([[stopEvent("tool_use")], [speakEv("Pronto."), stopEvent()]]);
+    const dropped = await setup([[toolEvent("highlight", { target_id: "nao_existe", color: "yellow" }), stopEvent("tool_use")], [speakEv("Pronto."), stopEvent()]]);
+    await run(engine, session, say("oi"));
+    expect(llm.calls).toHaveLength(1); // nothing to continue from: no tool results
+    await run(dropped.engine, dropped.session, say("oi"));
+    expect(dropped.llm.calls).toHaveLength(2);
+  });
+});
+
+describe("TurnEngine: pictures keep pace with the text", () => {
+  const speakEv = (text: string) => toolEvent("speak", { text });
+  const writeEv = (id: string) => toolEvent("write_text", { id, column: "main", html: "<p>Roma</p>" });
+  const drawEv = (id: string, tool_use_id?: string) => toolEvent("draw", { id, column: "visuals", prompt: "Coliseu", is_structured: false, max_dimensions: { w: 500, h: 400 } }, tool_use_id);
+  const diagram = { id: "reta", column: "visuals", title: "Reta", frame: "wide", shapes: [{ id: "chao", kind: "line", from: [10, 70], to: [150, 70] }] };
+
+  it("sends at most one draw per reply, even after several text blocks, and never a placeholder for the extra one", async () => {
+    const logs: string[] = [];
+    const { engine, session } = await setup(
+      [[speakEv("Olha."), drawEv("coliseu"), writeEv("a"), writeEv("b"), drawEv("forum"), speakEv("Esse é o Coliseu."), speakEv("Fica à vontade."), stopEvent()]],
+      { log: (m) => void logs.push(m) },
+    );
+    const { messages } = await run(engine, session, say("Roma"));
+    expect(actionNames(messages)).toEqual(["speak", "draw", "write_text", "write_text", "speak", "speak"]);
+    expect(logs).toContain("draw rejected");
+  });
+
+  it("counts draws over the whole reply and tells the model to write instead", async () => {
+    const { engine, session, llm } = await setup([
+      [speakEv("Olha."), writeEv("a"), drawEv("coliseu"), stopEvent("tool_use")],
+      [drawEv("forum", "toolu_extra"), speakEv("Esse é o Coliseu."), speakEv("Pronto."), stopEvent()],
+    ]);
+    const { messages } = await run(engine, session, say("Roma"));
+    expect(llm.calls).toHaveLength(2);
+    expect(actionNames(messages).filter((n) => n === "draw")).toHaveLength(1);
+
+    const third = await setup([
+      [speakEv("Olha."), drawEv("coliseu"), drawEv("forum", "toolu_x"), stopEvent("tool_use")],
+      [writeEv("a"), speakEv("Pronto."), stopEvent()],
+    ]);
+    await run(third.engine, third.session, say("Roma"));
+    const results = third.llm.calls[1]!.messages[2]!.content as { type: string; tool_use_id?: string; content?: string; is_error?: boolean }[];
+    expect(results.find((r) => r.tool_use_id === "toolu_x")).toMatchObject({ is_error: true, content: expect.stringMatching(/write_text/) });
+  });
+
+  it("does not count draw_diagram as a picture", async () => {
+    const { engine, session } = await setup([[speakEv("Olha."), drawEv("coliseu"), toolEvent("draw_diagram", diagram), speakEv("Aqui."), speakEv("Pronto."), stopEvent()]]);
+    const { messages } = await run(engine, session, say("Roma"));
+    expect(actionNames(messages)).toEqual(["speak", "draw", "draw_diagram", "speak", "speak"]);
+  });
+});
+
+describe("TurnEngine: the board only when it continues the lesson (D80)", () => {
+  const speakEv = (text: string, purpose?: string) => toolEvent("speak", { text, ...(purpose ? { purpose } : {}) });
+  const writeEv = (id: string) => toolEvent("write_text", { id, column: "main", html: "<p>Roma</p>" });
+  const actions = (ms: StreamMessage[]) => ms.flatMap((m) => (m.type === "action" ? [m.action] : []));
+  const spoken = (ms: StreamMessage[]) => actions(ms).flatMap((a) => (a.name === "speak" ? [a.args.text] : []));
+
+  it("completes a spoken-only reply with no card and no extra round", async () => {
+    const logs: { m: string; x?: unknown }[] = [];
+    const { engine, session, llm, repo } = await setup(
+      [[speakEv("Eu não tenho nome de gente, sou o Mento."), speakEv("Se quiser, eu anoto isso no quadro.", "explain"), stopEvent("tool_use")], [writeEv("nunca"), stopEvent()]],
+      { log: (m, x) => void logs.push({ m, x }) },
+    );
+    const { messages } = await run(engine, session, say("Qual é o seu nome?"));
+    expect(llm.calls).toHaveLength(1);
+    expect(actionNames(messages)).toEqual(["speak", "speak"]);
+    expect(messages.flatMap((m) => (m.type === "action" ? [m.order] : []))).toEqual([0, 1]);
+    expect(types(messages)).toContain("turn_done");
+    expect(logs.find((l) => l.m === "board actions")?.x).toMatchObject({ board_actions: 0 });
+    const stored = (await repo.listEvents(session)).filter((e) => e.type === "tutor_action").map((e) => (e.payload as { name: string }).name);
+    expect(stored).toEqual(["speak", "speak"]);
+  });
+
+  it("sends a question with nothing on the board at once, in order", async () => {
+    const { engine, session, llm } = await setup([[speakEv("Claro!"), speakEv("Qual é a sua dúvida?", "question"), stopEvent()]]);
+    const { messages } = await run(engine, session, say("Posso perguntar uma coisa?"));
+    expect(llm.calls).toHaveLength(1);
+    expect(spoken(messages)).toEqual(["Claro!", "Qual é a sua dúvida?"]);
+    expect(actions(messages).some((a) => a.name === "write_text")).toBe(false);
+  });
+
+  it("writes on the board when the model does, and pointing at an element is fine", async () => {
+    const pointed = await setup([
+      [writeEv("roma"), speakEv("Primeira."), stopEvent()],
+      [toolEvent("circle_annotate", { target_id: "roma", text_to_match: "Roma", color: "red" }), speakEv("Isso aqui."), stopEvent()],
+    ]);
+    await run(pointed.engine, pointed.session, say("Roma"));
+    const circled = await run(pointed.engine, pointed.session, say("o que é isso?"));
+    expect(actionNames(circled.messages)).toEqual(["circle_annotate", "speak"]);
+  });
+
+  it("leaves the ask_verification path alone and never counts the bridge line as the closing speak", async () => {
+    const verify = await setup([[speakEv("Vamos ver."), toolEvent("ask_verification", { id: "q1", column: "main", concept: "César", question: "Explique.", kind: "explain" }), stopEvent()]]);
+    const v = await run(verify.engine, verify.session, say("César"));
+    expect(actionNames(v.messages)).toEqual(["speak", "ask_verification"]);
+
+    const bridged = await setup([[writeEv("roma"), stopEvent("tool_use")], [speakEv("Pronto."), stopEvent()]], { bridgeAfterMs: 20 }, { delayMs: 120 });
+    const b = await run(bridged.engine, bridged.session, say("oi"));
+    expect(bridged.llm.calls).toHaveLength(2);
+    expect(spoken(b.messages)).toEqual(["Deixa eu pensar um instante…", "Pronto."]);
   });
 });
 
@@ -304,5 +431,100 @@ describe("TurnEngine.prewarm", () => {
     const { engine, session, llm } = await setup([[stopEvent()]]);
     await engine.prewarm(session);
     expect(llm.prewarmed).toBe(1);
+  });
+});
+
+describe("TurnEngine: student board edits (plan F)", () => {
+  const write = (id: string, column = "main") => toolEvent("write_text", { id, column, html: `<p>${id}</p>` });
+  const boardOf = (call: { messages: unknown[] } | undefined) => /## Board\n([\s\S]*?)\n\n## /.exec(String((call?.messages[0] as { content: string }).content))?.[1];
+
+  it("stores an edit, dedupes it, and the next turn's board excludes the deleted id and lists the student's order", async () => {
+    const { engine, session, repo, llm } = await setup([
+      [write("a"), write("b"), write("c"), toolEvent("speak", { text: "Pronto." }), stopEvent()],
+      [toolEvent("highlight", { target_id: "a", color: "yellow" }), write("a"), write("d"), toolEvent("speak", { text: "Ok." }), stopEvent()],
+    ]);
+    await run(engine, session, opening);
+    expect(await engine.applyStudentEdit(session, { op: "remove", edit_id: "e1", element_id: "a" })).toBe("applied");
+    expect(await engine.applyStudentEdit(session, { op: "remove", edit_id: "e1", element_id: "a" })).toBe("already_applied");
+    expect(await engine.applyStudentEdit(session, { op: "remove", edit_id: "e2", element_id: "a" })).toBe("already_removed");
+    expect(await engine.applyStudentEdit(session, { op: "move", edit_id: "e3", element_id: "c", column: "main", after_id: null })).toBe("applied");
+    expect(await engine.applyStudentEdit(session, { op: "move", edit_id: "e4", element_id: "ghost", column: "main", after_id: null })).toBe("element_not_found");
+
+    const stored = (await repo.listEvents(session)).filter((e) => e.type.startsWith("board_element"));
+    expect(stored.map((e) => [e.type, e.payload])).toEqual([
+      ["board_element_removed", { element_id: "a", edit_id: "e1" }],
+      ["board_element_moved", { element_id: "c", column: "main", after_id: null, edit_id: "e3" }],
+    ]);
+
+    const { messages } = await run(engine, session, say("continue"));
+    expect(boardOf(llm.calls[1])).toBe("c | text | main | c\nb | text | main | b\nRemoved by the student: a (text)");
+    // the highlight and the re-created "a" are dropped; "d" goes to the end of the column
+    expect(actionNames(messages)).toEqual(["write_text", "speak"]);
+    const written = messages.flatMap((m) => (m.type === "action" && m.action.name === "write_text" ? [m.action.args.id] : []));
+    expect(written).toEqual(["d"]);
+  });
+
+  it("restores the edits after a restart and rejects an unknown session", async () => {
+    const { engine, session, repo } = await setup([[write("a"), write("b"), toolEvent("speak", { text: "Pronto." }), stopEvent()]]);
+    await run(engine, session, opening);
+    await engine.applyStudentEdit(session, { op: "remove", edit_id: "e1", element_id: "a" });
+    const llm2 = new ScriptedLlm([[toolEvent("speak", { text: "Oi." }), stopEvent()]]);
+    const engine2 = new TurnEngine({ llm: llm2, repo, retriever: retriever(), tts: null, draw: noopDraw, judge: noopJudge, prompts, models: { tutor: "m" } });
+    expect(await engine2.applyStudentEdit(session, { op: "remove", edit_id: "e1", element_id: "a" })).toBe("already_applied");
+    expect(await engine2.applyStudentEdit(session, { op: "remove", edit_id: "e9", element_id: "a" })).toBe("already_removed");
+    await run(engine2, session, say("continue"));
+    expect(boardOf(llm2.calls[0])).toBe("b | text | main | b\nRemoved by the student: a (text)");
+    await expect(engine.applyStudentEdit("nope", { op: "remove", edit_id: "e1", element_id: "a" })).rejects.toBeInstanceOf(SessionNotFoundError);
+  });
+
+  it("applies an edit that arrives while a turn is streaming, in order with the tutor's events", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    let reached!: () => void;
+    const atGate = new Promise<void>((r) => (reached = r));
+    const llm: LlmClient = {
+      async *stream() {
+        yield write("a");
+        reached();
+        await gate;
+        yield toolEvent("highlight", { target_id: "a", color: "yellow" });
+        yield write("b");
+        yield toolEvent("speak", { text: "Pronto." });
+        yield stopEvent();
+      },
+    };
+    const { engine, session, repo } = await setup([[stopEvent()]], { llm });
+    const messages: StreamMessage[] = [];
+    const turn = engine.run(session, opening, (m) => messages.push(m), new AbortController().signal);
+    await atGate;
+    expect(await engine.applyStudentEdit(session, { op: "remove", edit_id: "e1", element_id: "a" })).toBe("applied");
+    release();
+    await turn;
+    await engine.idle();
+    expect(actionNames(messages)).toEqual(["write_text", "write_text", "speak"]); // the highlight on the deleted "a" was dropped
+    const order = (await repo.listEvents(session)).map((e) => (e.type === "tutor_action" ? `${(e.payload as { name: string }).name}` : e.type));
+    expect(order).toEqual(["session_started", "write_text", "board_element_removed", "write_text", "speak", "turn_timing"]);
+  });
+
+  it("drops a draw_result for a picture the student deleted while it was being made", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const draw: DrawPipeline = {
+      start: async (a) => {
+        await gate;
+        return [{ type: "action", order: 0, action: { id: "late", name: "draw_result", args: { element_id: a.args.id, url: "/api/gen/x.jpg" } } }];
+      },
+    };
+    const { engine, session, repo } = await setup([[write("a"), toolEvent("draw", { id: "pic", column: "visuals", prompt: "Coliseu", is_structured: false, max_dimensions: { w: 500, h: 400 } }), toolEvent("speak", { text: "Veja." }), stopEvent()]], { draw });
+    const messages: StreamMessage[] = [];
+    const turn = engine.run(session, opening, (m) => messages.push(m), new AbortController().signal);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(await engine.applyStudentEdit(session, { op: "remove", edit_id: "e1", element_id: "pic" })).toBe("applied");
+    release();
+    await turn;
+    await engine.idle();
+    expect(actionNames(messages)).not.toContain("draw_result");
+    const names = (await repo.listEvents(session)).flatMap((e) => (e.type === "tutor_action" ? [(e.payload as { name: string }).name] : []));
+    expect(names).not.toContain("draw_result");
   });
 });

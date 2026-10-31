@@ -9,21 +9,38 @@ import { relativeDate } from "../_lib/format";
 import type { Topic } from "../_lib/map";
 import { useTeacher } from "../_lib/store";
 import { SUBJECT } from "../_lib/types";
-import { IconBook, IconFile, IconShield, IconSparkle } from "./icons";
+import { ExerciseListEditor } from "./ExerciseListEditor";
+import { IconBook, IconCheck, IconFile, IconPencil, IconShield, IconSparkle } from "./icons";
 import { Button, Card, Chip, buttonClass, cx } from "./ui";
 
 function Downloads({ list }: { list: ExerciseList }) {
   const [files, setFiles] = useState<{ forTeacher: boolean; url: string; name: string }[]>([]);
+  const [failed, setFailed] = useState(false);
   // Created and revoked in the same effect, so a re-run (Strict Mode, new list) never leaves a dead link.
   useEffect(() => {
-    const next = ([true, false] as const).map((forTeacher) => ({
-      forTeacher,
-      url: URL.createObjectURL(exercisePdf(list, { forTeacher, subject: SUBJECT })),
-      name: exerciseFileName(list, forTeacher),
-    }));
-    setFiles(next);
-    return () => next.forEach((f) => URL.revokeObjectURL(f.url));
+    let alive = true;
+    let made: { url: string }[] = [];
+    setFailed(false);
+    Promise.all(
+      ([true, false] as const).map(async (forTeacher) => ({
+        forTeacher,
+        url: URL.createObjectURL(await exercisePdf(list, { forTeacher, subject: SUBJECT })),
+        name: exerciseFileName(list, forTeacher),
+      })),
+    ).then(
+      (next) => {
+        made = next;
+        if (alive) setFiles(next);
+        else next.forEach((f) => URL.revokeObjectURL(f.url));
+      },
+      () => alive && setFailed(true),
+    );
+    return () => {
+      alive = false;
+      made.forEach((f) => URL.revokeObjectURL(f.url));
+    };
   }, [list]);
+  if (failed) return <p className="text-[14px] font-semibold text-[var(--danger)]">Não foi possível montar os PDFs. Recarregue a página.</p>;
   return (
     <div className="flex flex-wrap gap-3">
       {files.map((f) => (
@@ -36,11 +53,12 @@ function Downloads({ list }: { list: ExerciseList }) {
   );
 }
 
-/** One list: generating, failed (with retry) or ready (questions, PDFs). */
+/** One list: generating, failed (with retry) or ready (questions, PDFs, edit). */
 export function ExerciseListCard({ list, onRetry, compact }: { list: ExerciseList; onRetry?: () => void; compact?: boolean }) {
   const { deleteExerciseList } = useTeacher();
   const [open, setOpen] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [editing, setEditing] = useState(false);
   const shown = open ? list.exercises : list.exercises.slice(0, 2);
   const base = list.lesson_title ? `${list.lesson_title}${list.pages ? ` · p. ${list.pages[0]}–${list.pages[1]}` : ""}` : null;
 
@@ -55,73 +73,84 @@ export function ExerciseListCard({ list, onRetry, compact }: { list: ExerciseLis
   }
 
   return (
-    <div className={cx("rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-5", compact && "p-4")} aria-live="polite">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-[17px] font-bold leading-6">{list.status === "ready" ? list.title : `Lista sobre “${list.concept}”`}</p>
-          <p className="mt-0.5 text-[13px] text-[var(--ink-soft)]">
-            {relativeDate(list.created_at)} · {list.student_count === 1 ? "1 aluno com dificuldade" : `${list.student_count} alunos com dificuldade`}
-            {base ? ` · ${base}` : ""}
-          </p>
+    <>
+      <div className={cx("rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-5", compact && "p-4")} aria-live="polite">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[17px] font-bold leading-6">{list.status === "ready" ? list.title : `Lista sobre “${list.concept}”`}</p>
+            <p className="mt-0.5 text-[13px] text-[var(--ink-soft)]">
+              {relativeDate(list.created_at)} · {list.student_count === 1 ? "1 aluno com dificuldade" : `${list.student_count} alunos com dificuldade`}
+              {base ? ` · ${base}` : ""}
+            </p>
+          </div>
+          {list.status === "ready" &&
+            (list.edited_at ? (
+              <Chip tone="ok" className="text-[12px]">
+                <IconCheck size={13} /> Gerada pela IA · revisada por você
+              </Chip>
+            ) : (
+              <Chip tone="warn" className="text-[12px]">
+                <IconSparkle size={13} /> Gerada pela IA · revise antes de usar
+              </Chip>
+            ))}
         </div>
+
+        {list.status === "generating" && (
+          <p className="mt-3 flex items-center gap-2 text-[15px] text-[var(--ink-soft)]">
+            <span className="size-4 animate-spin rounded-full border-2 border-[var(--line)] border-t-[var(--mento-blue)] motion-reduce:animate-none" aria-hidden="true" />
+            Escrevendo as questões a partir do livro… costuma levar menos de um minuto.
+          </p>
+        )}
+
+        {list.status === "failed" && (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <p role="alert" className="text-[14px] font-semibold text-[var(--danger)]">
+              Não foi possível gerar a lista.
+            </p>
+            {onRetry && (
+              <Button variant="secondary" onClick={onRetry} className="py-1.5 text-[14px]">
+                Tentar de novo
+              </Button>
+            )}
+          </div>
+        )}
+
         {list.status === "ready" && (
-          <Chip tone="warn" className="text-[12px]">
-            <IconSparkle size={13} /> Gerada pela IA · revise antes de usar
-          </Chip>
+          <>
+            <ol className="mt-3 space-y-1.5 text-[15px] leading-6">
+              {shown.map((ex, i) => (
+                <li key={ex.id} className="flex gap-2">
+                  <span className="font-bold text-[var(--mento-blue)]">{i + 1}.</span>
+                  <span>
+                    {ex.prompt} <span className="text-[12px] text-[var(--ink-soft)]">{ex.kind === "choice" ? "· múltipla escolha" : "· dissertativa"}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+            {list.exercises.length > 2 && (
+              <button type="button" onClick={() => setOpen(!open)} className="mt-2 text-[13px] font-bold text-[var(--mento-blue)] hover:underline">
+                {open ? "Mostrar menos" : `Ver todas as ${list.exercises.length} questões`}
+              </button>
+            )}
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Downloads list={list} />
+              <Button variant="ghost" onClick={() => setEditing(true)} className="py-2 text-[14px] text-[var(--mento-blue)]">
+                <IconPencil size={16} /> Editar questões
+              </Button>
+            </div>
+          </>
+        )}
+
+        {!compact && list.status !== "generating" && (
+          <div className="mt-4 border-t border-[var(--line)] pt-3">
+            <button type="button" onClick={remove} disabled={removing} className="text-[13px] font-bold text-[var(--ink-soft)] hover:text-[var(--danger)] disabled:opacity-50">
+              Excluir lista
+            </button>
+          </div>
         )}
       </div>
-
-      {list.status === "generating" && (
-        <p className="mt-3 flex items-center gap-2 text-[15px] text-[var(--ink-soft)]">
-          <span className="size-4 animate-spin rounded-full border-2 border-[var(--line)] border-t-[var(--mento-blue)] motion-reduce:animate-none" aria-hidden="true" />
-          Escrevendo as questões a partir do livro… costuma levar menos de um minuto.
-        </p>
-      )}
-
-      {list.status === "failed" && (
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <p role="alert" className="text-[14px] font-semibold text-[var(--danger)]">
-            Não foi possível gerar a lista.
-          </p>
-          {onRetry && (
-            <Button variant="secondary" onClick={onRetry} className="py-1.5 text-[14px]">
-              Tentar de novo
-            </Button>
-          )}
-        </div>
-      )}
-
-      {list.status === "ready" && (
-        <>
-          <ol className="mt-3 space-y-1.5 text-[15px] leading-6">
-            {shown.map((ex, i) => (
-              <li key={ex.id} className="flex gap-2">
-                <span className="font-bold text-[var(--mento-blue)]">{i + 1}.</span>
-                <span>
-                  {ex.prompt} <span className="text-[12px] text-[var(--ink-soft)]">{ex.kind === "choice" ? "· múltipla escolha" : "· dissertativa"}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-          {list.exercises.length > 2 && (
-            <button type="button" onClick={() => setOpen(!open)} className="mt-2 text-[13px] font-bold text-[var(--mento-blue)] hover:underline">
-              {open ? "Mostrar menos" : `Ver todas as ${list.exercises.length} questões`}
-            </button>
-          )}
-          <div className="mt-4">
-            <Downloads list={list} />
-          </div>
-        </>
-      )}
-
-      {!compact && list.status !== "generating" && (
-        <div className="mt-4 border-t border-[var(--line)] pt-3">
-          <button type="button" onClick={remove} disabled={removing} className="text-[13px] font-bold text-[var(--ink-soft)] hover:text-[var(--danger)] disabled:opacity-50">
-            Excluir lista
-          </button>
-        </div>
-      )}
-    </div>
+      {editing && <ExerciseListEditor list={list} open onClose={() => setEditing(false)} />}
+    </>
   );
 }
 
@@ -142,7 +171,9 @@ export function GenerateExercises({ topic }: { topic: Topic }) {
     try {
       await generateExercises(topic.concept, gapIds);
     } catch (err) {
-      setProblem((err as { error?: string }).error === "generator_unavailable" ? "O servidor está sem a chave da IA (ANTHROPIC_API_KEY)." : "Não foi possível pedir a lista. Tente de novo.");
+      setProblem(
+        (err as { error?: string }).error === "generator_unavailable" ? "O servidor está sem a chave da IA (ANTHROPIC_API_KEY)." : "Não foi possível pedir a lista. Tente de novo.",
+      );
     } finally {
       setAsking(false);
     }
@@ -175,7 +206,9 @@ export function GenerateExercises({ topic }: { topic: Topic }) {
       </Button>
       <p className="flex flex-1 items-start gap-1.5 text-[13px] leading-5 text-[var(--ink-soft)]">
         <IconShield size={14} className="mt-0.5 shrink-0" />
-        {exercisesAvailable ? "5 questões sobre este tópico, escritas a partir do livro: PDF com gabarito para você e sem respostas para os alunos." : "Disponível com a API ligada."}
+        {exercisesAvailable
+          ? "5 questões sobre este tópico, escritas a partir do livro: PDF com gabarito para você e sem respostas para os alunos."
+          : "Disponível com a API ligada."}
       </p>
       {problem && (
         <p role="alert" className="w-full text-[14px] font-semibold text-[var(--danger)]">

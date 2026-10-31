@@ -71,7 +71,22 @@ export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?:
 }
 
 /** Native <dialog> modal: Esc and the backdrop close it; focus returns to the opener. */
-export function Modal({ open, onClose, title, description, children }: { open: boolean; onClose: () => void; title: string; description?: string; children: React.ReactNode }) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  description,
+  wide,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  description?: string;
+  /** A wider dialog for long forms (the exercise-list editor). */
+  wide?: boolean;
+  children: React.ReactNode;
+}) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   useEffect(() => {
@@ -85,8 +100,13 @@ export function Modal({ open, onClose, title, description, children }: { open: b
       ref={ref}
       aria-labelledby={titleId}
       onClose={onClose}
+      onCancel={(e) => {
+        // Esc goes through onClose, which may keep the dialog open (unsaved changes).
+        e.preventDefault();
+        onClose();
+      }}
       onClick={(e) => e.target === ref.current && onClose()}
-      className="m-auto max-h-[calc(100dvh-32px)] w-[min(560px,calc(100vw-32px))] overflow-y-auto rounded-[20px] border border-[var(--line)] bg-[var(--card)] p-0 text-[var(--ink)] shadow-[var(--shadow-float)] backdrop:bg-[rgba(22,34,80,0.35)]"
+      className={cx("m-auto max-h-[calc(100dvh-32px)] overflow-y-auto", wide ? "w-[min(860px,calc(100vw-32px))]" : "w-[min(560px,calc(100vw-32px))]", " rounded-[20px] border border-[var(--line)] bg-[var(--card)] p-0 text-[var(--ink)] shadow-[var(--shadow-float)] backdrop:bg-[rgba(22,34,80,0.35)]")}
     >
       <div className="p-7">
         <div className="mb-5 flex items-start justify-between gap-4">

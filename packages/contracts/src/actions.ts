@@ -1,11 +1,14 @@
 import { z } from "zod";
 import { Citation } from "./citation";
+import { DiagramBody, DiagramBodyBase, ShapeId } from "./diagram";
 
 export const Column = z.enum(["main", "visuals", "side"]);
 export type Column = z.infer<typeof Column>;
 
 /** Stable element id chosen by the model: short snake_case slug, unique per session. */
 export const ElementId = z.string().regex(/^[a-z][a-z0-9_]{0,40}$/, "element id must be a short snake_case slug");
+/** A free spot on the board (plan G): px at zoom 1 from the board's top-left, rounded. */
+export const BoardCoord = z.number().finite().min(0).max(20000);
 
 const Purpose = z.enum(["explain", "hint", "praise", "question", "transition"]);
 const HintLevel = z.union([z.literal(1), z.literal(2), z.literal(3)]);
@@ -52,12 +55,18 @@ export const WriteTimelineArgs = z.object({
 export const HighlightArgs = z.object({
   target_id: ElementId,
   color: z.enum(["yellow", "green", "pink", "blue"]),
+  /** Only one shape of a `draw_diagram` element. */
+  shape_id: ShapeId.optional(),
+  /** Only this passage of the element (must occur in its text, like `circle_annotate`); omitted = the whole element. */
+  text_to_match: z.string().min(1).max(120).optional(),
 });
 
 export const CircleAnnotateArgs = z.object({
   target_id: ElementId,
   text_to_match: z.string().min(1).max(120),
   color: z.enum(["red", "blue", "green"]),
+  /** Circle one shape of a `draw_diagram` element instead of matching text. */
+  shape_id: ShapeId.optional(),
 });
 
 export const DrawArgs = z.object({
@@ -71,8 +80,22 @@ export const DrawArgs = z.object({
 /** Server → client only: the finished image replaces the placeholder of element `element_id`. */
 export const DrawResultArgs = z.object({ element_id: ElementId, url: z.string().min(1) });
 
+/** What the model may send for `draw_diagram`: primitives with anchors and data units (see diagram.ts). */
+export const DiagramBase = z.object({ id: ElementId, column: Column, ...DiagramBodyBase.shape });
+/** What the client receives: the server-resolved diagram (absolute geometry). */
+export const DiagramArgs = z.object({ id: ElementId, column: Column, ...DiagramBody.shape });
+export type DiagramArgs = z.infer<typeof DiagramArgs>;
+
 export const UpdateElementArgs = z.object({ id: ElementId, html: z.string().min(1).max(4000) });
 export const RemoveElementArgs = z.object({ id: ElementId });
+/** The tutor tidies the board: element `id` goes to `column`, right after `after_id` (null = top of the column). */
+export const MoveElementArgs = z.object({ id: ElementId, column: Column, after_id: ElementId.nullable() });
+/**
+ * Plan G: attach element `id` to `next_to`, on its right/left or below/above it, wherever `next_to` is (a column or a
+ * free spot). The pair moves together; deleting `next_to` sends `id` back to its own column.
+ */
+export const PlaceSide = z.enum(["right", "left", "below", "above"]);
+export const PlaceElementArgs = z.object({ id: ElementId, next_to: ElementId, side: PlaceSide });
 
 /** What the model may send; the server adds `verification_id` and `concept_key`. */
 export const AskVerificationBase = z.object({
@@ -89,7 +112,8 @@ export const AskVerificationArgs = AskVerificationBase.extend({
 
 export const ActionName = z.enum([
   "speak", "write_text", "write_timeline", "highlight", "circle_annotate",
-  "draw", "draw_result", "update_element", "remove_element", "ask_verification",
+  "draw", "draw_result", "update_element", "remove_element", "ask_verification", "draw_diagram", "move_element",
+  "place_element",
 ]);
 export type ActionName = z.infer<typeof ActionName>;
 
@@ -107,5 +131,8 @@ export const Action = z.discriminatedUnion("name", [
   action("update_element", UpdateElementArgs),
   action("remove_element", RemoveElementArgs),
   action("ask_verification", AskVerificationArgs),
+  action("draw_diagram", DiagramArgs),
+  action("move_element", MoveElementArgs),
+  action("place_element", PlaceElementArgs),
 ]);
 export type Action = z.infer<typeof Action>;

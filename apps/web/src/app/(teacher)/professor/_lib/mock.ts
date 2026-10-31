@@ -226,22 +226,18 @@ export const MOCK_GAPS: Gap[] = [
   },
 ];
 
+// The demo textbooks (Plan E): original 8º-ano books whose PDFs ship with the front-end (public/materials) and
+// whose passages and embeddings are in the database. Materials stay mock in both modes, so this list is the tab.
+// The class book (D76, D67: the teacher works with História): an original 8º-ano book whose PDF ships with the
+// front-end (public/materials) and whose passages and embeddings are in the database. Materials stay mock in both modes.
 export const MOCK_MATERIALS: Material[] = [
   {
-    id: "mat_activities",
-    title: "Caderno de Atividades: Roma Antiga",
-    pages: 3,
+    id: "mat_historia_brasil",
+    title: "História do Brasil — Da crise colonial ao Segundo Reinado",
+    pages: 30,
     status: "ready",
-    created_at: "2026-10-29T17:20:00-03:00",
-    file_url: "/mock/caderno-atividades-roma.pdf",
-  },
-  {
-    id: "mat_rome",
-    title: ROME,
-    pages: 4,
-    status: "ready",
-    created_at: "2026-10-02T09:00:00-03:00",
-    file_url: "/mock/roma-antiga-amostra.pdf",
+    created_at: "2026-10-31T10:00:00-03:00",
+    file_url: "/materials/historia-brasil-8ano.pdf",
   },
 ];
 

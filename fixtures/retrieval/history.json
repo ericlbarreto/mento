@@ -1,0 +1,28 @@
+{
+  "questions": [
+    {
+      "question": "O que foi a Inconfidência Mineira?",
+      "expect_page": 6
+    },
+    {
+      "question": "Por que a Corte portuguesa veio para o Brasil em 1808?",
+      "expect_page": 10
+    },
+    {
+      "question": "A Independência terminou no dia 7 de setembro de 1822?",
+      "expect_page": 13
+    },
+    {
+      "question": "O que era o Poder Moderador?",
+      "expect_page": 16
+    },
+    {
+      "question": "O que foi a Revolta dos Malês?",
+      "expect_page": 23
+    },
+    {
+      "question": "O que mudou com a Lei Áurea?",
+      "expect_page": 28
+    }
+  ]
+}

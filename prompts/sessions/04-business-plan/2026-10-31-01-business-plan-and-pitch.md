@@ -31,11 +31,11 @@ Researched VC memo format and hackathon pitch practice (web, 2026-10-31), read t
 ## Files changed
 
 - docs/business-plan/ (README, plano-de-negocios-mento.html/.pdf, pitch-5min.md, assets/)
-- docs/README.md, docs/10-decisions.md (D75), prompts/sessions/ (README row, 04-business-plan/)
+- docs/README.md, docs/10-decisions.md (D84), prompts/sessions/ (README row, 04-business-plan/)
 
 ## Decisions and contracts touched
 
-- D75 in docs/10-decisions.md. No shared contract changed.
+- D84 in docs/10-decisions.md. No shared contract changed.
 
 ## Follow-ups / questions for other people
 
@@ -58,7 +58,7 @@ Cara, o nosso desafio, basicamente, é o desafio 3. Esse plano de negócio preci
 
 ### Outcome (English)
 
-Read the Challenges deck (46 pages; Challenge 3 = safe AI, saves time, preserves learning). Rewrote the plan as 12 pages organized around the three pillars, with student, teacher and school data (Cetic.br, TALIS 2024, Bastani PNAS 2025, Gallup 2025), a product-decision-to-evidence table, a pilot to measure effects, and no pricing or projections. Updated the pitch hook, closing blocks and Q&A to the same thesis; D75 rewritten.
+Read the Challenges deck (46 pages; Challenge 3 = safe AI, saves time, preserves learning). Rewrote the plan as 12 pages organized around the three pillars, with student, teacher and school data (Cetic.br, TALIS 2024, Bastani PNAS 2025, Gallup 2025), a product-decision-to-evidence table, a pilot to measure effects, and no pricing or projections. Updated the pitch hook, closing blocks and Q&A to the same thesis; D84 rewritten.
 
 ## Third follow-up prompt (verbatim, Portuguese), same day
 

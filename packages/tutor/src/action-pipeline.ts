@@ -1,5 +1,6 @@
 import { Action, normalizeConcept, type Chunk, type EventType, type Retriever, type StreamMessage } from "@mento/contracts";
 import type { Board } from "./board";
+import { resolveDiagram } from "./diagram/resolve";
 import { sanitizeHtml } from "./sanitize";
 import { filterSources } from "./retrieval-step";
 import type { ToolBlock } from "./tool-assembler";
@@ -16,7 +17,7 @@ export interface PrepareContext {
 }
 
 export type Prepared =
-  | { kind: "ok"; action: Action; dropped_citations: number }
+  | { kind: "ok"; action: Action; dropped_citations: number; notes?: string[] }
   | { kind: "dropped"; reason: string };
 
 const dropped = (reason: string): Prepared => ({ kind: "dropped", reason });
@@ -34,6 +35,15 @@ export async function prepareAction(block: ToolBlock, ctx: PrepareContext): Prom
   let args = input as Record<string, unknown>;
   if (block.name === "ask_verification") {
     args = { ...args, verification_id: ctx.verification_id, concept_key: normalizeConcept(String(args.concept ?? "")) };
+  }
+  // Pictures from the image model only: exact figures go through draw_diagram (D75).
+  if (block.name === "draw") args = { ...args, is_structured: false };
+  let notes: string[] | undefined;
+  if (block.name === "draw_diagram") {
+    const resolved = resolveDiagram(args);
+    if (!resolved.args) return dropped(`draw_diagram: ${resolved.reason ?? "could not be resolved"}`);
+    args = resolved.args;
+    if (resolved.notes.length) notes = resolved.notes;
   }
 
   const parsed = Action.safeParse({ id: ctx.id, name: block.name, args });
@@ -58,7 +68,7 @@ export async function prepareAction(block: ToolBlock, ctx: PrepareContext): Prom
     dropped_citations = n;
     action = { ...action, args: { ...action.args, sources: kept.length ? kept : undefined } } as Action;
   }
-  return { kind: "ok", action, dropped_citations };
+  return { kind: "ok", action, dropped_citations, ...(notes ? { notes } : {}) };
 }
 
 export interface CommitContext {

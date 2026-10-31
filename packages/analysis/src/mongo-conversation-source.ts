@@ -36,7 +36,10 @@ export class MongoConversationSource implements ConversationSource {
       if (m) materials.set(id, m);
     }
 
-    return sessions.map((session) => toSessionBundle({ session, events: eventsBy.get(session.id) ?? [], evidence: evidenceBy.get(session.id) ?? [] }, materials));
+    // A stored conversation always has a subject or none (older rows may lack the field): never "unknown" like the lab.
+    return sessions.map((session) =>
+      toSessionBundle({ session: { ...session, subject_id: session.subject_id ?? null }, events: eventsBy.get(session.id) ?? [], evidence: evidenceBy.get(session.id) ?? [] }, materials),
+    );
   }
 
   async listAllSessions() {

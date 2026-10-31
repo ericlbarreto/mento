@@ -1,15 +1,15 @@
-import type { Chunk, EventType, StreamMessage, TurnRequest, TurnTiming } from "@mento/contracts";
+import type { BoardEditRequest, Chunk, EventType, StreamMessage, TurnRequest, TurnTiming } from "@mento/contracts";
 import type { Effort, LlmClient, LlmContentBlock, LlmMessage, ThinkingSetting } from "./llm";
 import { LlmError } from "./llm";
 import { commitAction, prepareAction } from "./action-pipeline";
 import { noopDraw, noopJudge, type DrawPipeline, type Judge, type TtsStarter } from "./hooks";
-import { buildSystem, buildUserMessage, formatPassages, historyFromEvents, type CatalogEntry, type SessionSubject } from "./prompt-builder";
+import { buildSystem, buildUserMessage, formatPassages, historyFromEvents, repliesWithoutQuestion, type CatalogEntry, type SessionSubject } from "./prompt-builder";
 import type { PromptSet } from "./prompts";
 import type { TurnRepository } from "./repository";
 import { retrievalQuery } from "./retrieval-step";
 import type { ToolBlock } from "./tool-assembler";
 import { SearchMaterialsArgs, modelTools } from "./tools";
-import { OrderedQueue, restoreRuntime, type Runtime } from "./turn-runtime";
+import { OrderedQueue, applyStudentEdit, restoreRuntime, studentEditEvent, type Runtime, type StudentEditResult } from "./turn-runtime";
 import type { Retriever } from "@mento/contracts";
 
 export class SessionNotFoundError extends Error {
@@ -55,6 +55,15 @@ interface TurnState {
   material_ids?: string[];
   pending: Promise<unknown>[];
   ttsActions: string[];
+  /** Successful board actions of this reply (all rounds), for the log; a reply with none is valid (D80). */
+  boardActions: number;
+  firstBoardActionMs?: number;
+  /** Name of the last action the model got onto the board or the voice (all rounds). */
+  lastAction?: string;
+  verified: boolean;
+  /** `draw` images and written text blocks of this reply, for the image cap. */
+  draws: number;
+  textBlocks: number;
 }
 
 interface RoundResult {
@@ -64,17 +73,27 @@ interface RoundResult {
   stop_reason?: string;
 }
 
-/** Rounds per reply: the model often stops after one or two tool calls to wait for their results. */
+/** Rounds per reply (search included): the model often stops after one or two tool calls to wait for their results. */
 const MAX_ROUNDS = 4;
+/** Extra rounds asked for a reply that was cut (it stopped on a board action, or before any speak). */
+const MAX_CONTINUES = 1;
 const CONTINUE_TEXT =
-  "Continue the same reply: circle the key words you explain (call circle_annotate right before the speak that says each one), add another picture with draw if anything new appears, explain what you put on the board, then end with one question to the student.";
+  "Continue the same reply: explain what you put on the board (call circle_annotate right before the speak that says each key word), then close with a short speak. Do not add another picture, and do not ask a question unless you are checking the key concept.";
 
-/** The reply is complete when it asked a verification or its last successful action is a question. */
-function endsWithQuestion(result: RoundResult): boolean {
-  const ok = result.results.filter((r) => !r.is_error && r.block.name !== "search_materials");
-  if (ok.some((r) => r.block.name === "ask_verification")) return true;
-  const last = ok.at(-1);
-  return last?.block.name === "speak" && (safeJson(last.block.raw_input) as { purpose?: string } | null)?.purpose === "question";
+/** Actions that touch the board (pointing at an element counts), for the log. */
+const BOARD_ACTIONS = new Set(["write_text", "write_timeline", "draw", "draw_diagram", "update_element", "circle_annotate", "highlight"]);
+const TEXT_BLOCKS = new Set(["write_text", "write_timeline"]);
+/** Images per reply: never more than the text blocks written so far (at least one), and never more than this. */
+const MAX_DRAWS = 1;
+const DRAW_REJECTED = "rejected: this reply already has its picture (at most one per reply, never more pictures than text). Do not draw; write the idea with write_text or point at the existing picture.";
+
+/**
+ * A reply that stopped for tool results is complete when it asked a verification or ends on a speak (any purpose,
+ * with or without anything on the board: a spoken-only answer is valid, D80). It is cut when it stopped on a board
+ * action or before any speak.
+ */
+function replyComplete(state: TurnState): boolean {
+  return state.verified || state.lastAction === "speak";
 }
 
 const BRIDGE_TEXT = "Deixa eu pensar um instante…";
@@ -83,6 +102,8 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 export class TurnEngine {
   private readonly runtimes = new Map<string, Runtime>();
+  /** Runtimes being restored from events, so a turn and a board edit arriving together share one. */
+  private readonly loading = new Map<string, Promise<Runtime>>();
   private readonly queues = new Map<string, OrderedQueue>();
   private readonly background = new Set<Promise<unknown>>();
 
@@ -106,12 +127,19 @@ export class TurnEngine {
   }
 
   private async runtime(session_id: string): Promise<Runtime> {
-    let rt = this.runtimes.get(session_id);
-    if (!rt) {
-      rt = restoreRuntime(await this.deps.repo.listEvents(session_id));
-      this.runtimes.set(session_id, rt);
+    const rt = this.runtimes.get(session_id);
+    if (rt) return rt;
+    let pending = this.loading.get(session_id);
+    if (!pending) {
+      pending = this.deps.repo.listEvents(session_id).then((events) => {
+        const restored = restoreRuntime(events);
+        this.runtimes.set(session_id, restored);
+        return restored;
+      });
+      this.loading.set(session_id, pending);
+      pending.finally(() => this.loading.delete(session_id)).catch(() => undefined);
     }
-    return rt;
+    return pending;
   }
 
   private track<T>(p: Promise<T>): void {
@@ -128,6 +156,32 @@ export class TurnEngine {
   private async catalogFor(rt: Runtime, subject: SessionSubject | null): Promise<CatalogEntry[]> {
     rt.catalog ??= await this.deps.repo.getCatalog(subject?.id);
     return rt.catalog;
+  }
+
+  /**
+   * The student deleted or moved a board element (plan F, D79). Applied to the in-memory board at once (the next
+   * round of a streaming turn already sees it) and stored through the session's ordered queue, so it lands between
+   * the tutor actions in the order it happened. Works on ended sessions too. Resolves once the event is stored.
+   */
+  async applyStudentEdit(session_id: string, edit: BoardEditRequest): Promise<StudentEditResult> {
+    const session = await this.deps.repo.getSession(session_id);
+    if (!session) throw new SessionNotFoundError(session_id);
+    const rt = await this.runtime(session_id);
+    const result = applyStudentEdit(rt, edit);
+    if (result !== "applied") return result;
+    const event = studentEditEvent(edit);
+    await new Promise<void>((resolve, reject) =>
+      this.queueFor(session_id).enqueue(() =>
+        this.deps.repo.appendEvent(session_id, event).then(
+          () => resolve(),
+          (err: unknown) => {
+            reject(err);
+            throw err;
+          },
+        ),
+      ),
+    );
+    return result;
   }
 
   forget(session_id: string): void {
@@ -185,6 +239,7 @@ export class TurnEngine {
       session_id, student_id: session.student_id, modality: req.modality, turn_id, rt, emit, signal, persist, t0, material_ids,
       timing: { context_ready_ms: Math.round(this.now() - t0) },
       order: 0, actionSeq: 0, emitted: 0, passages: [...passages], pending: [], ttsActions: [],
+      boardActions: 0, verified: false, draws: 0, textBlocks: 0,
     };
 
     const system = buildSystem({ prompts, classContext, summary, catalog, subject: session.subject });
@@ -195,20 +250,23 @@ export class TurnEngine {
       passages,
       appended: req.appended,
       interrupted: req.interrupted,
+      repliesWithoutQuestion: repliesWithoutQuestion(events),
     });
     let messages: LlmMessage[] = [{ role: "user", content: userText }];
 
     try {
       let searched = false;
+      let continues = 0;
       for (let round = 0; ; round++) {
         const result = await this.streamWithRetry(state, models.tutor, system, messages);
         if (signal.aborted) break;
         const search: boolean = result.searches.length > 0 && !searched;
-        const unfinished = result.stop_reason === "tool_use" && result.results.length > 0 && !endsWithQuestion(result);
+        const unfinished = result.stop_reason === "tool_use" && result.results.length > 0 && !replyComplete(state) && continues < MAX_CONTINUES;
         if ((!search && !unfinished) || round === MAX_ROUNDS - 1) break;
 
         const found = search ? await this.runSearches(state, result.searches) : new Map<string, string>();
         searched ||= search;
+        if (!search) continues += 1;
         const assistant: LlmContentBlock[] = result.results.map((r) => ({ type: "tool_use", id: r.block.id, name: r.block.name, input: safeJson(r.block.raw_input) }));
         const toolResults: LlmContentBlock[] = result.results.map((r) => ({
           type: "tool_result",
@@ -227,6 +285,7 @@ export class TurnEngine {
     }
 
     if (signal.aborted) return this.abort(state);
+    this.log("board actions", { turn_id, board_actions: state.boardActions, first_board_action_ms: state.firstBoardActionMs });
 
     state.timing.script_done_ms = Math.round(this.now() - t0);
     emit({ type: "script_done", turn_id });
@@ -279,6 +338,10 @@ export class TurnEngine {
           if (ev.block.name === "search_materials") {
             result.searches.push(ev.block);
             result.results.push({ block: ev.block, outcome: "", is_error: false });
+          } else if (ev.block.name === "draw" && state.draws >= Math.min(MAX_DRAWS, Math.max(1, state.textBlocks))) {
+            // Pictures keep pace with the text: the extra image is never sent, and the model is told to write instead.
+            this.log("draw rejected", { turn_id: state.turn_id, draws: state.draws, text_blocks: state.textBlocks });
+            result.results.push({ block: ev.block, outcome: DRAW_REJECTED, is_error: true });
           } else {
             const outcome = await this.handleBlock(state, ev.block);
             result.results.push({ block: ev.block, outcome: outcome ?? "ok", is_error: outcome !== null });
@@ -333,6 +396,16 @@ export class TurnEngine {
     });
     if (state.emitted === 0) state.timing.first_action_ms = Math.round(this.now() - state.t0);
     state.emitted += 1;
+    if (BOARD_ACTIONS.has(action.name)) {
+      state.boardActions += 1;
+      state.firstBoardActionMs ??= Math.round(this.now() - state.t0);
+    }
+    if (block.id !== "bridge") {
+      state.lastAction = action.name;
+      if (action.name === "ask_verification") state.verified = true;
+      if (action.name === "draw") state.draws += 1;
+      if (TEXT_BLOCKS.has(action.name)) state.textBlocks += 1;
+    }
 
     if (action.name === "ask_verification") {
       rt.verSeq += 1;
@@ -355,6 +428,9 @@ export class TurnEngine {
                 state.emit(m);
                 continue;
               }
+              // The student deleted the picture while it was being made: its result is dropped.
+              const target = m.action.name === "draw_result" ? m.action.args.element_id : m.action.name === "update_element" ? m.action.args.id : null;
+              if (target && state.rt.board.removedByStudent(target)) continue;
               const order = state.order++;
               state.emit({ ...m, order });
               state.persist({ type: "tutor_action", payload: { turn_id: state.turn_id, action_id: m.action.id, order, name: m.action.name, args: m.action.args } });

@@ -1,10 +1,11 @@
 "use client";
 
 // Owner: Person 2. Student home (Stitch S1, plan §3): greeting + free voice conversation, one study card per
-// subject from the API, and "Continuar de onde parou". Every card opens /session/:id.
+// subject from the API, and "Continuar de onde parou". The voice button scrolls to the subject cards: every
+// conversation belongs to a subject, and each card opens its lessons (new ones start by voice).
 import { useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import type { CreateSessionRequest, SessionSummary, SubjectSummary } from "@mento/contracts";
+import type { SessionSummary, SubjectSummary } from "@mento/contracts";
 import {
   Badge,
   Button,
@@ -16,24 +17,24 @@ import {
   IconClock,
   IconHistory,
   IconLandmark,
+  IconLeaf,
   IconLightbulb,
   IconMic,
   IconPlay,
   IconRotateCcw,
   IconRuler,
   IconSparkles,
+  IconZap,
   Modal,
   SimulatedDataBadge,
-  Spinner,
   TopBar,
   cx,
   type TopBarNavItem,
 } from "@mento/ui";
-import { createSession } from "@/lib/api";
 import { HistoryDrawer } from "../../session/_components/history/HistoryDrawer";
 import { Skeleton, StudentGrid, stagger } from "../start/pickers";
 import styles from "../start/start.module.css";
-import { bookCount, firstName, lastSessionLabel, sessionSubtitle, sessionTitle, subjectIcon, type SubjectIconName } from "./format";
+import { bookCount, firstName, sessionMinutes, sessionSubtitle, sessionTitle, subjectIcon, type SubjectIconName } from "./format";
 import { useHomeData } from "./useHomeData";
 
 const NAV: TopBarNavItem[] = [
@@ -46,13 +47,10 @@ const NAV: TopBarNavItem[] = [
 /** The tutor's class context is fixed to 8º ano on the server (plan §1); no class route yet. */
 const CLASS_LABEL = "8º ano";
 
-const SUBJECT_ICONS: Record<SubjectIconName, typeof IconBook> = { landmark: IconLandmark, ruler: IconRuler, book: IconBook };
+const SUBJECT_ICONS: Record<SubjectIconName, typeof IconBook> = { landmark: IconLandmark, ruler: IconRuler, leaf: IconLeaf, zap: IconZap, book: IconBook };
 
 const linkClasses =
   "rounded-(--radius-sm) font-bold text-(--mento-blue-strong) underline-offset-4 outline-none hover:underline focus-visible:shadow-(--focus-ring)";
-
-/** Which start action is in flight: "voice" or a subject id. */
-type Starting = string | null;
 
 export function HomeScreen() {
   const router = useRouter();
@@ -65,29 +63,19 @@ export function HomeScreen() {
     setHistorySubject(subject);
     setHistoryOpen(true);
   };
-  const [starting, setStarting] = useState<Starting>(null);
-  const [startError, setStartError] = useState(false);
-  const startingRef = useRef(false);
+  const subjectsHeadingRef = useRef<HTMLHeadingElement>(null);
 
   const student = students.status === "ready" ? students.value.list.find((s) => s.id === studentId) : undefined;
   const simulated = students.status === "ready" && students.value.simulated;
   const serverDown = students.status === "error" || subjects.status === "error" || latest.status === "error";
 
-  const start = async (key: string, req: Omit<CreateSessionRequest, "student_id">) => {
-    // Double-click guard: a ref, because state updates land after the second click.
-    if (!studentId || startingRef.current) return;
-    startingRef.current = true;
-    setStarting(key);
-    setStartError(false);
-    try {
-      const { id } = await createSession({ student_id: studentId, ...req });
-      // Stay busy until the session page replaces this one.
-      router.push(`/session/${id}`);
-    } catch {
-      startingRef.current = false;
-      setStarting(null);
-      setStartError(true);
-    }
+  const goToSubjects = () => {
+    const heading = subjectsHeadingRef.current;
+    if (!heading) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    heading.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    // scroll-mt-24 on the heading clears the sticky 64px top bar. Keyboard and screen-reader users land on the cards too.
+    heading.focus({ preventScroll: true });
   };
 
   const changeStudent = (
@@ -117,20 +105,12 @@ export function HomeScreen() {
           name={student ? firstName(student.name) : null}
           simulated={simulated}
           latest={latest.status === "ready" ? latest.value : null}
-          startingVoice={starting === "voice"}
-          busy={starting !== null || !studentId}
-          onVoice={() => start("voice", { modality: "voice", subject_id: null })}
+          onVoice={goToSubjects}
         />
-
-        {startError && (
-          <p role="alert" className="-mt-8 text-sm font-semibold text-(--accent-ink)">
-            Não foi possível começar a conversa. Tente de novo em instantes.
-          </p>
-        )}
 
         <section aria-labelledby="subjects-heading" className="flex flex-col gap-6">
           <div className="flex flex-col gap-3 border-b border-(--line) pb-5 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
-            <h2 id="subjects-heading" className="text-[clamp(1.75rem,1.3rem+1.4vw,2.5rem)] leading-tight font-extrabold text-balance">
+            <h2 id="subjects-heading" ref={subjectsHeadingRef} tabIndex={-1} className="scroll-mt-24 outline-none text-[clamp(1.75rem,1.3rem+1.4vw,2.5rem)] leading-tight font-extrabold text-balance">
               Cadernos de Estudo do 8º ano
             </h2>
             <p className="max-w-[46ch] text-base text-(--ink-soft) text-pretty">
@@ -139,14 +119,13 @@ export function HomeScreen() {
           </div>
           <SubjectCards
             state={subjects}
-            starting={starting}
-            disabled={starting !== null || !studentId}
+            disabled={!studentId}
             onStart={(s) => openHistory({ id: s.id, name: s.name })}
           />
         </section>
 
         {latest.status === "ready" && latest.value && (
-          <ContinueCard session={latest.value} disabled={starting !== null} onContinue={(id) => router.push(`/session/${id}`)} />
+          <ContinueCard session={latest.value} onContinue={(id) => router.push(`/session/${id}`)} />
         )}
         {latest.status === "ready" && latest.value && (
           <button type="button" aria-haspopup="dialog" onClick={() => openHistory(null)} className={cx(linkClasses, "-mt-8 self-start")}>
@@ -193,21 +172,17 @@ function Hero({
   name,
   simulated,
   latest,
-  startingVoice,
-  busy,
   onVoice,
 }: {
   name: string | null;
   simulated: boolean;
   latest: SessionSummary | null;
-  startingVoice: boolean;
-  busy: boolean;
   onVoice: () => void;
 }) {
   return (
     <section
       aria-labelledby="hero-heading"
-      className="relative grid gap-8 overflow-hidden rounded-(--radius-xl) border border-(--line) bg-[radial-gradient(ellipse_at_0%_100%,color-mix(in_srgb,var(--marker-yellow)_35%,transparent),transparent_55%),var(--card)] p-6 shadow-(--shadow-card) sm:p-10 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-12 lg:p-14"
+      className="relative grid gap-8 overflow-hidden rounded-(--radius-xl) border border-(--line) bg-[radial-gradient(ellipse_at_0%_100%,color-mix(in_srgb,var(--marker-yellow)_35%,transparent),transparent_55%),var(--card)] p-6 shadow-(--shadow-card) sm:p-10 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-10 lg:p-14"
     >
       <div className={cx("flex min-w-0 flex-col items-start gap-5", styles.fadeUp)}>
         <div className="flex flex-wrap items-center gap-2">
@@ -226,26 +201,22 @@ function Hero({
         <button
           type="button"
           onClick={onVoice}
-          disabled={busy}
-          aria-label="Conversar com o Mento por voz"
-          aria-busy={startingVoice || undefined}
+          aria-label="Conversar com o Mento por voz: escolha uma matéria"
           className={cx(
-            "group mt-2 flex w-full max-w-xl items-center gap-4 rounded-(--radius-lg) bg-[linear-gradient(120deg,var(--mento-blue-strong),var(--mento-blue))] p-4 text-left text-white shadow-(--shadow-float) outline-none sm:gap-5 sm:p-5",
+            "group mt-2 flex w-full items-center gap-4 rounded-(--radius-lg) bg-[linear-gradient(120deg,var(--mento-blue-strong),var(--mento-blue))] p-4 text-left text-white shadow-(--shadow-float) outline-none sm:gap-5 sm:px-6 sm:py-6",
             "transition-[transform,box-shadow] duration-(--dur-base) ease-(--ease-out) hover:-translate-y-0.5 hover:shadow-(--shadow-pop) focus-visible:shadow-[var(--focus-ring),var(--shadow-float)] active:translate-y-0",
-            "disabled:cursor-not-allowed disabled:hover:translate-y-0",
-            startingVoice && "cursor-progress",
           )}
         >
           <span aria-hidden="true" className="flex size-12 shrink-0 items-center justify-center rounded-full bg-white/15 sm:size-14">
-            {startingVoice ? <Spinner size={22} /> : <IconMic className="size-6" />}
+            <IconMic className="size-6" />
           </span>
           <span className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="inline-flex w-fit items-center gap-1.5 rounded-(--radius-pill) bg-white/15 px-2.5 py-0.5 text-xs font-bold">
               <IconSparkles className="size-3.5" />
-              Conversa livre por voz
+              Conversa por voz
             </span>
             <span className="text-lg leading-tight font-extrabold sm:text-xl">Conversar com o Mento por voz</span>
-            <span className="text-sm text-white/85">Fale naturalmente e tire dúvidas ao vivo</span>
+            <span className="text-sm text-white/85">Escolha a matéria e tire dúvidas ao vivo</span>
           </span>
           <span
             aria-hidden="true"
@@ -256,7 +227,8 @@ function Hero({
         </button>
       </div>
 
-      <div className="flex min-w-0 flex-col items-center gap-4">
+      {/* Fixed width on desktop: a long "Última sessão" title wraps instead of widening the column. */}
+      <div className="flex w-full min-w-0 flex-col items-center gap-4 sm:max-w-sm sm:justify-self-center lg:w-80">
         <div
           className={cx(
             "flex size-36 items-center justify-center rounded-full border-8 border-(--card) bg-(--paper-2) shadow-(--shadow-float) sm:size-56 lg:size-72",
@@ -269,11 +241,18 @@ function Hero({
             <img src="/brand/mascot/float.gif" alt="" width={240} height={240} className="size-28 object-contain sm:size-44 lg:size-60" />
           </picture>
         </div>
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex w-full flex-col items-center gap-2">
           {latest && (
-            <Pill className="bg-(--mento-blue-soft) text-(--mento-blue-strong)" icon={<IconHistory className="size-4" />}>
-              Última sessão: {lastSessionLabel(latest)}
-            </Pill>
+            // A card, not a pill: the session title is free text of any length, so it wraps (2 lines max).
+            <div className="flex w-full items-start gap-2 rounded-(--radius-md) bg-(--mento-blue-soft) px-4 py-2.5 text-(--mento-blue-strong)">
+              <IconHistory className="mt-0.5 size-4 shrink-0" />
+              <span className="flex min-w-0 flex-col">
+                <span className="text-xs font-bold">Última sessão · {sessionMinutes(latest)} min</span>
+                <span className="line-clamp-2 text-sm font-semibold text-(--ink)" title={sessionTitle(latest)}>
+                  {sessionTitle(latest)}
+                </span>
+              </span>
+            </div>
           )}
           <Pill className="border border-[color-mix(in_srgb,var(--marker-yellow)_80%,var(--accent))] bg-[color-mix(in_srgb,var(--marker-yellow)_45%,var(--card))] text-(--ink)" icon={<IconLightbulb className="size-4" />}>
             Dica: Fale em voz alta qualquer dúvida
@@ -288,7 +267,7 @@ function Pill({ icon, className, children }: { icon: ReactNode; className?: stri
   return (
     <p className={cx("inline-flex max-w-full items-center gap-2 rounded-(--radius-pill) px-4 py-1.5 text-sm font-semibold", className)}>
       <span className="shrink-0">{icon}</span>
-      <span className="min-w-0 truncate">{children}</span>
+      <span className="min-w-0">{children}</span>
     </p>
   );
 }
@@ -297,12 +276,10 @@ const GRID = "grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
 
 function SubjectCards({
   state,
-  starting,
   disabled,
   onStart,
 }: {
   state: ReturnType<typeof useHomeData>["subjects"];
-  starting: Starting;
   disabled: boolean;
   onStart: (s: SubjectSummary) => void;
 }) {
@@ -334,16 +311,14 @@ function SubjectCards({
     <ul className={GRID} aria-label="Matérias">
       {state.value.map((s, i) => {
         const Icon = SUBJECT_ICONS[subjectIcon(s.key)];
-        const busy = starting === s.id;
         return (
           <li key={s.id} className={styles.fadeUp} style={stagger(i)}>
             <Card
               interactive
               disabled={disabled}
-              aria-busy={busy || undefined}
               aria-label={`Estudar ${s.name} com o Mento`}
               onClick={() => onStart(s)}
-              className={cx("group flex h-full min-h-60 flex-col gap-4 p-6", busy && "disabled:cursor-progress disabled:opacity-100")}
+              className="group flex h-full min-h-60 flex-col gap-4 p-6"
             >
               <span className="flex items-start justify-between gap-3">
                 <span aria-hidden="true" className="flex size-12 items-center justify-center rounded-full bg-(--mento-blue-soft) text-(--mento-blue-strong)">
@@ -358,8 +333,8 @@ function SubjectCards({
                 <span className="line-clamp-3 text-base leading-relaxed text-(--ink-soft)">{s.materials.map((m) => m.title).join(" · ")}</span>
               )}
               <span className="mt-auto flex items-center justify-between border-t border-(--line) pt-4 font-bold text-(--mento-blue-strong)">
-                {busy ? "Abrindo…" : "Estudar com o Mento"}
-                {busy ? <Spinner size={18} /> : <IconArrowRight className="size-5 transition-transform duration-(--dur-fast) group-hover:translate-x-0.5" />}
+                Estudar com o Mento
+                <IconArrowRight className="size-5 transition-transform duration-(--dur-fast) group-hover:translate-x-0.5" />
               </span>
             </Card>
           </li>
@@ -369,7 +344,7 @@ function SubjectCards({
   );
 }
 
-function ContinueCard({ session, disabled, onContinue }: { session: SessionSummary; disabled: boolean; onContinue: (id: string) => void }) {
+function ContinueCard({ session, onContinue }: { session: SessionSummary; onContinue: (id: string) => void }) {
   return (
     <section
       aria-labelledby="continue-heading"
@@ -389,7 +364,7 @@ function ContinueCard({ session, disabled, onContinue }: { session: SessionSumma
         <p className="truncate text-xl font-extrabold">{sessionTitle(session)}</p>
         <p className="text-base text-(--ink-soft)">{sessionSubtitle(session)}</p>
       </div>
-      <Button size="lg" disabled={disabled} onClick={() => onContinue(session.id)} className="shrink-0">
+      <Button size="lg" onClick={() => onContinue(session.id)} className="shrink-0">
         <IconRotateCcw className="size-5" />
         Continuar estudo
       </Button>

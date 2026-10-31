@@ -9,6 +9,7 @@ import {
   FileConversationSource,
   MongoConversationSource,
   SessionEndedHandler,
+  SubjectScope,
   idMapsFromRepo,
   type AnalysisWriter,
   type ExerciseGenerator,
@@ -127,7 +128,7 @@ function buildEngine(config: Config, repo: TurnRepository, tts: TtsService | nul
     retriever,
     tts,
     draw: buildDraw(config, images),
-    judge: new ClaudeJudge({ llm, model: config.JUDGE_MODEL, repo, retriever, evidence }),
+    judge: new ClaudeJudge({ llm, model: config.JUDGE_MODEL, repo, retriever, evidence, log: (message, extra) => console.warn(`[judge] ${message}`, extra ?? "") }),
     prompts: loadPromptsSync(config.PROMPTS_DIR),
     models: {
       tutor: config.TUTOR_MODEL,
@@ -157,11 +158,15 @@ export function createContainer(config: Config, allOverrides: ContainerOverrides
   const subjects = overrides.subjects ?? new MongoSubjectStore();
 
   // ---- Teacher side (Person 1) ----
-  const teacherRepo = overrides.teacherRepo ?? new MongoRepository();
+  const baseRepo = overrides.teacherRepo ?? new MongoRepository();
   // The analysis reads what the tutor stored in MongoDB. A JSON file is only a dev/demo option (CONVERSATIONS_FILE).
-  const conversations =
+  const allConversations =
     overrides.conversations ??
-    (config.CONVERSATIONS_FILE ? new FileConversationSource(config.CONVERSATIONS_FILE, idMapsFromRepo(teacherRepo)) : new MongoConversationSource(teacherRepo, new MongoConversationReader()));
+    (config.CONVERSATIONS_FILE ? new FileConversationSource(config.CONVERSATIONS_FILE, idMapsFromRepo(baseRepo)) : new MongoConversationSource(baseRepo, new MongoConversationReader()));
+  // The teacher follows one subject (D78): everything the teacher side reads, the analysis included, goes through this scope.
+  const scope = new SubjectScope({ key: config.TEACHER_SUBJECT_KEY, subjects, conversations: allConversations });
+  const teacherRepo = scope.repo(baseRepo);
+  const conversations = scope.conversations();
   const fileStore = overrides.fileStore ?? new DiskFileStore(config.UPLOAD_DIR ? path.resolve(config.UPLOAD_DIR) : repoRoot("data/uploads"));
   const bus = overrides.bus ?? new TeacherBus();
   const analysis = overrides.analysis ?? new AnalysisService({ repo: teacherRepo, conversations, writer, now, emit: bus.emit, log });
@@ -171,7 +176,8 @@ export function createContainer(config: Config, allOverrides: ContainerOverrides
       retryDelayMs: retryDelayMs ?? 30_000,
       log,
       maxWaitMs: config.ANALYSIS_MAX_WAIT_MS,
-      // Only students registered by the teacher are analysed (a stray student id would pollute the teacher's numbers).
+      // Only conversations of the teacher's subject (the scoped source returns null for the others) and of students
+      // registered by the teacher are analysed (a stray student id would pollute the teacher's numbers).
       shouldAnalyze: async (id) => {
         const bundle = await conversations.getSessionBundle(id);
         return !!bundle && !!(await teacherRepo.getStudent(bundle.session.student_id));

@@ -21,6 +21,7 @@
     "pregenerate": "tsx scripts/pregenerate-images.ts",
     "turn": "tsx scripts/turn-cli.ts",
     "fixtures:check": "tsx scripts/fixture-check.ts",
+    "diagrams:golden": "tsx scripts/diagram-golden.ts",
     "voice:smoke": "tsx scripts/voice-smoke.ts",
     "llm:smoke": "tsx scripts/llm-smoke.ts",
     "turn:bench": "tsx scripts/turn-bench.ts",
@@ -30,7 +31,10 @@
     "db:stats": "tsx scripts/db-stats.ts",
     "test:rules": "tsx scripts/test-rules.ts",
     "e2e:teacher": "tsx scripts/e2e-teacher.ts",
-    "test:all": "vitest run"
+    "test:all": "vitest run",
+    "materials:render": "tsx scripts/render-materials.ts",
+    "materials:verify": "tsx scripts/verify-material.ts",
+    "materials:remove": "tsx scripts/remove-material.ts"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

@@ -1,4 +1,4 @@
-import { Action, type Event } from "@mento/contracts";
+import { Action, type BoardEditRequest, type Event, boardEditEvent, boardEditOf, isBoardEditEvent } from "@mento/contracts";
 import { Board } from "./board";
 import type { CatalogEntry } from "./prompt-builder";
 
@@ -11,10 +11,31 @@ export interface Runtime {
   openVerification?: { verification_id: string; concept_key: string };
   /** The session's catalog (its subject's materials, or all), loaded once per session. */
   catalog?: CatalogEntry[];
+  /** `edit_id`s of the student's board edits already stored (dedupe). */
+  editIds: Set<string>;
 }
 
+export type StudentEditResult = "applied" | "already_applied" | "already_removed" | "element_not_found";
+
+/**
+ * Check and apply one student board edit to the runtime (plan F, D79). Only "applied" must be stored: a repeated
+ * `edit_id` is "already_applied", an element already deleted is "already_removed", an id never seen is "element_not_found".
+ */
+export function applyStudentEdit(rt: Runtime, edit: BoardEditRequest): StudentEditResult {
+  if (rt.editIds.has(edit.edit_id)) return "already_applied";
+  const check = rt.board.checkEdit(edit);
+  if (check === "not_found") return "element_not_found";
+  if (check === "already_removed") return "already_removed";
+  rt.board.applyEdit(edit);
+  rt.editIds.add(edit.edit_id);
+  return "applied";
+}
+
+/** The stored event of an applied edit (contracts-spec §18). */
+export const studentEditEvent = boardEditEvent;
+
 export function restoreRuntime(events: Event[]): Runtime {
-  const rt: Runtime = { board: new Board(), turnNo: 0, verSeq: 0, lastTopic: "" };
+  const rt: Runtime = { board: new Board(), turnNo: 0, verSeq: 0, lastTopic: "", editIds: new Set() };
   for (const e of events) {
     const p = (e.payload ?? {}) as Record<string, unknown>;
     if (e.type === "tutor_action") {
@@ -30,6 +51,10 @@ export function restoreRuntime(events: Event[]): Runtime {
       rt.openVerification = { verification_id: String(p.verification_id), concept_key: String(p.concept_key) };
     } else if (e.type === "verification_answered" && rt.openVerification?.verification_id === p.verification_id) {
       rt.openVerification = undefined;
+    } else if (isBoardEditEvent(e.type)) {
+      // The student's edits, in event order with the tutor actions they refer to.
+      const edit = boardEditOf(e.type, p);
+      if (edit) applyStudentEdit(rt, edit);
     }
   }
   return rt;

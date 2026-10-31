@@ -1,5 +1,6 @@
 // Default action handlers (docs/16 §3.3). Later tracks override one by passing `handlers` to the queue.
 import type { Action } from "@mento/contracts";
+import { markDiagramLive } from "../renderers/diagram/live";
 import type { HandlerContext, HandlerMap } from "./types";
 
 /** Apply to the board, then wait for the action's reveal animation (if one is registered). */
@@ -36,8 +37,19 @@ export const defaultHandlers: HandlerMap = {
     ctx.store.dispatch(action);
   },
   draw_result: applyAndReveal,
+  // The tutor reorganizes the board (the board animates the reflow).
+  move_element: applyAndReveal,
+  place_element: applyAndReveal,
+  // Drawn stroke by stroke by its renderer (live only: a replayed or restored diagram appears whole).
+  draw_diagram: async (action, ctx) => {
+    markDiagramLive(action.args.id);
+    await applyAndReveal(action, ctx);
+  },
   ask_verification: async (action, ctx) => {
     await applyAndReveal(action, ctx);
+    // The answer box opens once the question is fully written on the board.
+    if (ctx.store.animation.isBusy()) await ctx.store.animation.whenIdle();
+    if (ctx.signal.aborted) return;
     ctx.markWaitingAnswer();
   },
 };

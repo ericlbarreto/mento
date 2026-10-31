@@ -23,6 +23,7 @@ const exerciseListSchema = new Schema(
     exercises: { type: Schema.Types.Mixed, default: [] },
     model: { type: String, default: null },
     prompt_version: { type: String, required: true },
+    edited_at: { type: String, default: null },
   },
   { ...snakeCaseSchemaOptions, collection: "exercise_lists" },
 );
