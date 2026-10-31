@@ -44,6 +44,9 @@ export const defaultHandlers: HandlerMap = {
   },
   ask_verification: async (action, ctx) => {
     await applyAndReveal(action, ctx);
+    // The answer box opens once the question is fully written on the board.
+    if (ctx.store.animation.isBusy()) await ctx.store.animation.whenIdle();
+    if (ctx.signal.aborted) return;
     ctx.markWaitingAnswer();
   },
 };

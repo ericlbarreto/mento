@@ -76,6 +76,30 @@ describe("streamTurn (real API)", () => {
     expect(onMessage).not.toHaveBeenCalled();
   });
 
+  it("an ended session is resumed once, then the turn is sent again", async () => {
+    const api = await load();
+    fetchMock
+      .mockResolvedValueOnce(json({ error: "session_ended" }, 409))
+      .mockResolvedValueOnce(json({ ok: true, transition: "resumed" }))
+      .mockResolvedValueOnce(sse([frame(speak), frame(done)]));
+    const seen: StreamMessage[] = [];
+    await api.streamTurn("s1", { modality: "text", appended: [] }, (m) => seen.push(m));
+    expect(seen).toEqual([speak, done]);
+    expect(fetchMock.mock.calls.map(([url, init]) => `${(init as RequestInit).method} ${url as string}`)).toEqual([
+      "POST http://api.test/api/sessions/s1/turn",
+      "POST http://api.test/api/sessions/s1/resume",
+      "POST http://api.test/api/sessions/s1/turn",
+    ]);
+  });
+
+  it("another 409 is not retried", async () => {
+    const api = await load();
+    fetchMock.mockResolvedValue(json({ error: "turn_in_progress" }, 409));
+    const err = await api.streamTurn("s1", { modality: "text", appended: [] }, vi.fn()).catch((e: unknown) => e);
+    expect(err).toMatchObject({ status: 409, error: "turn_in_progress" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("a non-JSON error body still gives an ApiError with the status", async () => {
     const api = await load();
     fetchMock.mockResolvedValue(new Response("<html>bad gateway</html>", { status: 502 }));

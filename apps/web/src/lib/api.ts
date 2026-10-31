@@ -164,6 +164,13 @@ type OnMessage = (message: StreamMessage) => void;
  * Errors before the stream (404, 503 `tutor_unavailable`, 400) reject with ApiError. When `signal` aborts it
  * resolves quietly (never an AbortError). With NEXT_PUBLIC_TURN_SOURCE=fixture the turn is a fixture replay.
  */
+/** Reopens an ended session (idempotent: an active one answers "already_active"). */
+export async function resumeSession(id: string): Promise<void> {
+  if (MOCK_API) return;
+  const res = await fetch(`${API_URL}/api${sessionPath(id)}/resume`, { method: "POST" });
+  if (!res.ok) throw await toApiError(res);
+}
+
 export async function streamTurn(id: string, req: TurnRequest, onMessage: OnMessage, opts: { signal?: AbortSignal } = {}): Promise<void> {
   const body = TurnRequest.parse(req);
   const { signal } = opts;
@@ -173,12 +180,21 @@ export async function streamTurn(id: string, req: TurnRequest, onMessage: OnMess
     return streamFixtureTurn(name, onMessage, { signal, round });
   }
   try {
-    const res = await fetch(`${API_URL}/api${sessionPath(id)}/turn`, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "text/event-stream" },
-      body: JSON.stringify(body),
-      signal,
-    });
+    const send = () =>
+      fetch(`${API_URL}/api${sessionPath(id)}/turn`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "text/event-stream" },
+        body: JSON.stringify(body),
+        signal,
+      });
+    let res = await send();
+    // Leaving the page ends the lesson; coming back continues it: resume the same session, then send again.
+    if (res.status === 409) {
+      const err = await toApiError(res);
+      if (err.error !== "session_ended") throw err;
+      await resumeSession(id);
+      res = await send();
+    }
     if (!res.ok) throw await toApiError(res);
     await readSse(res, (data) => onMessage(StreamMessage.parse(data)));
   } catch (err) {

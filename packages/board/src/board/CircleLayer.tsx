@@ -1,7 +1,8 @@
 "use client";
 
-import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type RefObject, useLayoutEffect, useState } from "react";
 import type { Annotation, CircleColor } from "../store";
+import { useBoardWriter } from "./context";
 import { findTextRange } from "./textMatch";
 
 type Circle = Extract<Annotation, { kind: "circle" }>;
@@ -63,7 +64,7 @@ export function CircleLayer({
   version: unknown;
 }) {
   const [boxes, setBoxes] = useState<Box[]>([]);
-  const drawn = useRef(new Set<string>());
+  const writer = useBoardWriter();
 
   useLayoutEffect(() => {
     const content = contentRef.current;
@@ -102,28 +103,21 @@ export function CircleLayer({
   return boxes.length === 0 ? null : (
     <svg aria-hidden className="pointer-events-none absolute inset-0 size-full overflow-visible">
       {boxes.map((b) => (
-        <CirclePath key={b.action_id} box={b} drawn={drawn.current} />
+        <CirclePath key={b.action_id} box={b} pending={writer?.isMarkPending(b.action_id) ?? false} />
       ))}
     </svg>
   );
 }
 
-function CirclePath({ box, drawn }: { box: Box; drawn: Set<string> }) {
-  const ref = useRef<SVGPathElement>(null);
-  useEffect(() => {
-    const path = ref.current;
-    if (!path || drawn.has(box.action_id)) return;
-    drawn.add(box.action_id);
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches || !path.animate) return;
-    path.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 550, easing: "ease-out", fill: "backwards" });
-  }, [box.action_id, drawn]);
+/** The board's pen draws a pending circle (stroke-dashoffset 1 → 0, see writer.ts); otherwise it renders drawn. */
+function CirclePath({ box, pending }: { box: Box; pending: boolean }) {
   return (
     <path
-      ref={ref}
       data-circle-for={box.action_id}
       d={circlePath(box, seed(box.action_id))}
       pathLength={1}
       strokeDasharray={1}
+      strokeDashoffset={pending ? 1 : 0}
       fill="none"
       stroke={stroke[box.color]}
       strokeWidth={3}
