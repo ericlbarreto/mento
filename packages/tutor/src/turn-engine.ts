@@ -66,7 +66,8 @@ interface RoundResult {
 
 /** Rounds per reply: the model often stops after one or two tool calls to wait for their results. */
 const MAX_ROUNDS = 4;
-const CONTINUE_TEXT = "Continue the same reply: explain what you just put on the board, then end with one question to the student.";
+const CONTINUE_TEXT =
+  "Continue the same reply: circle the key words you explain (call circle_annotate right before the speak that says each one), add another picture with draw if anything new appears, explain what you put on the board, then end with one question to the student.";
 
 /** The reply is complete when it asked a verification or its last successful action is a question. */
 function endsWithQuestion(result: RoundResult): boolean {
