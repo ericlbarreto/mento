@@ -134,7 +134,7 @@ export function HomeScreen() {
             state={subjects}
             starting={starting}
             disabled={starting !== null || !studentId}
-            onStart={(s) => start(s.id, { modality: "text", subject_id: s.id })}
+            onStart={(s) => start(s.id, { modality: "voice", subject_id: s.id })}
           />
         </section>
 

@@ -45,8 +45,6 @@ export interface ChatLine extends TranscriptLine {
 
 type TurnInput = Omit<TurnRequest, "interrupted">;
 
-/** Text until TTS is configured (plan §8 Q5); the voice track (N2) switches this per session. */
-const MODALITY: TurnRequest["modality"] = "text";
 
 /**
  * Sessions whose opening turn this page already sent. Module-level so a remount (StrictMode, fast refresh,
@@ -86,6 +84,8 @@ export function useSessionController({
   const [phase, setPhase] = useState<SessionPhase>("loading");
   const [loadError, setLoadError] = useState<SessionErrorView | null>(null);
   const [session, setSession] = useState<SessionSummary | null>(null);
+  // Turns use the session's modality: a voice session gets tutor audio (`audio_url`) on every speak.
+  const modalityRef = useRef<TurnRequest["modality"]>("text");
   const [lines, setLines] = useState<ChatLine[]>([]);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const [openQuestion, setOpenQuestion] = useState<OpenQuestion | null>(null);
@@ -174,7 +174,7 @@ export function useSessionController({
     (force = false) => {
       if (!force && openingSent.has(sessionId)) return;
       openingSent.add(sessionId);
-      send({ modality: MODALITY, appended: [] });
+      send({ modality: modalityRef.current, appended: [] });
     },
     [send, sessionId],
   );
@@ -203,6 +203,7 @@ export function useSessionController({
     const replay = replayEvents(detail.events);
     restore(replay.actions, replay.lastTurnId);
     setSession(detail.session);
+    modalityRef.current = detail.session.modality;
     setLines(replay.transcript.map((line, i) => ({ ...line, id: `replay_${i}` })));
     setOpenQuestion(replay.openVerification && { verification_id: replay.openVerification.verification_id, element_id: replay.openVerification.element_id });
     // `session_started` always exists, so "no events" is the wrong test: only a session the tutor never spoke in
@@ -233,7 +234,7 @@ export function useSessionController({
       setOpenQuestion(null);
     }
     setSelection(null);
-    send({ modality: MODALITY, appended: [appended] });
+    send({ modality: modalityRef.current, appended: [appended] });
   };
 
   const sendMessage = (text: string, kind: "chat" | "speech" = "chat"): boolean => {
