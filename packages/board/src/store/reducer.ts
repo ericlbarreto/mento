@@ -57,6 +57,8 @@ export function applyAction(state: BoardState, action: BoardAction, ctx: ApplyCo
       const { id, html } = action.args;
       const el = state.elements.get(id);
       if (!el) return (warn(`unknown element "${id}"`), state);
+      // The server sends this when an image could not be generated: settle the placeholder as failed.
+      if ((el.type === "image" || el.type === "svg") && el.status !== "ready") return finishDrawing(state, id, {}, warn);
       if (el.type !== "text") return (warn(`"${id}" is a ${el.type}; only text can be updated`), state);
       return replace(state, { ...el, data: { html } });
     }
