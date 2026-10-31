@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { StreamMessage, type Chunk, type Retriever, type TurnRequest } from "@mento/contracts";
-import { LlmError } from "./llm";
+import { LlmError, type LlmClient } from "./llm";
 import { InMemoryTurnRepository, ScriptedLlm, stopEvent, toolEvent } from "./testing";
 import { TurnEngine, SessionNotFoundError, type TurnEngineDeps } from "./turn-engine";
 import { noopDraw, noopJudge, type DrawPipeline, type Judge, type TtsStarter } from "./hooks";
