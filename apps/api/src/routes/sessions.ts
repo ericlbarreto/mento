@@ -1,7 +1,34 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
+import { z } from "zod";
+import { CreateSessionRequest, CreateSessionResponse, EndSessionRequest } from "@mento/contracts";
 
-// Owner: Person 1. Endpoints (docs/21-repo-structure.md §5): POST /sessions, GET /sessions/:id/events
-// TODO: implement. Keep the route thin: parse with Zod (@mento/contracts), call a package, respond.
-const plugin: FastifyPluginAsyncZod = async (_app) => {};
+// Owner: Person 1 (session persistence); the create/end endpoints below are the minimal ones the whiteboard needs.
+// POST /api/sessions: the student picks nothing but themselves; the tutor searches all materials.
+const plugin: FastifyPluginAsyncZod = async (app) => {
+  app.post(
+    "/sessions",
+    { schema: { body: CreateSessionRequest, response: { 201: CreateSessionResponse } } },
+    async (request, reply) => {
+      const { repo, engine } = request.server.container;
+      const { id } = await repo.createSession(request.body);
+      engine?.prewarm(id).catch((err) => request.log.warn({ err }, "prompt cache pre-warm failed"));
+      return reply.status(201).send({ id });
+    },
+  );
+
+  app.post(
+    "/sessions/:id/end",
+    { schema: { params: z.object({ id: z.string().min(1) }), body: EndSessionRequest } },
+    async (request, reply) => {
+      const { repo, engine, tts } = request.server.container;
+      const { id } = request.params;
+      if (!(await repo.getSession(id))) return reply.status(404).send({ error: "session_not_found" });
+      await repo.endSession(id, request.body.reason);
+      engine?.forget(id);
+      tts?.cancelAll();
+      return { ok: true };
+    },
+  );
+};
 
 export default plugin;

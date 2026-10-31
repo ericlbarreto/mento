@@ -21,6 +21,10 @@ const schema = z.object({
   ELEVENLABS_VOICE_ID: z.string().default(""),
   ELEVENLABS_MODEL: z.string().default("eleven_flash_v2_5"),
   TTS_MODE: z.enum(["http", "ws"]).default("ws"),
+  ANTHROPIC_API_KEY: z.string().default(""),
+  TUTOR_MODEL: z.string().default("claude-sonnet-5-5"),
+  JUDGE_MODEL: z.string().default("claude-haiku-5-5"),
+  PROMPTS_DIR: z.string().default(fileURLToPath(new URL("../../../prompts", import.meta.url))),
 });
 
 export type Config = z.infer<typeof schema>;
