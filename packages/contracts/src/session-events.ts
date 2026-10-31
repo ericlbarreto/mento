@@ -22,6 +22,7 @@ export const SessionEventTypes = [
   "mic_state",
   "turn_timing",
   "session_ended",
+  "session_resumed",
 ] as const;
 export type SessionEventType = (typeof SessionEventTypes)[number];
 
@@ -111,6 +112,7 @@ export const SessionEvent = z.discriminatedUnion("type", [
     }),
   ),
   event("session_ended", z.object({ reason: SessionEndReason })),
+  event("session_resumed", z.object({ previous_ended_at: z.string() })),
 ]);
 export type SessionEvent = z.infer<typeof SessionEvent>;
 export type SessionEventOf<T extends SessionEventType> = Extract<SessionEvent, { type: T }>;

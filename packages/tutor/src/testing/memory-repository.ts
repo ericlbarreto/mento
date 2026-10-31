@@ -1,6 +1,6 @@
 import type { Event, EventType, ListSessionsQuery, SessionHistory, SessionSummary } from "@mento/contracts";
 import type { CatalogEntry, ClassContext, LearnerSummary, SessionSubject } from "../prompt-builder";
-import type { SessionInfo, TurnRepository } from "../repository";
+import type { FinishSessionTransition, ResumeSessionTransition, SessionInfo, TurnRepository } from "../repository";
 
 export interface MemorySeed {
   classContext?: ClassContext;
@@ -24,7 +24,7 @@ export class InMemoryTurnRepository implements TurnRepository, SessionHistory {
   async createSession(input: { student_id: string; modality: "text" | "voice"; topic?: string; subject?: SessionSubject | null }): Promise<{ id: string }> {
     const id = this.nextId();
     const subject = input.subject ?? null;
-    this.sessions.set(id, { id, student_id: input.student_id, modality: input.modality, subject });
+    this.sessions.set(id, { id, student_id: input.student_id, modality: input.modality, subject, ended_at: null });
     this.events.set(id, []);
     const now = new Date().toISOString();
     this.summaries.set(id, {
@@ -51,12 +51,20 @@ export class InMemoryTurnRepository implements TurnRepository, SessionHistory {
     if (summary) {
       summary.last_activity_at = stored.ts;
       summary.activity = ++this.seq;
-      const p = (event.payload ?? {}) as { text?: unknown; reason?: unknown };
+      const p = (event.payload ?? {}) as { text?: unknown; reason?: unknown; previous_ended_at?: unknown };
       if (event.type === "turn_timing") summary.turn_count += 1;
       if (event.type === "user_message" && summary.title === null && typeof p.text === "string") summary.title = p.text.slice(0, 80);
       if (event.type === "session_ended") {
         summary.ended_at = stored.ts;
         summary.end_reason = typeof p.reason === "string" ? p.reason : null;
+        const session = this.sessions.get(session_id);
+        if (session) session.ended_at = stored.ts;
+      }
+      if (event.type === "session_resumed") {
+        summary.ended_at = null;
+        summary.end_reason = null;
+        const session = this.sessions.get(session_id);
+        if (session) session.ended_at = null;
       }
     }
     return stored;
@@ -66,8 +74,29 @@ export class InMemoryTurnRepository implements TurnRepository, SessionHistory {
     return [...(this.events.get(session_id) ?? [])];
   }
 
-  async endSession(session_id: string, reason: string): Promise<void> {
+  async finishSession(session_id: string, reason: string): Promise<FinishSessionTransition> {
+    const session = this.sessions.get(session_id);
+    if (!session) return "not_found";
+    if (session.ended_at) return "already_finished";
+
+    session.ended_at = new Date().toISOString();
     await this.appendEvent(session_id, { type: "session_ended", payload: { reason } });
+    return "finished";
+  }
+
+  async resumeSession(session_id: string): Promise<ResumeSessionTransition> {
+    const session = this.sessions.get(session_id);
+    if (!session) return "not_found";
+    if (!session.ended_at) return "already_active";
+
+    const previous_ended_at = session.ended_at;
+    session.ended_at = null;
+    await this.appendEvent(session_id, { type: "session_resumed", payload: { previous_ended_at } });
+    return "resumed";
+  }
+
+  async endSession(session_id: string, reason: string): Promise<void> {
+    await this.finishSession(session_id, reason);
   }
 
   async getClassContext(): Promise<ClassContext> {
