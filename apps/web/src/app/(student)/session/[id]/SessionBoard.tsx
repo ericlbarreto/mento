@@ -11,6 +11,7 @@ import { CaptionBar } from "../_components/caption/CaptionBar";
 import { ChatPanel } from "../_components/chat/ChatPanel";
 import { InputControls, PlaybackControls } from "../_components/controls/SessionControls";
 import { SessionHeader } from "../_components/header/SessionHeader";
+import { HistoryDrawer } from "../_components/history/HistoryDrawer";
 import { SessionErrorCard, SessionLoading } from "../_components/loading/SessionLoading";
 import { createSessionAudio } from "../_components/sessionAudio";
 import { makeSelection, readStudentId } from "../_components/sessionModel";
@@ -74,6 +75,7 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
     };
   }, [studentId, session, subjectId]);
 
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(true);
   const [captionsOn, setCaptionsOn] = useState(true);
   const [muted, setMuted] = useState(false);
@@ -129,7 +131,7 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
               subjectName={subjectName}
               title={title}
               historyCount={historyCount}
-              onOpenHistory={onOpenHistory}
+              onOpenHistory={onOpenHistory ?? (() => setHistoryOpen(true))}
               chatOpen={chatOpen}
               onOpenChat={focusChat}
             />
@@ -195,6 +197,14 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
         ) : null}
       </div>
       <Footer />
+      <HistoryDrawer
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        studentId={studentId}
+        subject={session?.subject ?? null}
+        currentSessionId={sessionId}
+        modality={session?.modality}
+      />
     </div>
   );
 }

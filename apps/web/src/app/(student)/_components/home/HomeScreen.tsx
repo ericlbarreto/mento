@@ -31,6 +31,7 @@ import {
 } from "@mento/ui";
 import { createSession } from "@/lib/api";
 import { ApiStatus } from "../../ApiStatus";
+import { HistoryDrawer } from "../../session/_components/history/HistoryDrawer";
 import { Skeleton, StudentGrid, stagger } from "../start/pickers";
 import styles from "../start/start.module.css";
 import { bookCount, firstName, lastSessionLabel, sessionSubtitle, sessionTitle, subjectIcon, type SubjectIconName } from "./format";
@@ -58,6 +59,7 @@ export function HomeScreen() {
   const router = useRouter();
   const { studentId, students, subjects, latest, retry, pickStudent } = useHomeData();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [starting, setStarting] = useState<Starting>(null);
   const [startError, setStartError] = useState(false);
   const startingRef = useRef(false);
@@ -141,11 +143,18 @@ export function HomeScreen() {
         {latest.status === "ready" && latest.value && (
           <ContinueCard session={latest.value} disabled={starting !== null} onContinue={(id) => router.push(`/session/${id}`)} />
         )}
+        {latest.status === "ready" && latest.value && (
+          <button type="button" aria-haspopup="dialog" onClick={() => setHistoryOpen(true)} className={cx(linkClasses, "-mt-8 self-start")}>
+            Ver histórico de aulas
+          </button>
+        )}
 
         <ApiStatus />
       </main>
 
       <Footer />
+
+      <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} studentId={studentId} subject={null} />
 
       <Modal
         open={pickerOpen}
