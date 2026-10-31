@@ -57,8 +57,8 @@ describe("TurnEngine: the script", () => {
       stopEvent(),
     ]]);
     const { messages } = await run(engine, session, opening);
-    // only the valid speak passes (the write_text is the fallback card of a reply with nothing on the board)
-    expect(actionNames(messages)).toEqual(["speak", "write_text"]);
+    // only the valid speak passes (a spoken-only reply gets no card, D80)
+    expect(actionNames(messages)).toEqual(["speak"]);
     expect(messages.some((m) => m.type === "error")).toBe(false);
   });
 
@@ -221,7 +221,7 @@ describe("TurnEngine: failures", () => {
     const { engine, session, llm } = await setup([[toolEvent("speak", { text: "Voltei." }), stopEvent()]], {}, { failFirst: new LlmError("overloaded", 529, true) });
     const { messages } = await run(engine, session, opening);
     expect(llm.calls).toHaveLength(2);
-    expect(types(messages)).toEqual(["action", "action", "script_done", "turn_done"]); // the speak, then its board card
+    expect(types(messages)).toEqual(["action", "script_done", "turn_done"]);
   });
 
   it("sends a recoverable error and no turn_done when the LLM fails for good", async () => {
@@ -299,16 +299,26 @@ describe("TurnEngine: continuing the reply", () => {
     expect(actionNames(messages)).toEqual(["speak", "write_text", "speak", "speak"]);
   });
 
-  it("continues a reply with a board action but a single speak, and never asks for a question", async () => {
+  it("continues a cut reply (it stopped on a board action) once, and never asks for a question", async () => {
     const { engine, session, llm } = await setup([
-      [writeEv("cesar"), speakEv("Olha o quadro."), stopEvent("tool_use")],
+      [speakEv("Olha o quadro."), writeEv("cesar"), stopEvent("tool_use")],
       [speakEv("César foi um general."), stopEvent()],
     ]);
-    await run(engine, session, say("Quem foi Júlio César?"));
+    const { messages } = await run(engine, session, say("Quem foi Júlio César?"));
     expect(llm.calls).toHaveLength(2);
+    expect(actionNames(messages)).toEqual(["speak", "write_text", "speak"]);
     const nudge = (llm.calls[1]!.messages[2]!.content as { type: string; text?: string }[]).find((b) => b.type === "text");
     expect(nudge?.text).toMatch(/close with a short speak/);
     expect(nudge?.text).not.toMatch(/end with one question/);
+  });
+
+  it("continues a reply that stopped before any speak", async () => {
+    const { engine, session, llm } = await setup([[stopEvent("tool_use")], [speakEv("Pronto."), stopEvent()]]);
+    const dropped = await setup([[toolEvent("highlight", { target_id: "nao_existe", color: "yellow" }), stopEvent("tool_use")], [speakEv("Pronto."), stopEvent()]]);
+    await run(engine, session, say("oi"));
+    expect(llm.calls).toHaveLength(1); // nothing to continue from: no tool results
+    await run(dropped.engine, dropped.session, say("oi"));
+    expect(dropped.llm.calls).toHaveLength(2);
   });
 });
 
@@ -354,127 +364,55 @@ describe("TurnEngine: pictures keep pace with the text", () => {
   });
 });
 
-describe("TurnEngine: every reply puts something on the board", () => {
+describe("TurnEngine: the board only when it continues the lesson (D80)", () => {
   const speakEv = (text: string, purpose?: string) => toolEvent("speak", { text, ...(purpose ? { purpose } : {}) });
   const writeEv = (id: string) => toolEvent("write_text", { id, column: "main", html: "<p>Roma</p>" });
   const actions = (ms: StreamMessage[]) => ms.flatMap((m) => (m.type === "action" ? [m.action] : []));
   const spoken = (ms: StreamMessage[]) => actions(ms).flatMap((a) => (a.name === "speak" ? [a.args.text] : []));
 
-  it("holds a question asked with nothing on the board and writes it as a card before asking it", async () => {
-    const logs: string[] = [];
-    const { engine, session, llm, repo } = await setup([[speakEv("Claro, manda a dúvida!"), speakEv("Qual é a <sua> dúvida & sobre Roma?", "question"), stopEvent()]], { log: (m) => void logs.push(m) });
+  it("completes a spoken-only reply with no card and no extra round", async () => {
+    const logs: { m: string; x?: unknown }[] = [];
+    const { engine, session, llm, repo } = await setup(
+      [[speakEv("Eu não tenho nome de gente, sou o Mento."), speakEv("Se quiser, eu anoto isso no quadro.", "explain"), stopEvent("tool_use")], [writeEv("nunca"), stopEvent()]],
+      { log: (m, x) => void logs.push({ m, x }) },
+    );
+    const { messages } = await run(engine, session, say("Qual é o seu nome?"));
+    expect(llm.calls).toHaveLength(1);
+    expect(actionNames(messages)).toEqual(["speak", "speak"]);
+    expect(messages.flatMap((m) => (m.type === "action" ? [m.order] : []))).toEqual([0, 1]);
+    expect(types(messages)).toContain("turn_done");
+    expect(logs.find((l) => l.m === "board actions")?.x).toMatchObject({ board_actions: 0 });
+    const stored = (await repo.listEvents(session)).filter((e) => e.type === "tutor_action").map((e) => (e.payload as { name: string }).name);
+    expect(stored).toEqual(["speak", "speak"]);
+  });
+
+  it("sends a question with nothing on the board at once, in order", async () => {
+    const { engine, session, llm } = await setup([[speakEv("Claro!"), speakEv("Qual é a sua dúvida?", "question"), stopEvent()]]);
     const { messages } = await run(engine, session, say("Posso perguntar uma coisa?"));
     expect(llm.calls).toHaveLength(1);
-    const acts = actions(messages);
-    expect(acts.map((a) => a.name)).toEqual(["speak", "write_text", "speak"]);
-    const card = acts[1]!;
-    expect(card.name === "write_text" && card.args).toMatchObject({ id: "board_fallback_1", column: "side", html: "<p><b>Qual é a &lt;sua&gt; dúvida &amp; sobre Roma?</b></p>" });
-    expect(messages.flatMap((m) => (m.type === "action" ? [m.order] : []))).toEqual([0, 1, 2]);
-    expect(spoken(messages).at(-1)).toBe("Qual é a <sua> dúvida & sobre Roma?");
-    expect(logs).toContain("board_fallback");
-    // the card goes through the normal path: it is stored and the server board knows it
-    const stored = (await repo.listEvents(session)).filter((e) => e.type === "tutor_action").map((e) => (e.payload as { name: string }).name);
-    expect(stored).toEqual(["speak", "write_text", "speak"]);
+    expect(spoken(messages)).toEqual(["Claro!", "Qual é a sua dúvida?"]);
+    expect(actions(messages).some((a) => a.name === "write_text")).toBe(false);
   });
 
-  it("cuts a long question to 120 characters on the card", async () => {
-    const long = `Por que ${"muito ".repeat(40)}importante?`;
-    const { engine, session } = await setup([[speakEv(long, "question"), stopEvent()]]);
-    const { messages } = await run(engine, session, say("oi"));
-    const card = actions(messages)[0]!;
-    const text = card.name === "write_text" ? card.args.html.replace(/<[^>]*>/g, "") : "";
-    expect(text.length).toBe(120);
-    expect(text.endsWith("…")).toBe(true);
-  });
-
-  it("writes no card when the reply already has a board action, and pointing at an element counts", async () => {
-    const wrote = await setup([[speakEv("Olha só."), writeEv("roma"), speakEv("O que você vê?", "question"), stopEvent()]]);
-    const a = await run(wrote.engine, wrote.session, say("Roma"));
-    expect(actionNames(a.messages)).toEqual(["speak", "write_text", "speak"]);
-
+  it("writes on the board when the model does, and pointing at an element is fine", async () => {
     const pointed = await setup([
-      [writeEv("roma"), speakEv("Primeira?", "question"), stopEvent()],
-      [toolEvent("circle_annotate", { target_id: "roma", text_to_match: "Roma", color: "red" }), speakEv("Entendeu?", "question"), stopEvent()],
-      [toolEvent("highlight", { target_id: "roma", color: "yellow" }), speakEv("E agora?", "question"), stopEvent()],
+      [writeEv("roma"), speakEv("Primeira."), stopEvent()],
+      [toolEvent("circle_annotate", { target_id: "roma", text_to_match: "Roma", color: "red" }), speakEv("Isso aqui."), stopEvent()],
     ]);
     await run(pointed.engine, pointed.session, say("Roma"));
-    const circled = await run(pointed.engine, pointed.session, say("entendi"));
+    const circled = await run(pointed.engine, pointed.session, say("o que é isso?"));
     expect(actionNames(circled.messages)).toEqual(["circle_annotate", "speak"]);
-    const highlighted = await run(pointed.engine, pointed.session, say("sim"));
-    expect(actionNames(highlighted.messages)).toEqual(["highlight", "speak"]);
   });
 
-  it("releases a held question in order when the model keeps going in the same round", async () => {
-    const { engine, session, llm } = await setup([[speakEv("Vamos lá."), speakEv("Você conhece Roma?", "question"), writeEv("roma"), speakEv("Pensa nisso.", "question"), stopEvent()]]);
-    const { messages } = await run(engine, session, say("oi"));
-    expect(actionNames(messages)).toEqual(["speak", "speak", "write_text", "speak"]);
-    expect(spoken(messages)).toEqual(["Vamos lá.", "Você conhece Roma?", "Pensa nisso."]);
-    expect(actions(messages).some((a) => a.name === "write_text" && a.args.id.startsWith("board_fallback"))).toBe(false);
-    expect(llm.calls).toHaveLength(1);
-  });
-
-  it("drops the held question when the client aborts before the round ends", async () => {
-    // A model that asks a question with nothing on the board, then is slow to finish the round.
-    const llm: LlmClient = {
-      async *stream(req) {
-        yield toolEvent("speak", { text: "Pergunta?", purpose: "question" });
-        await new Promise<void>((r) => { const t = setTimeout(r, 200); req.signal?.addEventListener("abort", () => (clearTimeout(t), r()), { once: true }); });
-        yield stopEvent();
-      },
-    };
-    const { engine, session } = await setup([[stopEvent()]], { llm });
-    const controller = new AbortController();
-    const messages: StreamMessage[] = [];
-    setTimeout(() => controller.abort(), 30);
-    await engine.run(session, say("oi"), (m) => void messages.push(m), controller.signal);
-    await engine.idle();
-    expect(actionNames(messages)).toEqual([]);
-    expect(types(messages)).not.toContain("turn_done");
-  });
-
-  it("holds a closing statement too and writes the card before saying it", async () => {
-    const { engine, session } = await setup([[speakEv("Claro, pode falar."), speakEv("Se tiver dúvida, é só falar.", "explain"), stopEvent()]]);
-    const { messages } = await run(engine, session, say("Posso perguntar uma coisa?"));
-    const acts = actions(messages);
-    expect(acts.map((a) => a.name)).toEqual(["speak", "write_text", "speak"]);
-    expect(acts[1]!.name === "write_text" && acts[1]!.args.html).toBe("<p><b>Se tiver dúvida, é só falar.</b></p>");
-    expect(spoken(messages)).toEqual(["Claro, pode falar.", "Se tiver dúvida, é só falar."]);
-  });
-
-  it("writes the card after a reply that is a single speak with nothing on the board", async () => {
-    const { engine, session } = await setup([[speakEv("Oi, tudo bem por aqui."), stopEvent("end_turn")]]);
-    const { messages } = await run(engine, session, say("oi"));
-    expect(actionNames(messages)).toEqual(["speak", "write_text"]);
-  });
-
-  it("asks only one question: the fallback ends the reply without another round", async () => {
-    const { engine, session, llm } = await setup([
-      [speakEv("Boa pergunta."), speakEv("O que você acha?", "question"), stopEvent("tool_use")],
-      [writeEv("extra"), speakEv("Segunda pergunta?", "question"), stopEvent()],
-    ]);
-    const { messages } = await run(engine, session, say("hmm"));
-    expect(llm.calls).toHaveLength(1);
-    const questions = actions(messages).filter((a) => a.name === "speak" && a.args.purpose === "question");
-    expect(questions).toHaveLength(1);
-    expect(types(messages).filter((t) => t === "script_done")).toHaveLength(1);
-  });
-
-  it("leaves the ask_verification path alone and never counts the bridge line", async () => {
+  it("leaves the ask_verification path alone and never counts the bridge line as the closing speak", async () => {
     const verify = await setup([[speakEv("Vamos ver."), toolEvent("ask_verification", { id: "q1", column: "main", concept: "César", question: "Explique.", kind: "explain" }), stopEvent()]]);
     const v = await run(verify.engine, verify.session, say("César"));
     expect(actionNames(v.messages)).toEqual(["speak", "ask_verification"]);
 
-    const bridged = await setup([[speakEv("Pronto?", "question"), stopEvent()]], { bridgeAfterMs: 20 }, { delayMs: 120 });
+    const bridged = await setup([[writeEv("roma"), stopEvent("tool_use")], [speakEv("Pronto."), stopEvent()]], { bridgeAfterMs: 20 }, { delayMs: 120 });
     const b = await run(bridged.engine, bridged.session, say("oi"));
-    expect(actionNames(b.messages)).toEqual(["speak", "write_text", "speak"]);
-    expect(spoken(b.messages)).toEqual(["Deixa eu pensar um instante…", "Pronto?"]);
-  });
-
-  it("tells the model the board is still empty when it continues a reply with no board action", async () => {
-    const { llm, engine, session } = await setup([[speakEv("Oi."), stopEvent("tool_use")], [writeEv("roma"), speakEv("Pronto?", "question"), stopEvent()]]);
-    await run(engine, session, say("oi"));
-    const nudge = (llm.calls[1]!.messages[2]!.content as { type: string; text?: string }[]).find((b) => b.type === "text");
-    expect(nudge?.text).toMatch(/^Nothing is on the board yet/);
+    expect(bridged.llm.calls).toHaveLength(2);
+    expect(spoken(b.messages)).toEqual(["Deixa eu pensar um instante…", "Pronto."]);
   });
 });
 
