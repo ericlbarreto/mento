@@ -27,35 +27,37 @@ Papéis: **uma pessoa fala e conduz a demo**, uma vigia logs/latência e o inter
 
 | Tempo | Bloco | Objetivo | Palavras faladas* |
 |---|---|---|---|
-| 0:00–0:25 | **Gancho** | Prender com uma cena, não com um slide | ≈ 55 |
-| 0:25–0:55 | **Problema** | Mostrar a dor do professor e do aluno | ≈ 70 |
-| 0:55–1:10 | **Solução em uma frase** | Dizer o que é a Mento | ≈ 35 |
+| 0:00–0:25 | **Gancho** | Dados que prendem e a pergunta do desafio: como garantir que o aluno aprendeu certo? | ≈ 58 |
+| 0:25–0:52 | **Problema** | Ninguém consegue garantir: IA solta, professor sem visão, dados espalhados | ≈ 62 |
+| 0:52–1:10 | **Solução em uma frase** | Juntar tudo num só lugar: a Mento | ≈ 42 |
 | 1:10–3:35 | **DEMO AO VIVO** | 6 momentos, 2 min 25 s | ≈ 150 (o resto é o produto falando) |
 | 3:35–4:05 | **Por que é diferente** | O ciclo, não o quadro | ≈ 70 |
 | 4:05–4:35 | **Três respostas ao desafio + honestidade** | Segura, preserva a aprendizagem, economiza tempo; o que temos e o que não temos; piloto | ≈ 75 |
 | 4:35–5:00 | **Pedido e fecho** | Frase de efeito + pedido concreto | ≈ 55 |
 
-\*Ritmo-alvo: 130 palavras/minuto (≈ 2 palavras por segundo), com pausas. Total falado ≈ 505 palavras; o restante são as falas do tutor e silêncios da demo. **Se estourar, corte do bloco “Por que é diferente”, nunca da demo.**
+\*Ritmo-alvo: 130 palavras/minuto (≈ 2 palavras por segundo), com pausas. Total falado ≈ 510 palavras; o restante são as falas do tutor e silêncios da demo. **Se estourar, corte do bloco “Por que é diferente”, nunca da demo.**
 
 ## 2. O roteiro minuto a minuto
 
 ### 0:00–0:25 · Gancho (em pé, sem tela, ou só o logo)
 
 > *(Olhando para a plateia, voz calma.)*
-> “Quatro em cada dez alunos dos anos finais **já usam IA** para estudar. *(pausa)* Mas **78% das escolas não têm nenhuma regra** sobre isso. *(pausa)* E o único experimento controlado que vimos mostrou que quem treina com um chatbot comum **tira nota pior** na prova sem IA: **menos 17%**. *(pausa de 2 s)* O desafio de vocês pergunta como usar IA com segurança, economizando tempo e **sem estragar a aprendizagem**. A resposta é: **o desenho da IA decide.**”
+> “Quatro em cada dez alunos dos anos finais **já usam IA** para estudar. *(pausa)* **78% das escolas não têm regra** nenhuma. *(pausa)* E quem praticou com um chatbot comum foi **pior na prova sem IA**: menos 17%. *(pausa de 2 s)* O desafio pergunta como usar IA **com segurança**. E segurança, aqui, não é senha. **É garantir que o aluno aprendeu certo.**”
 
 Alternativa (cena): “Uma professora, trinta e cinco alunos, e 15 horas por semana só para preparar aula e corrigir prova. Quantos alunos vão ter uma explicação só deles hoje?” *(TALIS 2024: 15,4 h/semana)*
 
-### 0:25–0:55 · Problema
+### 0:25–0:52 · Problema
 
-> “O aluno usa IA, mas ela **entrega a resposta**: ele treina com muleta e vai pior na prova. A escola não tem regra: **78%** sem guia. E o professor não tem tempo: **15 horas por semana** preparando e corrigindo, e só descobre a lacuna **na prova**, semanas depois.
-> O problema não é falta de IA. É IA **sem desenho pedagógico** e **sem o professor no controle**.”
+> “Hoje, **ninguém consegue garantir isso**. A IA responde sobre tudo, sem saber o que a escola ensina nem quem é o aluno, e muitas vezes entrega a resposta pronta. O professor não vê a conversa. E os dados estão **espalhados**: o livro num lugar, a nota em outro, a dúvida em lugar nenhum.
+> Sem juntar essas peças, **não há como garantir** que o aluno aprendeu o que a escola quis ensinar.”
 
-**Frase de efeito:** *“A IA respondeu. Mas ninguém ensinou — e ninguém ficou sabendo.”* · alternativa: *“Não é usar ou não usar IA. É qual IA, desenhada por quem, sob o controle de quem.”*
+**Frase de efeito:** *“Sem juntar as peças, ninguém garante que o aluno aprendeu.”* · alternativa: *“Não é usar ou não usar IA. É saber o que ela ensinou, a quem, e se funcionou.”*
 
-### 0:55–1:10 · Solução em uma frase
+*(Tese por trás do problema, para o Q&A: aprendizagem assertiva exige três coisas juntas: a IA saber **o que a escola ensina**, saber **quem é o aluno e o que ele já entendeu**, e o professor **ver o resultado**. Hoje cada peça mora num lugar diferente. Não diga “plataforma” aqui: o problema é a fragmentação; a plataforma é a solução do próximo bloco.)*
 
-> “Esta é a **Mento**: um tutor que ensina cada aluno **por voz, num quadro-branco que ele mesmo escreve, desenha e circula ao vivo** — com base nos livros do professor — e que mostra ao professor como cada aluno está aprendendo.”
+### 0:52–1:10 · Solução em uma frase
+
+> “Por isso a **Mento** junta num só lugar o que a escola ensina, quem é o aluno e o que ele já entendeu: um tutor que ensina **por voz, num quadro que escreve e desenha ao vivo**, nos livros do professor — e o professor vê como cada aluno está aprendendo.”
 
 *(Troca para o navegador: tela do aluno já aberta, matéria “História” visível.)*
 
@@ -86,7 +88,7 @@ Diga a frase de contexto **antes** de clicar: *“O professor subiu o livro de H
 
 ### 4:05–4:35 · Três respostas ao desafio e honestidade
 
-> “Resumindo as três respostas ao desafio: **segura**, porque ancorada no livro do professor, com citação e o professor decide; **preserva a aprendizagem**, porque dá pista em vez de resposta e verifica; **economiza tempo**, porque a conversa vira diagnóstico e lista de exercícios sem o professor fazer nada.
+> “Resumindo as três respostas ao desafio: **segura**, porque a gente consegue garantir que o aluno aprendeu certo: o tutor está ancorado no livro do professor, com citação, e o professor vê tudo e decide; **preserva a aprendizagem**, porque dá pista em vez de resposta e verifica; **economiza tempo**, porque a conversa vira diagnóstico e lista de exercícios sem o professor fazer nada.
 > E vou ser direto, porque confiança é o nosso produto: **hoje não temos clientes nem prova de eficácia.** Temos um protótipo que funciona de ponta a ponta, feito em dois dias por três pessoas, e um **piloto de 6 a 8 semanas** desenhado para medir três coisas: a nota **sem IA** antes e depois, as **horas do professor** e a **segurança** das respostas. Se der fraco, a gente publica mesmo assim.”
 
 *(Mercado, se perguntarem: 7º–9º ano, escolas privadas, começando pelo Recife; ≈ 1,4 milhão de alunos pela nossa conta, premissa a confirmar com o Inep. **Não falar de preço**: não foi definido nem testado.)*
@@ -104,7 +106,7 @@ Diga a frase de contexto **antes** de clicar: *“O professor subiu o livro de H
 | Quando | Frase |
 |---|---|
 | Gancho | “O ChatGPT respondeu. Mas ele sabia o que o seu professor ensinou? Ele descobriu se você entendeu?” |
-| Problema | “A IA respondeu. Mas ninguém ensinou — e ninguém ficou sabendo.” |
+| Problema | “Sem juntar as peças, ninguém garante que o aluno aprendeu.” |
 | Solução | “Um tutor que escreve, desenha e circula ao vivo, no livro do seu professor.” |
 | Demo (latência) | “Menos de dois segundos entre a sua pergunta e o primeiro traço no quadro.” |
 | Demo (clique) | “Aponte para o quadro e pergunte. É como levantar a mão — só que para a aula inteira.” |
@@ -149,6 +151,7 @@ Respostas **curtas (≤ 30 s)** e honestas. Se não souber: “Não sabemos aind
 7. **“Como vocês sabem que isso preserva a aprendizagem?”** — “Ainda não sabemos. O desenho segue o que o estudo da PNAS mostrou: tutor com pista em vez de resposta não piorou a prova, o chatbot comum piorou 17%. Nós **não** provamos o efeito: o piloto mede a nota sem IA antes e depois, com turma de comparação.”
 8. **“Como isso economiza tempo do professor?”** — “Três mecanismos: a dúvida individual vai para o tutor, a conversa vira diagnóstico automático (conceito, lição de origem, próximo passo), e a lista de exercícios sai do livro. Não medimos horas ainda; o piloto mede com questionário e diário de tempo. O dado de 5,9 h do Gallup é dos EUA e autorrelato — não é nosso.”
 9. **“E a segurança? O aluno é menor.”** — “Respostas só do livro do professor, citação validada, aviso quando sai do material; sem inferência psicológica; dado pessoal nunca vai ao modelo; arquitetura compatível com retenção zero (não somos certificados). Antes de aluno real: base legal LGPD, consentimento e revisão jurídica.”
+9b. **“O que vocês chamam de segurança?”** — “Não é só proteger dado, embora isso conte. É garantir que o aluno aprendeu **certo**: a resposta vem do livro que o professor escolheu, com a fonte; o tutor dá pista em vez de resposta; e o professor vê o que cada aluno entendeu. Para garantir, as peças têm de estar juntas: o que a escola ensina, quem é o aluno e o que ele já entendeu.”
 10. **“O aluno não vai simplesmente pedir a resposta?”** — “Pode tentar. O tutor dá pista em três níveis e pergunta de volta; medimos quantas vezes entregou a resposta direta. É um risco real que o piloto monitora.”
 11. **“Qual o tamanho do mercado? Quanto cobram?”** — “Recorte: 7º–9º ano de escolas privadas, ≈ 1,4 milhão de alunos pela nossa conta, premissa a confirmar. Preço **ainda não definimos**: só faz sentido depois do piloto, com custo real por aluno e disposição a pagar medidos.”
 12. **“Qual a tração?”** — “Zero clientes. [Se houver: N entrevistas / N cartas de intenção.] Preferimos dizer isso a inflar.”
