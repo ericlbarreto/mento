@@ -59,7 +59,7 @@ try {
     const turn = FixtureTurn.parse(JSON.parse(readFileSync(join(root, "fixtures/turns", `${board.fixture}.json`), "utf8")));
     const { id } = await api<{ id: string }>("/sessions", {
       method: "POST",
-      body: JSON.stringify({ student_id: studentId, modality: "text", subject_id: subject.id }),
+      body: JSON.stringify({ student_id: studentId, modality: "voice", subject_id: subject.id }),
     });
     await repo.appendEvent(id, { type: "user_message", payload: { kind: "chat", text: board.question } });
     const turnId = "turn_1";
