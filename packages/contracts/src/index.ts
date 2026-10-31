@@ -12,3 +12,5 @@ export * from "./speech";
 export * from "./infra";
 export * from "./fixtures";
 export * from "./voice";
+export * from "./retrieval";
+export * from "./sessions";
