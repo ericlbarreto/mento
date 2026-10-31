@@ -46,6 +46,7 @@ export const LIST: ExerciseList = {
   error: null,
   model: "test",
   prompt_version: "v1",
+  edited_at: null,
   created_at: "2026-10-31T00:00:00Z",
   updated_at: "2026-10-31T00:00:00Z",
   exercises: [
@@ -159,6 +160,21 @@ describe("renderExercisePdf", () => {
         mkdirSync(out, { recursive: true });
         writeFileSync(path.join(out, forTeacher ? "professor.pdf" : "aluno.pdf"), pdf);
       }
+    }
+  });
+
+  it("builds an edited list (D83): two options, a blank explanation, an added open question", async () => {
+    const edited: ExerciseList = {
+      ...LIST,
+      edited_at: "2026-10-31T12:00:00Z",
+      exercises: [
+        { id: "q1", kind: "choice", prompt: "Roma foi uma república?", options: ["Sim", "Não"], answer: "Sim", explanation: "", page: null },
+        { id: "q2", kind: "open", prompt: "Explique o papel do Senado.", answer: "Aconselhava os magistrados.", explanation: "", page: 36 },
+      ],
+    };
+    for (const forTeacher of [false, true]) {
+      const doc = await PDFDocument.load(await renderExercisePdf(edited, { forTeacher, subject: "História" }, bytes));
+      expect(doc.getPageCount()).toBe(1);
     }
   });
 });

@@ -145,3 +145,18 @@ export const IconLayers = (p: IconProps) => (
     <path d="m2 12 10 5 10-5M2 17l10 5 10-5" />
   </Svg>
 );
+export const IconTrash = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
+  </Svg>
+);
+export const IconArrowUp = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 19V5M5 12l7-7 7 7" />
+  </Svg>
+);
+export const IconArrowDown = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 5v14M19 12l-7 7-7-7" />
+  </Svg>
+);

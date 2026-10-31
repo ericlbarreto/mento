@@ -249,6 +249,7 @@ Additive. Source of truth: `packages/contracts/src/exercises.ts`.
 - `ExerciseListStore`: `create`, `update`, `get`, `list` (newest first), `delete`.
 - `TeacherEvent` gains `{ type: "exercise_list_status", list_id, status }`.
 - Routes: `GET /api/exercise-lists`, `GET /api/exercise-lists/:id`, `POST /api/exercise-lists` (202 generating; 400 `invalid_gaps`; 503 `generator_unavailable` | `database_unavailable`), `DELETE /api/exercise-lists/:id` (204).
+- **Teacher edits (2026-10-31, D83), additive:** `ExerciseList.edited_at: string | null` (null until the teacher saves an edit; defaults to null for older documents). `UpdateExerciseListBody`: `{ title, exercises: ExerciseInput[] (1..30) }`, where `ExerciseInput` is an `Exercise` without `id` (choice: 2–6 options and the answer among them; open: no options; `explanation` may be empty). Route `PATCH /api/exercise-lists/:id` (200 with the list; ids re-numbered `q1..qn`; 400 invalid body; 404; 409 `not_ready` unless `status` is `ready`). An edited list may therefore have any number of questions and options, not only the generated 3 + 2 with 4 options.
 
 
 ## 17. Structured diagrams: `draw_diagram` (2026-10-31, D75)

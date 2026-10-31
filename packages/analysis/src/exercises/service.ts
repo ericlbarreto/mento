@@ -12,6 +12,7 @@ import {
   type Material,
   type TeacherEvent,
   type TeacherRepository,
+  type UpdateExerciseListBody,
 } from "@mento/contracts";
 import { EXERCISES_PROMPT_VERSION, checkList, type ExerciseGenerator, type ExerciseSource } from "./generator";
 
@@ -20,7 +21,7 @@ export const MAX_PAGES = 12;
 
 export class ExerciseListError extends Error {
   constructor(
-    readonly code: "invalid_gaps" | "generator_unavailable",
+    readonly code: "invalid_gaps" | "generator_unavailable" | "not_found" | "not_ready",
     message: string,
   ) {
     super(message);
@@ -82,6 +83,7 @@ export class ExerciseListService {
       exercises: [],
       model: generator.model,
       prompt_version: EXERCISES_PROMPT_VERSION,
+      edited_at: null,
     });
     this.emit(list);
 
@@ -96,6 +98,29 @@ export class ExerciseListService {
     this.inflight.add(job);
     void job.finally(() => this.inflight.delete(job));
     return list;
+  }
+
+  /**
+   * The teacher's edit (D83): the new title and the whole list of questions, in order. Only a ready list (a generating
+   * one would be overwritten by the generator). Ids are re-assigned q1, q2, … so they stay unique.
+   */
+  async edit(id: string, body: UpdateExerciseListBody, now = () => new Date().toISOString()): Promise<ExerciseList> {
+    const list = await this.deps.lists.get(id);
+    if (!list) throw new ExerciseListError("not_found", "exercise list not found");
+    if (list.status !== "ready") throw new ExerciseListError("not_ready", `exercise list is ${list.status}`);
+    const exercises: Exercise[] = body.exercises.map((q, i) => ({
+      id: `q${i + 1}`,
+      kind: q.kind,
+      prompt: q.prompt,
+      ...(q.kind === "choice" && q.options ? { options: q.options } : {}),
+      answer: q.answer,
+      explanation: q.explanation,
+      page: q.page,
+    }));
+    const saved = await this.deps.lists.update(id, { title: body.title, exercises, edited_at: now() });
+    if (!saved) throw new ExerciseListError("not_found", "exercise list not found");
+    this.emit(saved);
+    return saved;
   }
 
   /** Resolves when every generation in progress has finished (tests). */
