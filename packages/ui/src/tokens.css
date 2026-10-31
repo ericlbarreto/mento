@@ -1,9 +1,9 @@
 /* Mento design tokens (docs/18-ui-references.md §6.1, docs/19-brand-assets.md §2).
    Shared by the whiteboard and the teacher UI. Light beige paper + Mento blue. */
 
-/* Fonts: Nunito for the UI; Caveat (primary) and Kalam (fallback) for the board's handwriting.
-   Must stay the first rule of this file (CSS requires @import before other rules). */
-@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Kalam:wght@400;700&family=Nunito:wght@400;600;700;800&display=swap");
+/* Fonts: Nunito Sans for the UI (Stitch "Warm Paper Editorial"); Caveat (primary) and Kalam (fallback) for the
+   board's handwriting. Must stay the first rule of this file (CSS requires @import before other rules). */
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Kalam:wght@400;700&family=Nunito+Sans:wght@400;600;700;800&display=swap");
 
 :root {
   /* Surfaces: app/board background, panels and drawers, raised cards, borders. */
@@ -20,18 +20,26 @@
   /* Brand blue: primary actions, links, selection, the orb ring (white text on it: 5.7:1).
      -strong is the hover/pressed shade; -soft tints chips and selected elements. */
   --mento-blue: #1e59ed;
-  --mento-blue-strong: #1747c4;
+  --mento-blue-strong: #1547c2;
+  --mento-blue-hover: var(--mento-blue-strong);
   --mento-blue-soft: #e6edfd;
 
   /* Mascot palette: body blue, and the light belly blue for sparkles and soft accents. */
   --mascot-blue: #126cfc;
   --mascot-light: #b1d8fa;
+  /* Decorative tint (DESIGN.md): AI activity badges, sparks, the focus ring. Same value as --mascot-light. */
+  --decor: var(--mascot-light);
 
   /* Accent orange: small highlights and gentle alerts only, never a large surface.
      -soft is its tint for chips/badges; -ink is the AA-safe text color on that tint (5.9:1). */
   --accent: #fc724a;
   --accent-soft: #fde7dd;
   --accent-ink: #9a3a1c;
+
+  /* Danger (DESIGN.md error): destructive menu items such as "Encerrar conversa atual". Success: resolved status dots. */
+  --danger: #ba1a1a;
+  --danger-soft: #ffdad6;
+  --success: #2bb673;
 
   /* Board markers (highlight action). */
   --marker-yellow: #ffe58a;
@@ -42,14 +50,23 @@
   --radius-sm: 10px;
   --radius-md: 16px;
   --radius-lg: 20px;
+  --radius-input: 12px;
+  /* Floating sheets (modal, drawer, menu, loading ring card). */
+  --radius-xl: 32px;
   --radius-pill: 999px;
 
-  /* Shadows: navy-tinted, soft, always offset. card = resting surfaces; pop = hover, popovers, the orb. */
-  --shadow-card: 0 1px 2px rgb(22 34 80 / 0.06), 0 4px 14px rgb(22 34 80 / 0.06);
+  /* Shadows: navy-tinted, soft, always offset (DESIGN.md "Elevation & Depth").
+     card = resting sheets; float = modals, drawers, menus; pop = hover lift and the orb. */
+  --shadow-card: 0 3px 12px -2px rgb(22 34 80 / 0.04), 0 1px 3px 0 rgb(22 34 80 / 0.02);
+  --shadow-float: 0 12px 28px -4px rgb(22 34 80 / 0.08), 0 4px 8px -2px rgb(22 34 80 / 0.04);
   --shadow-pop: 0 2px 4px rgb(22 34 80 / 0.08), 0 12px 32px rgb(22 34 80 / 0.12);
 
-  /* Focus ring: a paper gap then a blue ring, readable on paper, cards and blue buttons. */
-  --focus-ring: 0 0 0 2px var(--paper), 0 0 0 4px var(--mento-blue);
+  /* Overlay behind modals and drawers: a navy veil plus a blur of the page. */
+  --overlay: rgb(22 34 80 / 0.28);
+  --overlay-blur: 6px;
+
+  /* Focus ring (DESIGN.md): a 2px paper gap, then 3px of the decorative blue. */
+  --focus-ring: 0 0 0 2px var(--paper), 0 0 0 5px var(--decor);
 
   /* Motion: exponential ease-out; fast = hover/press, base = entrances (40ms stagger), slow = board reveals. */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -59,7 +76,7 @@
   --stagger: 40ms;
 
   /* Typography. */
-  --font-ui: "Nunito", system-ui, sans-serif;
+  --font-ui: "Nunito Sans", "Nunito", system-ui, sans-serif;
   --font-board: "Caveat", "Kalam", cursive;
 }
 
@@ -77,6 +94,51 @@
 @keyframes mento-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Loading overlay: the dot orbiting the mascot ring, and the indeterminate bar sliding across its track.
+   Components apply them with motion-safe:, so reduced motion shows a still dot and a static bar. */
+@keyframes mento-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes mento-indeterminate {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+/* Overlay entrances: veil fade, modal pop, drawer slide from the right, menu drop. Durations come from the
+   motion tokens, which are zeroed under reduced motion. */
+@keyframes mento-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes mento-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@keyframes mento-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes mento-drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
   }
 }
 
