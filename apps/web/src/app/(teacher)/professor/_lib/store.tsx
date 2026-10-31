@@ -3,7 +3,7 @@
 // - API (default): students, class context, insights and per-student detail come from the teacher API, refreshed by the SSE feed.
 // - Mock (NEXT_PUBLIC_MOCK_API=1): the fictional workspace, so the UI runs with no server.
 // The class-wide topics and interventions are built from the real open gaps (D71). Still mock in both modes: Materials.
-import type { ExerciseList } from "@mento/contracts";
+import type { ExerciseList, UpdateExerciseListBody } from "@mento/contracts";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { MOCK_API } from "../../../../lib/api";
 import { teacherApi, watchTeacherStream } from "./api";
@@ -54,6 +54,7 @@ interface TeacherStore {
   /** False in mock mode: lists are written by Claude through the API. */
   exercisesAvailable: boolean;
   generateExercises(concept: string, gapIds: string[]): Promise<void>; // POST /exercise-lists
+  updateExerciseList(id: string, body: UpdateExerciseListBody): Promise<void>; // PATCH /exercise-lists/:id (D81)
   deleteExerciseList(id: string): Promise<void>; // DELETE /exercise-lists/:id
   materials: Material[];
   // POST /materials (multipart): the real call must also send the teacher's single `subject_id` (D64, D67).
@@ -163,6 +164,7 @@ function MockProvider({ children }: { children: React.ReactNode }) {
       exerciseLists: [],
       exercisesAvailable: false,
       async generateExercises() {},
+      async updateExerciseList() {},
       async deleteExerciseList() {},
       ...materials,
       mockDetail(id) {
@@ -277,6 +279,10 @@ function ApiProvider({ children }: { children: React.ReactNode }) {
         const created = await teacherApi.createExerciseList(concept, gapIds);
         // Show "generating" at once; the feed (or the poll) brings the finished list.
         setData((d) => (d ? { ...d, exerciseLists: [created, ...d.exerciseLists.filter((l) => l.id !== created.id)] } : d));
+      },
+      async updateExerciseList(id, body) {
+        const saved = await teacherApi.updateExerciseList(id, body);
+        setData((d) => (d ? { ...d, exerciseLists: d.exerciseLists.map((l) => (l.id === id ? saved : l)) } : d));
       },
       async deleteExerciseList(id) {
         await teacherApi.deleteExerciseList(id);

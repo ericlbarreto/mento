@@ -1,6 +1,6 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { CreateExerciseListBody, ErrorResponse, ExerciseList } from "@mento/contracts";
+import { CreateExerciseListBody, ErrorResponse, ExerciseList, UpdateExerciseListBody } from "@mento/contracts";
 import { notFound } from "../lib/errors";
 
 const Params = z.object({ id: z.string() });
@@ -28,6 +28,22 @@ const plugin: FastifyPluginAsyncZod = async (app) => {
         if (code === "generator_unavailable" || code === "invalid_gaps") {
           return reply.status(code === "generator_unavailable" ? 503 : 400).send({ error: code, message: (err as Error).message });
         }
+        throw err;
+      }
+    },
+  );
+
+  // The teacher's edit of a ready list (D81): title and every question; the PDFs are rebuilt in the browser from it.
+  app.patch(
+    "/exercise-lists/:id",
+    { schema: { params: Params, body: UpdateExerciseListBody, response: { 200: ExerciseList, 404: ErrorResponse, 409: ErrorResponse } } },
+    async (request, reply) => {
+      try {
+        return await app.container.exercises.edit(request.params.id, request.body);
+      } catch (err) {
+        const code = (err as { code?: string }).code;
+        if (code === "not_found") throw notFound("exercise list");
+        if (code === "not_ready") return reply.status(409).send({ error: code, message: (err as Error).message });
         throw err;
       }
     },

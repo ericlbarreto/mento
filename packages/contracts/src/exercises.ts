@@ -43,6 +43,8 @@ export const ExerciseList = z.object({
   exercises: z.array(Exercise),
   model: z.string().nullable(),
   prompt_version: z.string(),
+  /** When the teacher last edited the questions (D81); null while the list is as Claude wrote it. */
+  edited_at: z.string().nullable().default(null),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -55,6 +57,33 @@ export const CreateExerciseListBody = z.object({
   gap_ids: z.array(z.string()).min(1).max(100),
 });
 export type CreateExerciseListBody = z.infer<typeof CreateExerciseListBody>;
+
+const text = (max: number) => z.string().trim().min(1).max(max);
+
+/** One question as the teacher edits it (D81). The id is re-assigned by the API (q1, q2, … in order). */
+export const ExerciseInput = z
+  .object({
+    kind: ExerciseKind,
+    prompt: text(2000),
+    options: z.array(text(500)).min(2).max(6).optional(),
+    answer: text(2000),
+    explanation: z.string().trim().max(2000),
+    page: z.number().int().min(1).max(10000).nullable(),
+  })
+  .superRefine((q, ctx) => {
+    if (q.kind === "choice") {
+      if (!q.options) ctx.addIssue({ code: "custom", path: ["options"], message: "a choice question needs options" });
+      else if (!q.options.includes(q.answer)) ctx.addIssue({ code: "custom", path: ["answer"], message: "the answer must be one of the options" });
+    } else if (q.options) ctx.addIssue({ code: "custom", path: ["options"], message: "an open question has no options" });
+  });
+export type ExerciseInput = z.infer<typeof ExerciseInput>;
+
+/** `PATCH /api/exercise-lists/:id`: the teacher's version of the title and every question (D81). Only a ready list. */
+export const UpdateExerciseListBody = z.object({
+  title: text(160),
+  exercises: z.array(ExerciseInput).min(1).max(30),
+});
+export type UpdateExerciseListBody = z.infer<typeof UpdateExerciseListBody>;
 
 /** Storage of the generated lists (collection `exercise_lists`). Mongo and in-memory implementations in @mento/db. */
 export interface ExerciseListStore {

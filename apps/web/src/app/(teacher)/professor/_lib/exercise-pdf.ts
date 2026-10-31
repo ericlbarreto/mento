@@ -226,10 +226,15 @@ function header(
   if (opts.forTeacher) {
     const note = boxRow(
       [
-        [
-          { text: "Questões geradas pela IA a partir do livro. ", font: f.sansBold },
-          { text: "Revise antes de usar em sala.", font: f.sans },
-        ],
+        list.edited_at
+          ? [
+              { text: "Questões geradas pela IA a partir do livro e revisadas pelo professor. ", font: f.sansBold },
+              { text: "Confira antes de usar em sala.", font: f.sans },
+            ]
+          : [
+              { text: "Questões geradas pela IA a partir do livro. ", font: f.sansBold },
+              { text: "Revise antes de usar em sala.", font: f.sans },
+            ],
       ],
       {
         x: LEFT,
@@ -352,11 +357,14 @@ function question(ex: Exercise, i: number, forTeacher: boolean, f: Fonts): Block
 
   if (forTeacher) {
     const letter = ex.options ? LETTERS[ex.options.indexOf(ex.answer)] : undefined;
-    const why: Run<PDFFont>[] = [
-      { text: "Por quê: ", font: f.sansBold, color: C.soft },
-      { text: ex.explanation, font: f.serif },
-    ];
-    if (ex.page != null) why.push({ text: `  p. ${ex.page}`, font: f.sans, color: C.faint });
+    // The teacher may leave the explanation blank (D81): then only the page, if any, or nothing.
+    const why: Run<PDFFont>[] = ex.explanation.trim()
+      ? [
+          { text: "Por quê: ", font: f.sansBold, color: C.soft },
+          { text: ex.explanation, font: f.serif },
+        ]
+      : [];
+    if (ex.page != null) why.push({ text: `${why.length ? "  " : ""}p. ${ex.page}`, font: f.sans, color: C.faint });
     rows.push(space(8));
     rows.push(
       boxRow(
@@ -370,7 +378,7 @@ function question(ex: Exercise, i: number, forTeacher: boolean, f: Fonts): Block
               color: C.head,
             },
           ],
-          why,
+          ...(why.length ? [why] : []),
         ],
         { x, width, size: 10, leading: 14.5, color: C.ink, bg: C.answerBg, rule: C.answerRule },
       ),

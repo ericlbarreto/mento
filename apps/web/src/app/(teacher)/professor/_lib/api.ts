@@ -1,6 +1,6 @@
 // Owner: Person 1. Client of the teacher routes of the Fastify API. Every response is parsed with a schema.
 import { API_URL, ApiError } from "../../../../lib/api";
-import { ExerciseList } from "@mento/contracts";
+import { ExerciseList, type UpdateExerciseListBody } from "@mento/contracts";
 import { ClassContext, EvolutionDto, Insight, InsightsDto, Overview, SessionDto, StudentDetailDto, StudentRowDto } from "./schemas";
 import { z } from "zod";
 
@@ -35,6 +35,8 @@ export const teacherApi = {
   exerciseLists: () => request("/exercise-lists", z.array(ExerciseList)),
   createExerciseList: (concept: string, gapIds: string[]) =>
     request("/exercise-lists", ExerciseList, { method: "POST", body: JSON.stringify({ concept, gap_ids: gapIds }) }),
+  updateExerciseList: (id: string, body: UpdateExerciseListBody) =>
+    request(`/exercise-lists/${id}`, ExerciseList, { method: "PATCH", body: JSON.stringify(body) }),
   deleteExerciseList: (id: string) => request(`/exercise-lists/${id}`, z.null(), { method: "DELETE" }),
 };
 

@@ -62,6 +62,9 @@ describe("exercise lists (D72)", () => {
     const created = (await app.inject({ method: "POST", url: "/api/exercise-lists", payload: { concept: "Formas de governo", gap_ids: [gaps[0].id] } })).json();
     await app.container.exercises.idle();
     expect((await app.inject(`/api/exercise-lists/${created.id}`)).json()).toMatchObject({ status: "failed", error: expect.stringContaining("3 choice") });
+    // Only a ready list can be edited (409).
+    const edit = await app.inject({ method: "PATCH", url: `/api/exercise-lists/${created.id}`, payload: { title: "T", exercises: [{ kind: "open", prompt: "?", answer: "a", explanation: "", page: null }] } });
+    expect(edit.statusCode).toBe(409);
     expect((await app.inject({ method: "DELETE", url: `/api/exercise-lists/${created.id}` })).statusCode).toBe(204);
     expect((await app.inject(`/api/exercise-lists/${created.id}`)).statusCode).toBe(404);
   });
@@ -85,6 +88,40 @@ describe("exercise lists (D72)", () => {
     await app.inject({ method: "POST", url: "/api/exercise-lists", payload: { concept: "Formas de governo", gap_ids: [gaps[0].id] } });
     await app.container.exercises.idle();
     expect(seen).toEqual(["generating", "ready"]);
+  });
+
+  it("PATCH saves the teacher's edit (D81): new title, edited, added and removed questions, ids renumbered", async () => {
+    const { app } = await world();
+    const gaps = await gapsOf(app, "formas de governo");
+    const created = (await app.inject({ method: "POST", url: "/api/exercise-lists", payload: { concept: "Formas de governo", gap_ids: [gaps[0].id] } })).json();
+    await app.container.exercises.idle();
+    const ready = (await app.inject(`/api/exercise-lists/${created.id}`)).json();
+    expect(ready.edited_at).toBeNull();
+    const [first, , third] = ready.exercises;
+    const exercises = [
+      { ...third, prompt: "Enunciado reescrito pela professora", id: undefined },
+      { kind: "choice", prompt: "Nova questão", options: ["Sim", "Não"], answer: "Não", explanation: "Porque não.", page: 21 },
+      { ...first, id: undefined },
+    ];
+    const res = await app.inject({ method: "PATCH", url: `/api/exercise-lists/${created.id}`, payload: { title: "  Lista revisada  ", exercises } });
+    expect(res.statusCode).toBe(200);
+    const saved = res.json();
+    expect(saved).toMatchObject({ title: "Lista revisada", status: "ready", edited_at: expect.any(String) });
+    expect(saved.exercises.map((e: { id: string; prompt: string }) => `${e.id}:${e.prompt}`)).toEqual(["q1:Enunciado reescrito pela professora", "q2:Nova questão", `q3:${first.prompt}`]);
+    expect((await app.inject(`/api/exercise-lists/${created.id}`)).json()).toEqual(saved);
+  });
+
+  it("PATCH rejects an invalid edit: no questions, a choice answer outside its options, options on an open question; 404 when missing", async () => {
+    const { app } = await world();
+    const gaps = await gapsOf(app, "formas de governo");
+    const created = (await app.inject({ method: "POST", url: "/api/exercise-lists", payload: { concept: "Formas de governo", gap_ids: [gaps[0].id] } })).json();
+    await app.container.exercises.idle();
+    const patch = (payload: unknown, id = created.id) => app.inject({ method: "PATCH", url: `/api/exercise-lists/${id}`, payload: payload as object });
+    expect((await patch({ title: "T", exercises: [] })).statusCode).toBe(400);
+    expect((await patch({ title: "", exercises: [{ kind: "open", prompt: "?", answer: "a", explanation: "", page: null }] })).statusCode).toBe(400);
+    expect((await patch({ title: "T", exercises: [{ kind: "choice", prompt: "?", options: ["A", "B"], answer: "C", explanation: "", page: null }] })).statusCode).toBe(400);
+    expect((await patch({ title: "T", exercises: [{ kind: "open", prompt: "?", options: ["A", "B"], answer: "A", explanation: "", page: null }] })).statusCode).toBe(400);
+    expect((await patch({ title: "T", exercises: [{ kind: "open", prompt: "?", answer: "a", explanation: "", page: null }] }, "000000000000000000000000")).statusCode).toBe(404);
   });
 
   it("checkList accepts exactly 3 choice questions with 4 options (answer among them) and 2 open ones", () => {
