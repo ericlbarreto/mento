@@ -1,6 +1,8 @@
 // @mento/analysis: owner Person 1. Conversation → deterministic findings → insights.
 export * from "./canonical";
 export * from "./conversation-source";
+export * from "./session-mapper";
+export * from "./mongo-conversation-source";
 export * from "./input";
 export * from "./diagnose";
 export * from "./rules";

@@ -77,3 +77,31 @@ export const Material = MaterialInput.extend({
   updated_at: z.string(),
 });
 export type Material = z.infer<typeof Material>;
+
+/** Lessons derived from the chapters: chapter order is the teaching order and each lesson depends on the previous one. */
+export function lessonsFromChapters(chapters: OutlineItem[]): Lesson[] {
+  return chapters.map((c, i) => ({
+    lesson_id: `L${i + 1}`,
+    order: i + 1,
+    title: c.title,
+    pages: [c.start_page, c.end_page] as [number, number],
+    taught_in_class: false,
+    summary: "",
+    key_concepts: [],
+    activities: [],
+    prerequisites: i === 0 ? [] : [`L${i}`],
+  }));
+}
+
+/**
+ * The lessons the analysis uses for a material: its saved `sequence`, or, for a book ingested without one
+ * (e.g. by `pnpm ingest`), the lessons derived from its chapters. Empty when it has neither.
+ */
+export function sequenceOf(material: Pick<Material, "sequence" | "chapters">): Lesson[] {
+  return material.sequence.length > 0 ? material.sequence : lessonsFromChapters(material.chapters);
+}
+
+/** The lesson that contains a page of the material, or `null`. */
+export function lessonOfPage(sequence: Lesson[], page: number): Lesson | null {
+  return sequence.find((l) => page >= l.pages[0] && page <= l.pages[1]) ?? null;
+}

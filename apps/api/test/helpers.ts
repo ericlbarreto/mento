@@ -1,13 +1,14 @@
 import { MemoryChunkStore, MemoryRepository, MemorySubjectStore } from "@mento/db";
-import { seedLabMaterial, seedStudents } from "@mento/analysis";
+import { FileConversationSource, LAB_CONVERSATIONS_PATH, idMapsFromRepo, seedLabMaterial, seedStudents } from "@mento/analysis";
+import type { ConversationSource } from "@mento/contracts";
 import { MemoryFileStore, fakeEmbed } from "@mento/sources";
 import { InMemoryTurnRepository } from "@mento/tutor/testing";
 import type { Embed } from "@mento/sources";
 import { buildApp } from "../src/app";
 import { loadConfig } from "../src/config";
 
-export async function makeApp(options: { uploadMaxMb?: number; analyzeAll?: boolean; embed?: Embed | null; dbReady?: boolean } = {}) {
-  const config = loadConfig({ LOG_LEVEL: "silent", ...(options.uploadMaxMb ? { UPLOAD_MAX_MB: String(options.uploadMaxMb) } : {}) } as NodeJS.ProcessEnv);
+export async function makeApp(options: { uploadMaxMb?: number; analyzeAll?: boolean; embed?: Embed | null; dbReady?: boolean; conversations?: ConversationSource; analysisMaxWaitMs?: number } = {}) {
+  const config = loadConfig({ LOG_LEVEL: "silent", ANALYSIS_MAX_WAIT_MS: String(options.analysisMaxWaitMs ?? 0), ...(options.uploadMaxMb ? { UPLOAD_MAX_MB: String(options.uploadMaxMb) } : {}) } as NodeJS.ProcessEnv);
   let t = Date.parse("2026-11-01T00:00:00Z");
   const repo = new MemoryRepository({ now: () => new Date((t += 1000)).toISOString() });
   const students = await seedStudents(repo);
@@ -19,6 +20,8 @@ export async function makeApp(options: { uploadMaxMb?: number; analyzeAll?: bool
   const chunkStore = new MemoryChunkStore(repo);
   const app = await buildApp(config, {
     teacherRepo: repo,
+    // The API reads the conversations from MongoDB; these tests use the lab conversations (or the ones they pass).
+    conversations: options.conversations ?? new FileConversationSource(LAB_CONVERSATIONS_PATH, idMapsFromRepo(repo)),
     repo: new InMemoryTurnRepository(), // the whiteboard's session repository (MongoDB in production)
     fileStore: store,
     retryDelayMs: 10,

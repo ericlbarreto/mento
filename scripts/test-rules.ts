@@ -32,6 +32,9 @@ const RULES: Record<string, string> = {
   "BR-24": "Chapters and lesson sequence extraction and fallback",
   "BR-25": "The uploaded material reaches the whiteboard: hidden while processing, then in the subject, catalog and search",
   "BR-26": "Fixtures stay out of the tutor's way; whiteboard-ingested materials read fine",
+  "BR-27": "Stored conversations map to the analysis: material and lesson derived from the cited sources",
+  "BR-28": "Conversations written by the tutor on MongoDB are analysed (real stored shapes)",
+  "BR-29": "The analysis starts when the conversation ends: waits for the judge, registered students only, never fails the end",
 };
 
 const dir = mkdtempSync(join(tmpdir(), "mento-rules-"));

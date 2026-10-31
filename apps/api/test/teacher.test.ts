@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { fakeEmbed, makeTestPdf } from "@mento/sources";
+import type { ConversationSource, Session, SessionBundle } from "@mento/contracts";
 import { makeApp, multipart } from "./helpers";
 
 let open: FastifyInstance[] = [];
@@ -424,6 +425,93 @@ describe("fixtures stay out of the tutor's way (BR-26)", () => {
     const run = await app.container.analysis.run("ses_ana_02");
     expect(run.analysis.status).toBe("done");
     expect(run.insights.some((i) => i.root_cause?.lesson_id === "L2")).toBe(true);
+  });
+});
+
+/** A conversation as the whiteboard stores it (no material, no lesson): the student answers one question wrongly. */
+function storedBundle(id: string, studentId: string): SessionBundle {
+  const t = (n: number) => new Date(Date.parse("2026-11-02T10:00:00Z") + n * 1000).toISOString();
+  const payloads: [string, Record<string, unknown>][] = [
+    ["session_started", { student_id: studentId, modality: "text" }],
+    ["user_message", { kind: "chat", text: "quero estudar roma" }],
+    ["user_message", { kind: "chat", text: "me explica a república" }],
+    ["verification_asked", { verification_id: "v1", element_id: "q1", concept: "Formas de governo", concept_key: "formas de governo", question: "?", kind: "explain" }],
+    ["verification_answered", { verification_id: "v1", element_id: "q1", answer: "na república o rei é eleito" }],
+    ["evidence_recorded", { evidence_id: "ev1", verification_id: "v1", concept: "Formas de governo", concept_key: "formas de governo", result: "incorrect", independent: true, hints_used: 0, rationale: "r" }],
+    ["session_ended", { reason: "user_left" }],
+  ];
+  const session: Session = { id, student_id: studentId, material_id: null, lesson_id: null, modality: "text", status: "ended", started_at: t(0), ended_at: t(9), end_reason: "user_left", is_simulated: false };
+  return {
+    session,
+    events: payloads.map(([type, payload], i) => ({ id: `e${i}`, session_id: id, seq: i + 1, ts: t(i), type, payload }) as SessionBundle["events"][number]),
+    evidence: [{ id: "ev1", session_id: id, student_id: studentId, concept: "Formas de governo", concept_key: "formas de governo", lesson_id: null, result: "incorrect", independent: true, hints_used: 0, rationale: "r", ts: t(5) }],
+  };
+}
+
+/** Stand-in for the MongoDB source: the test adds the conversation once the API has created the session. */
+function storedSource() {
+  const bundles = new Map<string, SessionBundle>();
+  const source: ConversationSource & { add(b: SessionBundle): void; failing: boolean } = {
+    failing: false,
+    add: (b) => void bundles.set(b.session.id, b),
+    async listAllSessions() { return [...bundles.values()].map((b) => b.session); },
+    async listSessionsByStudent(id) { return [...bundles.values()].map((b) => b.session).filter((s) => s.student_id === id); },
+    async getSessionBundle(id) {
+      if (source.failing) throw new Error("source down");
+      return bundles.get(id) ?? null;
+    },
+  };
+  return source;
+}
+
+describe("the analysis runs when the conversation ends (BR-29)", () => {
+  /** Starts a conversation through the API, lets the "whiteboard" store it, and ends it. `student` is a fixture id or a stray id. */
+  const startAndEnd = async (student: string, options: { failing?: boolean } = {}) => {
+    const source = storedSource();
+    const w = await world({ conversations: source });
+    const studentId = student.startsWith("stu_") ? w.studentId(student) : student;
+    const created = await w.app.inject({ method: "POST", url: "/api/sessions", payload: { student_id: studentId, modality: "text" } });
+    const id = created.json().id as string;
+    source.add(storedBundle(id, studentId));
+    source.failing = options.failing ?? false;
+    const end = await w.app.inject({ method: "POST", url: `/api/sessions/${id}/end`, payload: { reason: "user_left" } });
+    await w.app.container.sessionEnded.idle();
+    return { ...w, id, end, studentId };
+  };
+
+  it("BR-29 ending a conversation of a registered student answers at once and analyses the stored conversation", async () => {
+    const { app, id, end } = await startAndEnd("stu_01");
+    expect(end.statusCode).toBe(200);
+    expect(end.json()).toEqual({ ok: true });
+    const analysis = (await app.inject(`/api/sessions/${id}/analysis`)).json();
+    expect(analysis).toMatchObject({ status: "done", session_id: id, skip_reason: null });
+    expect(analysis.findings).toHaveLength(1);
+  });
+
+  it("BR-29 the insight is visible on the student's page right after the end", async () => {
+    const { app, id, studentId } = await startAndEnd("stu_01");
+    const insights = (await app.inject(`/api/students/${studentId}/insights`)).json();
+    expect(insights.counts.medium).toBe(1);
+    expect(insights.medium.find((i: { kind: string }) => i.kind === "gap")).toMatchObject({ concept_key: "formas de governo", rule: "M1_single_error", session_id: id });
+    expect((await app.inject(`/api/students/${studentId}/sessions`)).json().map((s: { id: string; analysis_status: string }) => [s.id, s.analysis_status])).toEqual([[id, "done"]]);
+  });
+
+  it("BR-29 a conversation of a student the teacher did not register is not analysed (it would pollute the numbers)", async () => {
+    const { app, id, end } = await startAndEnd("aluno-fantasma");
+    expect(end.statusCode).toBe(200);
+    expect((await app.inject(`/api/sessions/${id}/analysis`)).statusCode).toBe(404);
+    expect((await app.inject("/api/overview")).json().insights.total).toBe(0);
+  });
+
+  it("BR-29 a failing analysis (the conversation cannot be read) never fails the end of the conversation", async () => {
+    const { app, id, end } = await startAndEnd("stu_01", { failing: true });
+    expect(end.statusCode).toBe(200);
+    expect((await app.inject(`/api/sessions/${id}/analysis`)).statusCode).toBe(404); // nothing was written
+  });
+
+  it("BR-29 ending an unknown session is still a 404 and starts nothing", async () => {
+    const { app } = await world({ conversations: storedSource() });
+    expect((await app.inject({ method: "POST", url: "/api/sessions/000000000000000000000099/end", payload: { reason: "user_left" } })).statusCode).toBe(404);
   });
 });
 

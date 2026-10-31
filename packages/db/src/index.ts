@@ -6,3 +6,4 @@ export * from "./mongo-chunk-store";
 export * from "./mongo-subject-store";
 export * from "./mongo-turn-repository";
 export * from "./repository";
+export * from "./mongo-conversation-reader";

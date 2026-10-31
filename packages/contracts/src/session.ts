@@ -6,7 +6,9 @@ import { SessionEndReason, SessionEvent } from "./session-events";
 export const Session = z.object({
   id: z.string(),
   student_id: z.string(),
-  material_id: z.string(),
+  /** The material the conversation used (derived from the sources the tutor cited); `null` when it cited none. */
+  material_id: z.string().nullable(),
+  /** The lesson being studied (derived from the cited pages); `null` when unknown. */
   lesson_id: z.string().nullable().default(null),
   topic: z.string().optional(),
   persona: z.string().optional(),

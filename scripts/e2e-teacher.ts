@@ -3,6 +3,8 @@
 // seed --reset → seed:lab --analyze → the real API over HTTP → PDF upload → teacher decisions.
 import { execFileSync } from "node:child_process";
 import mongoose from "mongoose";
+import { MongoRepository } from "@mento/db";
+import { FileConversationSource, LAB_CONVERSATIONS_PATH, idMapsFromRepo } from "@mento/analysis";
 import { makeTestPdf } from "@mento/sources";
 import { buildApp } from "../apps/api/src/app";
 import { loadConfig } from "../apps/api/src/config";
@@ -25,7 +27,8 @@ const labOut = run("seed-lab.ts", "--analyze");
 check("8 conversations analyzed (done)", (labOut.match(/: done/g) ?? []).length === 8, labOut);
 
 const config = loadConfig({ ...process.env, LOG_LEVEL: "silent", MONGODB_DB: DB } as NodeJS.ProcessEnv);
-const app = await buildApp(config);
+// Parts 1-5 use the lab conversations (a JSON file) for the seeded students; part 6 uses what the tutor stores in MongoDB.
+const app = await buildApp(config, { conversations: new FileConversationSource(LAB_CONVERSATIONS_PATH, idMapsFromRepo(new MongoRepository())) });
 await app.container.mongo.connect();
 await app.listen({ port: 0, host: "127.0.0.1" });
 const base = `http://127.0.0.1:${(app.server.address() as { port: number }).port}/api`;
@@ -127,6 +130,37 @@ try {
     const again = await fetch(base + "/materials", { method: "POST", body: form() });
     check("same file again is a duplicate (200)", again.status === 200 && ((await again.json()) as any).duplicate === true);
   }
+
+  console.log("\n# 6. a conversation stored by the whiteboard is analysed when it ends (no mock)");
+  const live = await buildApp(config); // default: the conversations come from MongoDB
+  const lucas = (await get("/students")).find((r: any) => r.name === "Lucas Ferreira").id as string;
+  const fixture = (await get("/materials")).find((m: any) => m.is_fixture);
+  const cite = (page: number) => ({ material_id: fixture.id, page, quote: "trecho do livro" });
+  // written exactly like the tutor and the judge write (same repository classes, same payloads)
+  const { id: sessionId } = await live.container.repo.createSession({ student_id: lucas, modality: "text", topic: "a crise da República" });
+  const add = (type: string, payload: unknown) => live.container.repo.appendEvent(sessionId, { type: type as never, payload });
+  await add("user_message", { kind: "chat", text: "como a república virou império?" });
+  await add("tutor_action", { turn_id: "turn_1", action_id: "a1", order: 0, name: "speak", args: { text: "Augusto concentrou o poder.", purpose: "explain", sources: [cite(49), cite(50)] } });
+  for (const [n, answer] of ["na república o rei é eleito", "o augusto virou presidente"].entries()) {
+    const verification_id = `ver_e2e_${n}`;
+    await add("tutor_action", { turn_id: "turn_2", action_id: `a${n + 2}`, order: 0, name: "speak", args: { text: "Lembra da república?", purpose: "explain", sources: [cite(22)] } });
+    await add("verification_asked", { verification_id, element_id: "q1", concept: "Formas de governo", concept_key: "formas de governo", question: "Qual a diferença?", kind: "explain" });
+    await add("verification_answered", { verification_id, element_id: "q1", answer });
+    const { id: evidence_id } = await live.container.evidence.insertEvidence({ session_id: sessionId, student_id: lucas, concept: "Formas de governo", concept_key: "formas de governo", result: "incorrect", independent: true, hints_used: 0, rationale: "confunde república com monarquia" });
+    await add("evidence_recorded", { evidence_id, verification_id, concept: "Formas de governo", concept_key: "formas de governo", result: "incorrect", independent: true, hints_used: 0, rationale: "confunde república com monarquia" });
+  }
+  const ended = await live.inject({ method: "POST", url: `/api/sessions/${sessionId}/end`, payload: { reason: "user_left" } });
+  check("ending the conversation answers 200 at once", ended.statusCode === 200);
+  await live.container.sessionEnded.idle();
+  const stored = await live.inject(`/api/sessions/${sessionId}/analysis`);
+  check("the analysis ran on the stored conversation (done)", stored.statusCode === 200 && stored.json().status === "done", stored.json());
+  const lucasInsights = (await live.inject(`/api/students/${lucas}/insights`)).json() as any;
+  const lucasGap = lucasInsights.critical.find((i: any) => i.kind === "gap");
+  check("Lucas gets a critical gap whose root cause is the earlier lesson (derived from the cited pages)", lucasGap?.rule === "R1_repeated_errors" && lucasGap.root_cause?.lesson_id === "L2" && lucasGap.studying_lesson_id === "L6", lucasGap && { rule: lucasGap.rule, root: lucasGap.root_cause?.lesson_id, studying: lucasGap.studying_lesson_id });
+  check("with the student's own words", lucasGap?.evidence.map((e: any) => e.quote).join("|") === "na república o rei é eleito|o augusto virou presidente", lucasGap?.evidence);
+  const lucasSessions = (await live.inject(`/api/students/${lucas}/sessions`)).json() as any[];
+  check("the student's page lists the stored conversation with its lesson and analysis", lucasSessions.length === 1 && lucasSessions[0].lesson_id === "L6" && lucasSessions[0].analysis_status === "done", lucasSessions);
+  await live.close();
 } finally {
   await app.close();
   if (!keep) await mongoose.connection.dropDatabase();

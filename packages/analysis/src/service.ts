@@ -1,5 +1,6 @@
 import {
   RULES_VERSION,
+  sequenceOf,
   type AnalysisInput,
   WriterOutput,
   type Analysis,
@@ -120,13 +121,14 @@ export class AnalysisService {
     const { repo, conversations } = this.deps;
     const trigger = await conversations.getSessionBundle(sessionId);
     if (!trigger) throw new AnalysisNotFoundError(`session ${sessionId}`);
-    const material = await repo.getMaterial(trigger.session.material_id);
-    if (!material) throw new AnalysisNotFoundError(`material ${trigger.session.material_id}`);
+    // A conversation that cited no source has no material: it is still analysed, just without a lesson graph.
+    const material = trigger.session.material_id ? await repo.getMaterial(trigger.session.material_id) : null;
+    if (trigger.session.material_id && !material) throw new AnalysisNotFoundError(`material ${trigger.session.material_id}`);
 
     const input = buildAnalysisInput({
       trigger,
       history: await this.loadHistory(trigger),
-      material,
+      material: material ? { id: material.id, title: material.title, subject: material.subject, sequence: sequenceOf(material) } : { id: "", title: "", subject: "", sequence: [] },
       class_context: await repo.getClassContext(),
     });
     const writer = this.writerKey();

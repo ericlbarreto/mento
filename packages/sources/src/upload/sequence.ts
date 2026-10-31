@@ -1,4 +1,4 @@
-import { Lesson, type OutlineItem } from "@mento/contracts";
+import { Lesson, lessonsFromChapters, type OutlineItem } from "@mento/contracts";
 import { z } from "zod";
 
 export interface SequenceLlm {
@@ -6,19 +6,7 @@ export interface SequenceLlm {
 }
 
 /** Without an LLM: the outline order is the teaching order and each lesson depends on the previous one. */
-export function fallbackSequence(outline: OutlineItem[]): Lesson[] {
-  return outline.map((o, i) => ({
-    lesson_id: `L${i + 1}`,
-    order: i + 1,
-    title: o.title,
-    pages: [o.start_page, o.end_page] as [number, number],
-    taught_in_class: false,
-    summary: "",
-    key_concepts: [],
-    activities: [],
-    prerequisites: i === 0 ? [] : [`L${i}`],
-  }));
-}
+export const fallbackSequence = lessonsFromChapters;
 
 const SYSTEM = `You turn a book outline into a lesson sequence for a teacher. Reply with a JSON array only.
 Each item: {lesson_id, order, title, pages:[start,end], taught_in_class:false, summary, key_concepts[], activities[], prerequisites[]}.

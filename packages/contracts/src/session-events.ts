@@ -33,7 +33,8 @@ export const SessionEvent = z.discriminatedUnion("type", [
     "session_started",
     z.object({
       student_id: z.string(),
-      material_id: z.string(),
+      material_id: z.string().nullable().optional(),
+      subject_id: z.string().nullable().optional(),
       lesson_id: z.string().nullable().optional(),
       topic: z.string().optional(),
       modality: z.enum(["text", "voice"]),

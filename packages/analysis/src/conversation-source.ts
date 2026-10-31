@@ -43,8 +43,8 @@ export class FileConversationSource implements ConversationSource {
     const out: SessionBundle[] = [];
     for (const raw of this.file().sessions) {
       const studentId = maps.students.get(raw.student_id);
-      const materialId = maps.materials.get(raw.material_id);
-      if (!studentId || !materialId) continue;
+      const materialId = raw.material_id ? maps.materials.get(raw.material_id) : null;
+      if (!studentId || materialId === undefined) continue;
       const { events, evidence, ...session } = structuredClone(raw);
       session.student_id = studentId;
       session.material_id = materialId;

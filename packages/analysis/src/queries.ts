@@ -1,11 +1,12 @@
-import type {
-  ConversationSource,
-  Insight,
-  InsightStatus,
-  LearnerSummary,
-  Severity,
-  Student,
-  TeacherRepository,
+import {
+  sequenceOf,
+  type ConversationSource,
+  type Insight,
+  type InsightStatus,
+  type LearnerSummary,
+  type Severity,
+  type Student,
+  type TeacherRepository,
 } from "@mento/contracts";
 import { SEVERITY_RANK } from "./rules";
 
@@ -59,8 +60,8 @@ export async function getStudentSessions(repo: TeacherRepository, conversations:
   const [sessions, insights] = await Promise.all([conversations.listSessionsByStudent(studentId), repo.listInsights({ student_id: studentId })]);
   return Promise.all(
     sessions.map(async (s) => {
-      const [material, analysis] = await Promise.all([repo.getMaterial(s.material_id), repo.getAnalysisBySession(s.id)]);
-      const lesson = material?.sequence.find((l) => l.lesson_id === s.lesson_id);
+      const [material, analysis] = await Promise.all([s.material_id ? repo.getMaterial(s.material_id) : Promise.resolve(null), repo.getAnalysisBySession(s.id)]);
+      const lesson = material ? sequenceOf(material).find((l) => l.lesson_id === s.lesson_id) : undefined;
       return {
         id: s.id,
         topic: s.topic ?? null,

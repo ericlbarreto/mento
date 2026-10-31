@@ -1,11 +1,11 @@
 import path, { join } from "node:path";
 import type { ChunkStore, ConversationSource, Retriever, SessionHistory, SubjectStore, TeacherRepository } from "@mento/contracts";
-import { MongoChunkStore, MongoEvidenceStore, MongoRepository, MongoSubjectStore, MongoTurnRepository, mongoState } from "@mento/db";
+import { MongoChunkStore, MongoConversationReader, MongoEvidenceStore, MongoRepository, MongoSubjectStore, MongoTurnRepository, mongoState } from "@mento/db";
 import { createRetriever, embedWithVoyage, DiskFileStore, MaterialIngestQueue, type Embed, type FileStore, type SequenceLlm } from "@mento/sources";
 import {
   AnalysisService,
   FileConversationSource,
-  LAB_CONVERSATIONS_PATH,
+  MongoConversationSource,
   SessionEndedHandler,
   idMapsFromRepo,
   type AnalysisWriter,
@@ -58,10 +58,10 @@ export interface Container {
   // ---- Teacher side (Person 1): students, insights, material uploads ----
   /** Students, class context, uploaded materials, analyses and insights (MongoDB). Not the whiteboard's `repo`. */
   teacherRepo: TeacherRepository;
-  /** Conversations for the analysis: a JSON file for now; a MongoDB-backed source replaces it when the whiteboard stores them. */
+  /** The conversations the whiteboard stored in MongoDB (sessions, events, evidences), read for the analysis. */
   conversations: ConversationSource;
   analysis: AnalysisService;
-  /** Call `sessionEnded.handle(sessionId)` when a conversation ends to run the analysis (one retry after 30 s). */
+  /** `POST /api/sessions/:id/end` calls `sessionEnded.handle(id)`: waits for the judge, analyses, one retry after 30 s. */
   sessionEnded: SessionEndedHandler;
   /** Live feed behind `GET /api/stream/teacher`. */
   bus: TeacherBus;
@@ -150,11 +150,32 @@ export function createContainer(config: Config, allOverrides: ContainerOverrides
 
   // ---- Teacher side (Person 1) ----
   const teacherRepo = overrides.teacherRepo ?? new MongoRepository();
-  const conversations = overrides.conversations ?? new FileConversationSource(config.CONVERSATIONS_FILE ?? LAB_CONVERSATIONS_PATH, idMapsFromRepo(teacherRepo));
+  // The analysis reads what the tutor stored in MongoDB. A JSON file is only a dev/demo option (CONVERSATIONS_FILE).
+  const conversations =
+    overrides.conversations ??
+    (config.CONVERSATIONS_FILE ? new FileConversationSource(config.CONVERSATIONS_FILE, idMapsFromRepo(teacherRepo)) : new MongoConversationSource(teacherRepo, new MongoConversationReader()));
   const fileStore = overrides.fileStore ?? new DiskFileStore(config.UPLOAD_DIR ? path.resolve(config.UPLOAD_DIR) : repoRoot("data/uploads"));
   const bus = overrides.bus ?? new TeacherBus();
   const analysis = overrides.analysis ?? new AnalysisService({ repo: teacherRepo, conversations, writer, now, emit: bus.emit, log });
-  const sessionEnded = overrides.sessionEnded ?? new SessionEndedHandler(analysis, { retryDelayMs: retryDelayMs ?? 30_000, log });
+  const sessionEnded =
+    overrides.sessionEnded ??
+    new SessionEndedHandler(analysis, {
+      retryDelayMs: retryDelayMs ?? 30_000,
+      log,
+      maxWaitMs: config.ANALYSIS_MAX_WAIT_MS,
+      // Only students registered by the teacher are analysed (a stray student id would pollute the teacher's numbers).
+      shouldAnalyze: async (id) => {
+        const bundle = await conversations.getSessionBundle(id);
+        return !!bundle && !!(await teacherRepo.getStudent(bundle.session.student_id));
+      },
+      // The judge records evidence in the background after each answer: wait until every answer has been judged.
+      isSettled: async (id) => {
+        const bundle = await conversations.getSessionBundle(id);
+        if (!bundle) return true;
+        const answered = bundle.events.filter((e) => e.type === "verification_answered").length;
+        return bundle.events.filter((e) => e.type === "evidence_recorded").length >= answered;
+      },
+    });
   const ingest =
     overrides.ingest ??
     new MaterialIngestQueue({
