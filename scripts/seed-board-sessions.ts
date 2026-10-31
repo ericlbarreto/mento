@@ -46,7 +46,8 @@ const studentId = arg("student") ?? students.find((s) => s.name.startsWith("Ana"
 if (!studentId) throw new Error("no student to seed for");
 const { subjects } = await api<{ subjects: { id: string; key: string }[] }>("/subjects");
 
-await connectMongo(MONGODB_URI);
+// Same database as the API (MONGODB_DB), or the events land in another one.
+await connectMongo(MONGODB_URI, { dbName: process.env.MONGODB_DB });
 const repo = new MongoTurnRepository();
 try {
   for (const board of BOARDS) {
@@ -73,6 +74,10 @@ try {
       }
     }
     await repo.appendEvent(id, { type: "turn_timing", payload: { turn_id: turnId, first_action_ms: 900, last_action_ms: 4200 } });
+    // POST /sessions pre-warmed the API's in-memory state with an empty board. End the session here (no analysis:
+    // that only runs through the finish route) and resume it through the API, which forgets and reloads it.
+    await repo.appendEvent(id, { type: "session_ended", payload: { reason: "manual" } });
+    await api(`/sessions/${id}/resume`, { method: "POST", body: "{}" });
     console.log(`${board.subject}: http://localhost:3000/session/${id}`);
   }
 } finally {
