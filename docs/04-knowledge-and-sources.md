@@ -8,11 +8,11 @@ The tutor answers from what the teacher actually uses, and the student can **see
 
 ## Materials
 
-- A **material** is an uploaded PDF (typically a book or chapter): `title`, `subject` (História, Matemática, Ciências, Português, Geografia, Outro), `profile_key` (selects the subject profile in `prompts/subjects/`, `generic` if unknown), `status`, `page_count`, `outline`.
+- A **material** is an uploaded PDF (typically a book or chapter): `title`, `subject` (the key of its subject document, e.g. `history`: it selects the subject profile in `prompts/subjects/`, `generic` if unknown) and `subject_id`, `status`, `pages`, `chapters` (current model: D64 and `workstreams/contracts-spec.md` §15).
 - There is **one teacher workspace**: all materials belong to it (no per-class or per-teacher scoping).
-- At session start the student **picks one material** (and optionally types a topic). The conversation is scoped to that material: its subject profile, its retrieval index and its citations.
+- At session start the student **picks a subject** (D47). The conversation is scoped to **all `ready` materials of that subject**: the subject profile, retrieval across those materials (each chunk keeps its `material_id`) and their citations. A **free whiteboard** (Mento button, `subject_id` null) searches **all** materials and flags answers no passage supports as `outside_material` (D54).
 - A question outside the material gets a general-knowledge answer, visibly marked **"outside the teacher's material"**.
-- Future: studying across several materials at once (not in the hackathon).
+- Retrieval across several materials of one subject is in scope (D47); across subjects is future.
 
 ## Getting a material in
 
@@ -30,7 +30,7 @@ Both paths call the same `@mento/sources` pipeline.
 3. **Chunk by page** (one chunk per page, optionally split long pages), keeping `material_id` and `page`.
 4. **Build the search index** (MongoDB text index over chunks, `default_language: "portuguese"`).
 5. **Build the outline** (chapters with page ranges) from the table of contents or by an LLM over the first pages and headings; used to scope retrieval and to display "Capítulo 3".
-6. Set `status: ready` (or `failed` with a reason). While processing, report `processed_pages / page_count`.
+6. Set `status: ready` (or `failed` with a reason). While processing, report the stage and `done / total` (`progress`).
 
 **Limits for the hackathon:** cap pages per material (hypothesis: a few hundred); pre-ingest the demo book before the demo; large uploads during the demo are not recommended.
 
@@ -65,7 +65,7 @@ A citation carries `material_id`, `page`, `quote`. The frontend opens the PDF at
 
 ## What the student sees
 
-- At start: **pick your name → pick a material → optional topic** (`02-student-experience-whiteboard.md`).
+- At start: **pick a subject card** (with its count of materials) or the **Mento button** for a free session; the tutor then asks what to study (`02-student-experience-whiteboard.md`, D47).
 - **Chips** on tutor messages, e.g., `Livro, p.12`; click opens the PDF at the page with the excerpt highlighted.
 - A distinct marker when an answer is outside the material.
 

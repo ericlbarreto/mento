@@ -4,15 +4,18 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
     "@mento/contracts": "workspace:*",
-    "@mento/sources": "workspace:*"
+    "@mento/sources": "workspace:*",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "typescript": "~6.0.3",

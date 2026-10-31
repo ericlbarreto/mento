@@ -1,0 +1,57 @@
+/* Start screen motion (docs/18-ui-references.md §6.3). Durations come from the tokens, which are zeroed
+   under prefers-reduced-motion; the media query below also removes the animations outright. */
+
+/* Cards and sections: fade up 8px, staggered by --i (set inline per item). */
+.fadeUp {
+  animation: mento-fade-up var(--dur-base) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--stagger));
+}
+
+/* Mascot greeting: a soft rise with a slight scale, a touch slower than the cards. */
+.greet {
+  animation: mento-greet var(--dur-slow) var(--ease-out) both;
+}
+
+/* Skeleton cards: a slow opacity breath while lists load. */
+.skeleton {
+  animation: mento-breathe 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes mento-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mento-greet {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mento-breathe {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fadeUp,
+  .greet,
+  .skeleton {
+    animation: none;
+  }
+}

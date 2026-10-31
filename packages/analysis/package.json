@@ -11,10 +11,13 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@mento/contracts": "workspace:*"
+    "@mento/contracts": "workspace:*",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "typescript": "~6.0.3",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "@mento/db": "workspace:*",
+    "mongoose": "^9.11.4"
   }
 }

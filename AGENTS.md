@@ -68,8 +68,8 @@ workstreams/               ← division of work among the 3 people (one file per
 docs/                      ← all product and technical documentation (numbered)
   reference/               ← original raw material (Portuguese brief)
 prompts/                   ← tutor prompts as editable text files; founder-conversation/ = the founder's prompts and requirements (not loaded by the tutor)
-  base.md                  ← (to create) base tutor prompt
-  subjects/                ← (to create) one profile per subject (history.md, generic.md, math.md)
+  base.md                  ← base tutor prompt (loaded by packages/tutor)
+  subjects/                ← one profile per subject key (history.md, generic.md; math.md not written yet)
 materials/                 ← sample PDFs for the ingestion script (git-ignored)
 apps/web/                  ← Next.js frontend only (no API routes)
 apps/api/                  ← Fastify API service: routes, SSE, jobs; the only composition root

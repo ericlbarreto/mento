@@ -2,10 +2,13 @@ import { connectMongo, disconnectMongo, mongoState, pingMongo, type MongoState }
 
 /** Owns the MongoDB connection lifecycle for the API process. Other services receive the models from @mento/db. */
 export class MongoService {
-  constructor(private readonly uri: string) {}
+  constructor(
+    private readonly uri: string,
+    private readonly dbName?: string,
+  ) {}
 
   async connect(): Promise<void> {
-    await connectMongo(this.uri);
+    await connectMongo(this.uri, this.dbName ? { dbName: this.dbName } : {});
   }
 
   async disconnect(): Promise<void> {

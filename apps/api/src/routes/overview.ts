@@ -1,7 +1,9 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
+import { getOverviewData } from "../controllers/teacher.controller";
 
-// Owner: Person 1. Endpoints (docs/21-repo-structure.md §5): GET /overview (students, conversations, gaps identified, insights generated)
-// TODO: implement. Keep the route thin: parse with Zod (@mento/contracts), call a package, respond.
-const plugin: FastifyPluginAsyncZod = async (_app) => {};
+// Owner: Person 1. GET /overview: the metrics on top of the Students tab.
+const plugin: FastifyPluginAsyncZod = async (app) => {
+  app.get("/overview", async () => getOverviewData(app.container));
+};
 
 export default plugin;

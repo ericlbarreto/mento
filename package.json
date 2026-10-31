@@ -20,7 +20,17 @@
     "ingest": "tsx scripts/ingest.ts",
     "pregenerate": "tsx scripts/pregenerate-images.ts",
     "turn": "tsx scripts/turn-cli.ts",
-    "fixtures:check": "tsx scripts/fixture-check.ts"
+    "fixtures:check": "tsx scripts/fixture-check.ts",
+    "voice:smoke": "tsx scripts/voice-smoke.ts",
+    "llm:smoke": "tsx scripts/llm-smoke.ts",
+    "turn:bench": "tsx scripts/turn-bench.ts",
+    "images:pregenerate": "tsx scripts/pregenerate-images.ts",
+    "retrieval:check": "tsx scripts/retrieval-check.ts",
+    "seed:lab": "tsx scripts/seed-lab.ts",
+    "db:stats": "tsx scripts/db-stats.ts",
+    "test:rules": "tsx scripts/test-rules.ts",
+    "e2e:teacher": "tsx scripts/e2e-teacher.ts",
+    "test:all": "vitest run"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
@@ -28,6 +38,7 @@
     "prettier": "^3.9.10",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.72.1"
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.0.5"
   }
 }

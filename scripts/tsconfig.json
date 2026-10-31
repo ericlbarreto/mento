@@ -1,6 +1,11 @@
 {
   "extends": "../tsconfig.base.json",
   "include": [
-    "*.ts"
+    "*.ts",
+    "lib/*.ts",
+    "../apps/api/src/**/*.ts"
+  ],
+  "exclude": [
+    "../apps/api/src/**/*.test.ts"
   ]
 }

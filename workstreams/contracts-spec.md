@@ -40,7 +40,7 @@ type Event = {
 
 | `type` | Written by | `payload` | Read by |
 |---|---|---|---|
-| `session_started` | Repository (`createSession`) | `{ student_id, material_id, topic?, modality, persona? }` | Analysis |
+| `session_started` | Repository (`createSession`) | `{ student_id, subject_id: string \| null, topic?, modality, persona? }` (`subject_id` null = free whiteboard, which searches all materials; D47, D54, §14) | Analysis |
 | `user_message` | Person 3 (turn handler) | `{ kind: "chat" \| "speech" \| "board_select" \| "quick_action", text, selected?: { element_id, text? }, stt?: { provider, duration_ms, confidence? } }` | Analysis, replay |
 | `tutor_action` | Person 3 (each streamed action) | `{ turn_id, action_id, order, name, args }` (`name` = a tool in `docs/16` §4, including `draw_result`) | Analysis, replay, board state |
 | `verification_asked` | Person 3 | `{ verification_id, element_id, concept, concept_key, question, kind }` | Analysis |
@@ -50,7 +50,8 @@ type Event = {
 | `interrupted` | Person 3 | `{ turn_id, action_id? }` | Analysis (optional) |
 | `mic_state` | Person 3 (voice) | `{ muted: boolean }` | — |
 | `turn_timing` | Person 3 | `{ turn_id, first_action_ms, last_action_ms, tts_first_audio_ms?, image_ready_ms? }` | Monitoring |
-| `session_ended` | Repository (`endSession`) | `{ reason: "user_left" \| "idle_timeout" \| "beacon" \| "manual" }` | Triggers the analysis |
+| `session_ended` | Repository (`finishSession`) | `{ reason: "user_left" \| "idle_timeout" \| "beacon" \| "manual" }` | Triggers the analysis on an active → ended transition |
+| `session_resumed` | Repository (`resumeSession`) | `{ previous_ended_at: string }` | Audit/replay boundary; ignored by analysis input |
 
 **Client → server messages** (sent over HTTP; stored only as the events above):
 
@@ -59,7 +60,8 @@ type Event = {
 | user message | `{ kind, text, selected?: { element_id, text? } }` | `user_message` |
 | answer to a verification | `{ verification_id, element_id, answer }` | `verification_answered` (+ a `user_message` of kind `chat`/`speech` if typed or spoken) |
 | interruption | `{ turn_id, action_id?, spoken_chars? }` | `interrupted` |
-| end of conversation | `POST /api/sessions/:id/end` `{ reason }` | `session_ended` (via `endSession`) |
+| end of conversation | `POST /api/sessions/:id/finish` `{ reason }` (`/end` is a compatibility alias) | `session_ended` (via `finishSession`) |
+| resume conversation | `POST /api/sessions/:id/resume` | `session_resumed` (via `resumeSession`) |
 
 **Not events:** the board's current state is **derived** from `tutor_action` events (including `draw_result`); there are no separate `element_added/edited` events in our system (those were Studdy's naming). Raw audio is never stored.
 
@@ -96,11 +98,13 @@ The tutor's `speak` (and `write_text`) accepts two optional fields: `purpose: "e
 ## 7. Concepts (shared vocabulary)
 
 - `concept` is a short pt-BR label; `concept_key = normalizeConcept(concept)` where `normalizeConcept` is **one shared function in `@mento/contracts`**: lowercase → Unicode NFD → strip diacritics → non-alphanumeric to space → collapse spaces → trim.
-- **Person 3 must reuse labels** in this priority: (1) labels of the student's **open gaps** (from `getLearnerSummary`); (2) **chapter/section titles** of the chosen material (from `getOutline`); (3) a new short label.
+- **Person 3 must reuse labels** in this priority: (1) labels of the student's **open gaps** (from `getLearnerSummary`); (2) **chapter/section titles** of the materials of the chosen subject (from `getOutline`); (3) a new short label.
 - **Person 1 matches** by `concept_key` first, then by the LLM's `matches_gap_id`; it stores `concept_key` on `insights` as well.
 - No `concepts` table (keep the data model small).
 
 ## 8. Insights, analysis input/output, learner summary (snake_case)
+
+> **The Insight, analysis input/output and learner-summary shapes below are superseded by §15** (implemented in `packages/contracts/src/insights.ts`, 2026-10-30). Kept for history.
 
 ```ts
 type Insight = {
@@ -146,20 +150,23 @@ Analysis input (assembled by Person 1) and output (validated with Zod):
 ```ts
 interface Repository {
   // Written/read by Person 3
-  createSession(i: { student_id: number; material_id: number; topic?: string; persona?: string; modality: "text" | "voice" }): Promise<{ id: number }>;
+  // subject: the clicked subject document, null = free whiteboard (searches all materials). D47, D54; code: packages/tutor/src/repository.ts
+  createSession(i: { student_id: string; subject?: { id: string; name: string; key: string } | null; topic?: string; persona?: string; modality: "text" | "voice" }): Promise<{ id: string }>;
   appendEvent(session_id: number, e: { type: EventType; payload: unknown }): Promise<Event>;     // returns the stored event with its id
   listEvents(session_id: number, opts?: { after_id?: number }): Promise<Event[]>;
-  endSession(session_id: number, reason: SessionEndReason): Promise<void>;                          // appends session_ended, publishes it on the EventBus
+  finishSession(session_id: string, reason: SessionEndReason): Promise<"finished" | "already_finished" | "not_found">;
+  resumeSession(session_id: string): Promise<"resumed" | "already_active" | "not_found">;
   insertEvidence(e: Omit<Evidence, "id">): Promise<{ id: number }>;
   getClassContext(): Promise<{ grade_level: "7º ano" | "8º ano" | "9º ano"; description: string }>;
   getLearnerSummary(student_id: number): Promise<LearnerSummary>;
-  searchChunks(material_id: number, query: string, k: number): Promise<Chunk[]>;
+  searchChunks(q: { query: string; k: number; material_ids?: string[]; material_id?: string; subject?: string }): Promise<Chunk[]>; // §13–14: the tutor passes the subject's material ids; none = all materials
   getPages(material_id: number, pages: number[]): Promise<Chunk[]>;
-  getOutline(material_id: number): Promise<{ title: string; start_page: number; end_page: number }[]>;
+  getOutline(material_id: number) /* called per material of the subject */: Promise<{ title: string; start_page: number; end_page: number }[]>;
   validateCitation(c: Citation): Promise<boolean>;
   // Read by the whiteboard start screen (through the API)
   listStudents(): Promise<{ id: number; name: string }[]>;
-  listMaterials(opts?: { ready_only?: boolean }): Promise<MaterialSummary[]>;
+  listMaterials(opts?: { ready_only?: boolean; subject_id?: string }): Promise<MaterialSummary[]>;
+  listSubjects(): Promise<SubjectSummary[]>; // start-screen cards (D47): { id, name, key, material_count, materials }, see §14
   // Used by Person 1 (analysis and teacher UI)
   listInsights / upsertInsight / setInsightStatus / metrics ...   // internal to Person 1's packages
 }
@@ -176,3 +183,57 @@ interface Repository {
 ## 11. Change rule
 
 This file and `packages/contracts` change **together**, additively, after a message to the other two people. Never rename a field in place; add the new one, migrate, then remove the old one.
+
+## 12. Additions of 2026-10-30 (voice-first back-end design)
+
+Source of truth in code: `packages/contracts` (`actions.ts`, `stream.ts`, `events.ts`, `speech.ts`). Design: `docs/superpowers/specs/2026-10-30-whiteboard-backend-design.md`.
+
+- **Turn stream** is a union tagged by `type`: `action`, `svg_chunk`, `speech_alignment`, `script_done`, `turn_done`, `error` (replaces the old `{order, action}` / `{done}` shape).
+- **`speak` args** gain `audio_url` and `audio_format` (voice mode only).
+- **`draw_result`** is an action (server → client) that carries `element_id` and `url`.
+- **Student captions**: `SttCaption` is produced in the browser by `useStt()`; only `user_message.text` and `stt { provider, duration_ms, confidence? }` are sent and stored.
+- **`TurnRequest`**: `appended` is a list of `user_message` or `verification_answer`; `interrupted` gains `spoken_ms`; optional `client_timing`.
+- **Sessions** are created with `student_id` only (no `material_id`): the tutor searches all materials. `session_started` loses `material_id`; citations keep `material_id`.
+- **Ids** are strings everywhere (MongoDB `_id`).
+
+## 13. Retrieval additions of 2026-10-30
+
+Source of truth in code: `packages/contracts/src/{retrieval,chunk-store}.ts`. Design: `docs/superpowers/specs/2026-10-30-whiteboard-backend-design.md` §6.1.
+
+- `Repository.searchChunks({ query, k, material_id?, subject? }) → Chunk[]` replaces the old `searchChunks(material_id, query, k)`: the tutor searches **all** materials; `material_id` and `subject` are optional filters.
+- `Chunk = { id, material_id, subject, chapter?, page, passage_idx, text, score? }` (a passage of ~400 tokens inside one page). `validateCitation(c)` is true when `c.quote` occurs on that page (whitespace- and case-insensitive).
+- Ingestion (`@mento/sources/ingest`) stores passages with a 1024-dimension `embedding`; the catalog entry of each ready material is `{ material_id, title, subject, chapters: string[] }`.
+- `createSession` no longer takes `material_id`, and `session_started` has no `material_id`.
+
+## 14. Subjects (matérias), 2026-10-30
+
+Source of truth in code: `packages/contracts/src/{subjects,sessions,retrieval,chunk-store,errors}.ts`. Front-end guide: `docs/frontend-integration.md`.
+
+- **Subject** `{ id, name, key }` (`key` is a lowercase slug such as `history`; it also selects the tutor's subject profile). `SubjectSummary` adds `material_count` and `materials: [{ id, title, pages, status }]` (ready materials only).
+- **Materials belong to a subject** (`materials.subject_id`); the ingestion script creates the subject from `--subject=<key>`.
+- **Sessions:** `CreateSessionRequest.subject_id` is optional and nullable. With a subject, the tutor's catalog and every search are limited to that subject's materials (`SearchQuery.material_ids`); without one (free whiteboard), all materials are searched. `CreateSessionResponse` is `{ id, subject_id }`; `session_started` carries `subject_id` (or null).
+- **Errors:** every error body is `ErrorResponse = { error, message? }`.
+- Endpoints: `GET /api/subjects`, `GET /api/subjects/:id`, `POST /api/subjects`.
+
+## 15. Teacher-side additions (implemented 2026-10-30, Person 1)
+
+Source of truth in code: `packages/contracts/src/{student,class-context,material,session,session-events,evidence,insights,repository}.ts`. Additive to §2–§9 and to §12–§14 (the whiteboard back-end).
+
+- **Ids** are opaque strings. Relations (`student_id`, `material_id`, …) are stored as strings, not `ObjectId`s, because sessions are not in MongoDB yet (D61). Lab fixtures use readable ids and map to database ids through `fixture_id`.
+- **Events:** every event has `seq` (1-based, unique per session). `session_started` and `verification_asked` carry an optional `lesson_id` (a lesson of `material.sequence`).
+- **Session:** `{ id, student_id, material_id, lesson_id | null, topic?, persona?, modality, status, started_at, ended_at?, end_reason?, is_simulated }`. `lesson_id` = the lesson the student is studying. **Person 3 must fill it** (and `evidence.lesson_id`) from `material.sequence`; without it the diagnosis is `null`.
+- **Evidence:** `lesson_id | null` added (the lesson the question belongs to).
+- **Material:** `sequence: Lesson[]` with `Lesson = { lesson_id, order, title, pages: [start, end], taught_in_class, summary, key_concepts[], activities[], prerequisites[] }`, plus `status` (`queued | processing | ready | failed`), `progress {done,total}`, `outline`, `pages_needing_ocr`, `file {key,size,sha256,mime}`, `fixture_id?`, `is_fixture`.
+- **Student:** `{ fixture_id?, name, is_simulated, profile?, school_history[], current_term[] }` (fictional; never sent to an LLM).
+- **Insight:** `{ id, student_id, session_id, analysis_id, kind: gap|progress|suggestion, severity: critical|medium|positive, rule, rules_version, concept, concept_key, title, body, confidence, evidence[{event_id, quote}], diagnosis: current_topic|prerequisite|outside_material|null, root_cause {lesson_id,title,pages,taught_in_class,reasoning}|null, studying_lesson_id, related_gap_id, material_ref, metrics, source: llm|template, status: new|accepted|dismissed|resolved, created_at, updated_at }`. A `suggestion` row hangs from its gap through `related_gap_id` and inherits its severity.
+- **Analysis:** `{ id, session_id (unique), student_id, status: pending|running|done|failed, attempts, input_hash, rules_version, writer, prompt_version, skip_reason, studying_lesson_id, counters, findings[], summary, rejections[], insight_ids[], error, started_at, finished_at }`.
+- **Rules `rules-v1`** (first match wins): P2_resolved, R3_recurring, R1_repeated_errors, M1_single_error, M2_needs_hints, P1_consistent, P3_first_success. Severity: `R*` critical, `M*` medium, `P*` positive. Findings exist only for concepts that appear in the analysed session; history includes only sessions up to it.
+- **`getLearnerSummary(student_id)`** (for Person 3): top 5 open gaps (most severe first) and 3 recent progress items; concepts and descriptions only.
+- **Teacher API** (all under `/api`): `GET /overview`, `GET|POST /students`, `GET /students/:id`, `GET /students/:id/{insights,evolution,sessions}`, `GET /insights`, `PATCH /insights/:id`, `GET|PUT /class-context`, `GET|POST /sessions/:id/analysis`, `POST /dev/analyze/:sessionId`, `GET /stream/teacher` (SSE), `GET|POST /materials`, `GET /materials/:id`, `GET /files/:id`. Details and examples: `/api/openapi.json`.
+- **Hook for Person 3:** when a conversation ends call `container.sessionEnded.handle(session_id)` (runs the analysis, one retry after 30 s).
+- **Name differences from the whiteboard contracts (§12–§14), kept on purpose so both coexist:** the typed event union read by the analysis is `SessionEvent` (the loose envelope used by the turn route stays `Event`); the API container exposes the teacher repository as `teacherRepo` and the upload store as `fileStore` (the turn repository stays `repo`).
+- **Materials are one collection (D64).** `Material` (`packages/contracts/src/material.ts`) uses the whiteboard's names (`pages`, `chapters`, `subject` = the subject key, `subject_id`) plus optional upload fields: `status` also accepts `queued`; `file {key,size,sha256,mime}`; `progress {stage: queued|extracting|embedding|done, done, total}`; `sequence` (lessons); `pages_needing_ocr`; `toc_pages`; `passages` (count in `chunks`); `error`; `fixture_id`, `is_fixture` (lab material, never shown to the tutor). Materials ingested by `pnpm ingest` lack those fields and read with defaults. `ChunkStore.deletePassages?` removes a material's passages; `ingestPdf` accepts `material_id`, `pages` and `markReady`.
+- **Upload:** `POST /api/materials` (multipart `subject_id` required, `title?`, `file`) → `202 {id, status, duplicate}`; `200` for a file already uploaded; `400` no subject or file, `404 subject_not_found`, `413`, `415`, `503 database_unavailable` / `embeddings_unavailable`.
+- **The analysis reads the stored conversations (D65).** Stored shapes: `StoredSession` / `StoredEvent` / `StoredEvidence` and `ConversationReader` (`packages/contracts/src/stored-conversation.ts`), implemented by `MongoConversationReader` in @mento/db; `toSessionBundle` (@mento/analysis) maps them to `SessionBundle`: events get `seq` by stored order, evidence rows come from `evidences`. `Session.material_id` is nullable (a conversation that cited no source has none) and `session_started.payload.material_id` is optional. Material and lesson are derived from the sources the tutor cited: no change to the tutor\'s events. Helpers in `material.ts`: `lessonsFromChapters`, `sequenceOf(material)` (the saved sequence, or the chapters as lessons), `lessonOfPage`.
+- **Trigger:** a real active → ended transition through `POST /api/sessions/:id/finish` (or the `/end` compatibility alias) starts `container.sessionEnded.handle(id)` in the background (waits for the judge, registered students only, one retry after 30 s). Duplicate finish calls do not trigger it. `ANALYSIS_MAX_WAIT_MS` (default 15000) bounds the wait; `CONVERSATIONS_FILE` switches the source to a JSON file for demos.
+- **Resume and analysis identity:** `/resume` keeps the same session id and append-only history. `analyses.session_id` remains unique. A new finish with no new learning input is served from `input_hash` cache; new turns/evidence recompute the same analysis row and upsert the same open insights.

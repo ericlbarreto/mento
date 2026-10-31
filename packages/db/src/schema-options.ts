@@ -18,3 +18,12 @@ export const baseSchemaOptions: SchemaOptions = {
     },
   },
 };
+
+/**
+ * Teacher-side collections (students, materials, analyses, insights…) use snake_case timestamps
+ * (`created_at` / `updated_at`, contracts-spec §1). The whiteboard catalog keeps `baseSchemaOptions` (`createdAt`).
+ */
+export const snakeCaseSchemaOptions: SchemaOptions = {
+  ...baseSchemaOptions,
+  timestamps: { createdAt: "created_at", updatedAt: "updated_at" },
+};
