@@ -8,6 +8,7 @@ import { UploadMaterialModal } from "../_components/UploadMaterialModal";
 import { Button, Card, Chip, MetricCard, buttonClass } from "../_components/ui";
 import { relativeDate } from "../_lib/format";
 import { useTeacher } from "../_lib/store";
+import { ExerciseListsSection } from "../_components/ExerciseLists";
 import { SUBJECT, type Material } from "../_lib/types";
 
 const pagesText = (n: number) => (n === 0 ? "páginas: calculando" : `${n} ${n === 1 ? "página" : "páginas"}`);
@@ -150,6 +151,8 @@ export function MaterialsView({ forceEmpty }: { forceEmpty: boolean }) {
           </p>
         </section>
       )}
+
+      {!forceEmpty && <ExerciseListsSection />}
 
       <UploadMaterialModal open={uploading} onClose={() => setUploading(false)} />
     </>
