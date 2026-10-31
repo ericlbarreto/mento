@@ -59,3 +59,18 @@ Cara, o nosso desafio, basicamente, é o desafio 3. Esse plano de negócio preci
 ### Outcome (English)
 
 Read the Challenges deck (46 pages; Challenge 3 = safe AI, saves time, preserves learning). Rewrote the plan as 12 pages organized around the three pillars, with student, teacher and school data (Cetic.br, TALIS 2024, Bastani PNAS 2025, Gallup 2025), a product-decision-to-evidence table, a pilot to measure effects, and no pricing or projections. Updated the pitch hook, closing blocks and Q&A to the same thesis; D75 rewritten.
+
+## Third follow-up prompt (verbatim, Portuguese), same day
+
+```text
+Algumas coisas que eu queria que você melhorasse:
+
+* Eu não queria essa questão do "não verificado". Pode remover isso.
+* Sobre a questão da concorrência, você pode falar que o Mento é bem geral. A ideia é centralizar, então a gente resolve vários problemas de uma vez, ao invés de a gente resolver só um whiteboard generalizado. A gente tenta tornar isso mais assertivo usando toda a plataforma, tipo ter os alunos, os materiais, os professores, tal. Isso é bem mais assertivo, fora que está tudo centralizado: todos os materiais já estão no mesmo lugar. Não preciso arrastar um documento para daí como base de exemplo.
+
+ Entendeu? É meio que isso. Faça esses ajustes para o documento ficar bem legal.
+```
+
+### Outcome (English)
+
+Removed every "not verified" tag from the plan. Rewrote the competition section around centralization (students, teachers, classes and materials in one place, no dragging a PDF into each chat, closed loop to the teacher) with a box on why that is more accurate; updated the pitch Q&A answer to match.

@@ -155,7 +155,7 @@ Respostas **curtas (≤ 30 s)** e honestas. Se não souber: “Não sabemos aind
 
 **Concorrência**
 
-13. **“Por que a Teachy/Flint/ChatGPT não faz isso?”** — “Podem fazer, e a Teachy faz muita coisa que não testamos a fundo. Acreditamos no diferencial de **tutor que desenha ao vivo com clique-e-pergunta, citação do PDF do professor e diagnóstico por pré-requisitos**, mas não afirmamos que eles não têm: não testamos os produtos reais. A Flint, em especial, é muito próxima.”
+13. **“Por que a Teachy/Flint/ChatGPT não faz isso?”** — “Cada um resolve bem uma parte. A nossa aposta é **centralizar**: alunos, professores, turmas e materiais no mesmo lugar. O tutor já conhece a série, a turma e o livro do professor; o aluno não arrasta PDF nem reexplica o contexto, e o que ele aprende volta como diagnóstico para o professor. Em vez de um quadro-branco genérico que resolve um problema, a plataforma resolve vários de uma vez. E complementa plataformas como a Teachy.”
 14. **“Qual o fosso?”** — “Hoje é fraco: quadro e voz se copiam. O fosso esperado é o dado de aprendizagem ligado ao currículo de cada escola e a integração no fluxo do professor. Ainda não existe em escala.”
 15. **“Vocês querem ser comprados pela Teachy?”** — “Queremos provar valor. Complementar a Teachy é uma hipótese; não houve conversa nem interesse manifestado.”
 
