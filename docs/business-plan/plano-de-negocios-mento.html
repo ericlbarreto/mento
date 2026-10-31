@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Mento — Plano de Negócios (memorando para investidores)</title>
+<style>
+  @page { size: A4; margin: 20mm 17mm 20mm 17mm;
+    @bottom-left { content: "Mento · Plano de Negócios · versão 31/10/2026 · confidencial"; font: 8pt 'Helvetica Neue', Arial, sans-serif; color: #7a84a8; }
+    @bottom-right { content: counter(page); font: 8pt 'Helvetica Neue', Arial, sans-serif; color: #7a84a8; } }
+  @page :first { margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } }
+  :root { --blue:#1E59ED; --navy:#162250; --mascot:#126CFC; --bg:#F6F1E7; --ink:#1d2540; --mut:#5b6486; --line:#dcd6c6; --ok:#1f8a4c; --warn:#b96a00; --bad:#b3261e; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font: 10pt/1.5 'Helvetica Neue', Arial, sans-serif; color: var(--ink); margin: 0; }
+  h1 { font-size: 20pt; color: var(--navy); margin: 0 0 4mm; letter-spacing: -.3px; }
+  h2 { break-after: avoid; font-size: 13pt; color: var(--blue); margin: 7mm 0 2mm; }
+  h3 { break-after: avoid; font-size: 10.5pt; color: var(--navy); margin: 4mm 0 1mm; }
+  p { margin: 0 0 2.4mm; } ul { margin: 0 0 2.6mm; padding-left: 5mm; } li { margin-bottom: 1mm; }
+  .sec { break-before: page; }
+  .num { display:inline-block; background: var(--blue); color:#fff; border-radius: 50%; width: 8mm; height: 8mm; line-height: 8mm; text-align:center; font-size: 11pt; margin-right: 3mm; vertical-align: 1px; }
+  .cover { width: 210mm; height: 297mm; background: var(--bg); position: relative; padding: 28mm 24mm; page-break-after: always; }
+  .cover img.logo { width: 62mm; }
+  .cover h1 { font-size: 34pt; line-height: 1.1; margin-top: 52mm; color: var(--navy); }
+  .cover .sub { font-size: 14pt; color: var(--mut); margin-top: 6mm; max-width: 140mm; }
+  .cover .mascot { position:absolute; right: 18mm; bottom: 44mm; width: 62mm; }
+  .cover .meta { position:absolute; left: 24mm; bottom: 20mm; font-size: 9pt; color: var(--mut); max-width: 150mm; }
+  .cover .bar { position:absolute; left:0; top:0; bottom:0; width: 8mm; background: var(--blue); }
+  table { border-collapse: collapse; width: 100%; margin: 2mm 0 4mm; font-size: 8.8pt; break-inside: avoid; }
+  th { background: var(--navy); color:#fff; text-align:left; padding: 1.6mm 2mm; font-weight:600; }
+  td { padding: 1.5mm 2mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:nth-child(even) td { background: #faf7f0; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  .box { border-left: 3px solid var(--blue); background: #eef3ff; padding: 2.5mm 4mm; margin: 3mm 0 4mm; break-inside: avoid; }
+  .box.warn { border-color: var(--warn); background: #fff4e0; }
+  .box.fill { border-color: var(--bad); background: #fdeceb; }
+  .box.ok { border-color: var(--ok); background: #e9f6ee; }
+  .box b.t { display:block; font-size: 8.5pt; text-transform: uppercase; letter-spacing:.6px; margin-bottom: 1mm; }
+  .tag { display:inline-block; font-size: 7pt; font-weight:700; padding: .3mm 1.6mm; border-radius: 2mm; vertical-align: 1px; color:#fff; letter-spacing:.3px; }
+  .t-ok { background: var(--ok); } .t-as { background: var(--warn); } .t-nv { background: var(--bad); } .t-hp { background: #6b4fd8; }
+  .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap: 4mm; } .grid3 { display:grid; grid-template-columns: repeat(3,1fr); gap: 3mm; }
+  .card { border: 1px solid var(--line); border-radius: 2mm; padding: 3mm; background: #fff; break-inside: avoid; }
+  .card .big { font-size: 20pt; font-weight: 700; color: var(--blue); line-height:1.1; } .card .lbl { font-size: 8pt; color: var(--mut); }
+  .small { font-size: 8pt; color: var(--mut); } .src { font-size: 7.6pt; color: var(--mut); }
+  .legend span { margin-right: 4mm; } figure { margin: 2mm 0 4mm; break-inside: avoid; } figcaption { font-size: 8pt; color: var(--mut); }
+  a { color: var(--blue); text-decoration: none; word-break: break-all; }
+  .toc td { border: none; padding: .9mm 0; background:none !important; } .toc td:last-child { text-align:right; color: var(--mut); }
+</style>
+</head>
+<body>
+
+<!-- ============ CAPA ============ -->
+<div class="cover">
+  <div class="bar"></div>
+  <img class="logo" src="assets/logo.png" alt="Mento">
+  <h1>O tutor que ensina cada aluno<br>e mostra ao professor<br>como ele aprende.</h1>
+  <div class="sub">Plano de negócios e memorando de investimento — pré-seed. Tutoria por voz em quadro-branco ao vivo, ancorada nos livros do professor, para o Ensino Fundamental II (7º ao 9º ano).</div>
+  <img class="mascot" src="assets/mascot.png" alt="">
+  <div class="meta"><b>Versão de 31 de outubro de 2026</b> · Hackathon apoiado pela Teachy · Documento confidencial.<br>
+  Este documento separa o que é <b>fato verificado no código</b>, o que é <b>premissa</b>, o que é <b>hipótese</b> e o que <b>não foi verificado</b>. Não há clientes pagantes, eficácia comprovada nem parcerias fechadas.</div>
+</div>
+
+<!-- ============ COMO LER ============ -->
+<h1>Como ler este documento</h1>
+<p>Este plano segue o formato que investidores de venture capital esperam de um memorando de investimento em estágio inicial (ver <a href="#fontes">Anexo A</a>): problema, solução, mercado (TAM/SAM/SOM), produto, modelo de negócio, go-to-market, concorrência, tração, equipe, finanças, roadmap, captação e riscos. Cada afirmação carrega uma etiqueta:</p>
+<table>
+<tr><th style="width:26mm">Etiqueta</th><th>Significado</th></tr>
+<tr><td><span class="tag t-ok">FATO</span></td><td>Verificado no código ou em medição do próprio projeto (repositório, 31/10/2026).</td></tr>
+<tr><td><span class="tag t-as">PREMISSA</span></td><td>Número assumido por nós para fazer uma conta. Deve ser revisto com dados reais.</td></tr>
+<tr><td><span class="tag t-hp">HIPÓTESE</span></td><td>Aposta de negócio ainda não testada com clientes.</td></tr>
+<tr><td><span class="tag t-nv">NÃO VERIF.</span></td><td>Dado de terceiro (blog, notícia, release) que não foi confirmado na fonte primária. Reconferir antes de usar fora deste documento.</td></tr>
+</table>
+<div class="box warn"><b class="t">Declaração de honestidade</b>
+Hoje a Mento <b>não tem clientes pagantes, receita, pilotos com escolas, parcerias fechadas nem evidência de ganho de aprendizagem</b>. Os alunos que aparecem nas telas do professor são <b>fictícios</b> (dados simulados de demonstração). O que existe é um protótipo funcional de ponta a ponta, construído em cerca de dois dias por três pessoas. Os campos que só a equipe pode preencher (equipe, tração, valor da captação) estão marcados em vermelho e listados no <a href="#preencher">Anexo D</a>.</div>
+
+<h2>Sumário</h2>
+<table class="toc">
+<tr><td>1. Sumário executivo</td><td>3</td></tr>
+<tr><td>2. O problema</td><td>4</td></tr>
+<tr><td>3. A solução e o produto (o que já funciona)</td><td>5</td></tr>
+<tr><td>4. Por que agora</td><td>7</td></tr>
+<tr><td>5. Mercado: TAM, SAM e SOM</td><td>8</td></tr>
+<tr><td>6. Modelo de negócio e preço</td><td>9</td></tr>
+<tr><td>7. Economia unitária (custo real da pilha tecnológica)</td><td>10</td></tr>
+<tr><td>8. Go-to-market</td><td>12</td></tr>
+<tr><td>9. Concorrência e diferenciação</td><td>13</td></tr>
+<tr><td>10. Tecnologia, privacidade e defensabilidade</td><td>14</td></tr>
+<tr><td>11. Tração e validação</td><td>15</td></tr>
+<tr><td>12. Equipe</td><td>15</td></tr>
+<tr><td>13. Projeções financeiras (cenários ilustrativos)</td><td>16</td></tr>
+<tr><td>14. Roadmap</td><td>18</td></tr>
+<tr><td>15. Captação e uso dos recursos</td><td>19</td></tr>
+<tr><td>16. Riscos e mitigações</td><td>20</td></tr>
+<tr><td>Anexos: A fontes · B fatos medidos · C premissas · D campos a preencher</td><td>21</td></tr>
+</table>
+
+<!-- ============ 1 ============ -->
+<div class="sec">
+<h1><span class="num">1</span>Sumário executivo</h1>
+<p><b>A Mento é uma plataforma de tutoria com IA para escolas.</b> O professor envia seus livros (PDF) e descreve a turma. Cada aluno conversa por voz com um tutor que <b>escreve, desenha e circula ao vivo</b> num quadro-branco, responde <b>a partir do material do professor, citando a página</b>, e verifica se o aluno entendeu. Cada conversa vira, automaticamente, <b>inteligência pedagógica para o professor</b>: quais conceitos cada aluno domina, onde estão as lacunas, de qual lição elas provavelmente vêm e o que fazer na próxima aula.</p>
+<p><b>Tese:</b> a escola define o que deve ser aprendido; a Mento ensina cada aluno individualmente e transforma a evidência dessas sessões em inteligência para o professor.</p>
+
+<div class="grid3">
+  <div class="card"><div class="big">~1,8 s</div><div class="lbl">da fala do aluno à primeira ação do tutor no quadro (mediana medida; 2,05 s após o prompt didático) <span class="tag t-ok">FATO</span></div></div>
+  <div class="card"><div class="big">R$ 1,3–2,5</div><div class="lbl">custo variável estimado de uma sessão de 10 min com voz (cenário otimizado → preço de lista) <span class="tag t-as">PREMISSA</span></div></div>
+  <div class="card"><div class="big">R$ 29</div><div class="lbl">preço-hipótese por aluno/mês (≈ 5% da mensalidade média de escola privada) <span class="tag t-hp">HIPÓTESE</span></div></div>
+</div>
+
+<h3>O que existe hoje <span class="tag t-ok">FATO</span></h3>
+<ul>
+<li>Protótipo de ponta a ponta no ar: quadro-branco ao vivo, conversa por voz (STT + TTS), recuperação de trechos dos livros com citação de página, avaliação de respostas, e painel do professor com lacunas por conceito.</li>
+<li>Código em TypeScript (≈31 mil linhas, 89 arquivos de teste, 214 commits em 2 dias), monorepo com API Fastify, front-end Next.js e pacotes de contratos, quadro, tutor, voz, fontes, banco e análise.</li>
+<li>Integração contínua (typecheck, lint, testes) antes de qualquer deploy.</li>
+</ul>
+<h3>O que não existe <span class="tag t-nv">IMPORTANTE</span></h3>
+<ul>
+<li>Nenhum cliente, receita, piloto ou carta de intenção. Nenhuma medição de ganho de aprendizagem. Nenhum teste com alunos reais (menores de idade) — a política do projeto é usar só dados fictícios até haver base legal e consentimento (LGPD).</li>
+<li>Nenhuma parceria fechada. A Teachy apoia o hackathon; isso não é parceria comercial.</li>
+</ul>
+<div class="box fill"><b class="t">A preencher pela equipe</b>
+<b>Captação pretendida:</b> R$ [VALOR] · <b>instrumento:</b> [SAFE / nota conversível / equity] · <b>pré-money/teto:</b> [VALOR] · <b>prazo de caixa (runway):</b> [N] meses. A proposta de distribuição percentual do uso dos recursos está na seção 15.</div>
+</div>
+
+<!-- ============ 2 ============ -->
+<div class="sec">
+<h1><span class="num">2</span>O problema</h1>
+<p>Alunos já estudam com IA generalista, mas essa IA <b>não conhece o livro nem a turma</b>, responde sem verificar se o aluno entendeu, e a conversa termina sem atualizar nenhum registro confiável do que ele sabe. O professor, por sua vez, só descobre lacunas em provas e notas — semanas depois.</p>
+<table>
+<tr><th>Quem sofre</th><th>Dor</th></tr>
+<tr><td><b>Aluno</b> (7º–9º ano)</td><td>Dúvidas fora da aula sem alguém que explique no ritmo dele; IA genérica entrega a resposta, não ensina; precisa reenviar o PDF e reexplicar o contexto a cada conversa.</td></tr>
+<tr><td><b>Professor</b></td><td>Turmas grandes impedem acompanhamento individual; não vê o que acontece no estudo individual; descobre lacunas tarde e não sabe de qual lição elas vêm.</td></tr>
+<tr><td><b>Coordenação / direção</b> (comprador)</td><td>Quer evidência de aprendizagem além da nota, reforço individualizado como diferencial para as famílias e controle sobre o que a IA diz e guarda.</td></tr>
+</table>
+<h3>Contexto de aprendizagem no Brasil</h3>
+<p>No PISA 2022 o Brasil ficou em torno de 379 pontos em matemática, contra média da OCDE de cerca de 472 (OCDE, divulgação de dez/2023) <span class="tag t-nv">NÃO VERIF.</span> — valores citados de memória; <b>conferir em oecd.org antes de usar externamente</b>. A defasagem aparece nos anos finais do fundamental, exatamente o foco inicial da Mento.</p>
+<h3>Por que tutoria individual?</h3>
+<p>A literatura sobre tutoria um-a-um (a partir de Bloom, 1984) aponta ganhos grandes sobre ensino em grupo, porém o tamanho do efeito é debatido e muitos estudos posteriores encontram efeitos menores. A Mento <b>não afirma</b> reproduzir esse ganho: afirma que torna a tutoria individual economicamente possível e mensurável, e que o piloto da seção 11 existe justamente para medir.</p>
+<div class="box"><b class="t">Insight central</b>A IA que responde não é suficiente. O valor está no <b>ciclo</b>: conteúdo do professor → tutoria que verifica → evidência por conceito → ação do professor. O quadro-branco é a interface; o produto é o ciclo.</div>
+</div>
+
+<!-- ============ 3 ============ -->
+<div class="sec">
+<h1><span class="num">3</span>A solução e o produto</h1>
+<h2>Como funciona (a experiência em 6 passos)</h2>
+<table>
+<tr><th style="width:8mm">#</th><th>Passo</th><th>O que acontece</th></tr>
+<tr><td>1</td><td>O professor configura</td><td>Envia o livro (PDF), escolhe a matéria e descreve a turma (ex.: “8º ano, …”). O sistema extrai o texto, divide em trechos, indexa e monta uma sequência de lições com pré-requisitos.</td></tr>
+<tr><td>2</td><td>O aluno fala</td><td>Abre a matéria e conversa por voz (ou texto). O tutor responde em português do Brasil, no nível da turma.</td></tr>
+<tr><td>3</td><td>O tutor ensina no quadro</td><td>Escreve, desenha ilustrações, faz linhas do tempo e <b>circula termos</b> enquanto fala; mostra chips de fonte (“Livro, p. 12”).</td></tr>
+<tr><td>4</td><td>O aluno interage</td><td>Interrompe, clica num ponto do quadro e pergunta sobre ele; o tutor muda o rumo da explicação.</td></tr>
+<tr><td>5</td><td>O tutor verifica</td><td>Faz uma pergunta nova (“explique para um colega”); um juiz registra evidência por conceito (certo/errado/parcial).</td></tr>
+<tr><td>6</td><td>O professor decide</td><td>Vê, por aluno e pela turma, conceitos dominados, lacunas, provável lição de origem e sugestões de intervenção. A IA sugere; o professor decide.</td></tr>
+</table>
+
+<h2>Estado de implementação <span class="tag t-ok">FATO</span> (código em 31/10/2026)</h2>
+<table>
+<tr><th>Capacidade</th><th>Estado</th><th>Detalhe técnico</th></tr>
+<tr><td>Turno do tutor com ferramentas</td><td>Funciona</td><td>API Fastify transmite chamadas de ferramenta por SSE (fala, texto, desenho, círculo, destaque, pergunta de verificação). Claude Haiku 5.5 sem “thinking”; até 4 rodadas por resposta, que só termina numa pergunta.</td></tr>
+<tr><td>Voz</td><td>Funciona</td><td>STT Deepgram Nova-3 pt-BR no navegador (token de curta duração); TTS ElevenLabs Flash v2.5 no servidor com tempos de palavra para legendas; barge-in com tratamento de eco (alto-falante sem fone: <i>não testado com microfone real</i>).</td></tr>
+<tr><td>Livros e citações</td><td>Funciona</td><td>Embeddings Voyage + MongoDB Atlas Vector Search + busca textual em português, fundidos por RRF; citações validadas contra o texto do trecho; aviso quando a resposta sai do material.</td></tr>
+<tr><td>Ilustrações</td><td>Funciona</td><td>Imagens Gemini geradas sob demanda, em cache, aplicadas assim que chegam (assíncrono); prompt orienta a ilustrar proativamente.</td></tr>
+<tr><td>Evidência e análise</td><td>Funciona</td><td>Juiz Haiku em paralelo; ao encerrar a sessão, análise determinística (regras <i>rules-v1</i>, severidade crítica/média/positiva, confiança por fórmula) com diagnóstico por grafo de pré-requisitos; a LLM só reescreve o texto.</td></tr>
+<tr><td>Painel do professor</td><td>Funciona (parcial)</td><td>Abas Alunos e Materiais, contexto da turma, lacunas por conceito, estágio (em observação / lacuna / persistente), tópicos com mais dificuldade na turma e geração de lista de exercícios por Claude a partir do livro.</td></tr>
+<tr><td>Retomar / encerrar sessão</td><td>Funciona</td><td>Máquina de estados idempotente: encerrar duas vezes não duplica insights.</td></tr>
+<tr><td>CI</td><td>Funciona</td><td>GitHub Actions: instalação travada, typecheck, lint, testes e verificação de fixtures em cada PR.</td></tr>
+</table>
+<h3>Limites conhecidos <span class="tag t-nv">HONESTO</span></h3>
+<ul>
+<li>Perfil dos alunos (dados pessoais, histórico escolar, notas) é <b>fictício e somente leitura</b>; nunca é enviado a uma LLM.</li>
+<li>Sem autenticação nem multi-professor/multi-turma: é um espaço de trabalho único de protótipo. Não pode ir a escolas reais nesse estado.</li>
+<li>Uma única matéria demonstrada (História — Roma Antiga) a partir de um livro; qualidade em outras matérias e livros não foi medida. Matemática não está pronta.</li>
+<li>Nenhum teste com alunos reais; nenhuma avaliação pedagógica externa. A qualidade didática foi avaliada apenas por roteiros automatizados e pelo fundador.</li>
+</ul>
+</div>
+
+<!-- ============ 4 ============ -->
+<div class="sec">
+<h1><span class="num">4</span>Por que agora</h1>
+<ul>
+<li><b>Latência abaixo de 2 s tornou a voz natural.</b> Com um modelo pequeno (Haiku 5.5), STT e TTS em streaming, a primeira ação do tutor aparece em ~1,8 s <span class="tag t-ok">FATO</span>. Um tutor de voz que escreve e desenha ao mesmo tempo não era viável com custo e latência de dois anos atrás.</li>
+<li><b>Custo de tokens caiu.</b> Haiku 5.5 foi lançado em 7/10/2026 por US$ 0,10 / US$ 0,50 por milhão de tokens (entrada/saída, prompts até 100 mil tokens) segundo veículos de imprensa tecnológica <span class="tag t-nv">NÃO VERIF.</span> — confirmar na página oficial de preços da Anthropic. Com isso, o custo de LLM deixa de ser o item dominante e o desafio passa a ser voz e imagem.</li>
+<li><b>Quadro-branco com IA virou categoria disputada</b> (Gauth lançou um “Unlimited Digital Canvas” em 1/10/2026 <span class="tag t-nv">NÃO VERIF.</span>), o que valida a demanda e obriga a diferenciar pelo <i>ciclo</i> com a escola, não pelo quadro.</li>
+<li><b>Escolas brasileiras estão abrindo espaço para IA</b>, e a Teachy — patrocinadora do hackathon — mostra que há mercado para IA educacional no Brasil <span class="tag t-hp">HIPÓTESE</span> (não há dados de receita da Teachy neste documento).</li>
+<li><b>Arquitetura compatível com retenção zero</b> (memória no banco da escola, LLM sem estado) permite conversar com escolas sobre LGPD sem prometer o que ainda não foi certificado.</li>
+</ul>
+<figure>
+<svg viewBox="0 0 520 120" width="100%">
+  <text x="0" y="14" font-size="11" fill="#162250" font-weight="700">Linha do tempo de desenvolvimento (git)</text>
+  <line x1="20" y1="70" x2="500" y2="70" stroke="#1E59ED" stroke-width="3"/>
+  <g font-size="9.5" fill="#1d2540" text-anchor="middle">
+    <circle cx="20" cy="70" r="5" fill="#1E59ED"/><text x="20" y="92">30/10 16h</text><text x="20" y="54">1º commit</text>
+    <circle cx="170" cy="70" r="5" fill="#1E59ED"/><text x="170" y="92">30/10 noite</text><text x="170" y="54">API + voz + RAG</text>
+    <circle cx="330" cy="70" r="5" fill="#1E59ED"/><text x="330" y="92">31/10 manhã</text><text x="330" y="54">Painel + insights</text>
+    <circle cx="500" cy="70" r="5" fill="#1E59ED"/><text x="500" y="92">31/10 02h33</text><text x="500" y="54">Imagens + CI</text>
+  </g>
+</svg>
+<figcaption>214 commits entre 30/10/2026 16h26 e 31/10/2026 (git log). Datas aproximadas dos marcos conforme o histórico do repositório.</figcaption></figure>
+</div>
+
+<!-- ============ 5 ============ -->
+<div class="sec">
+<h1><span class="num">5</span>Mercado: TAM, SAM e SOM</h1>
+<p>Foco inicial: <b>Ensino Fundamental II, 7º–9º ano</b>, escolas privadas, começando por Pernambuco (Recife). Cálculo <b>de baixo para cima</b>: alunos × preço anual. Investidores desconfiam de TAM “de cima para baixo” sem dados; por isso cada passo mostra a fonte ou marca a premissa.</p>
+<table>
+<tr><th>Passo</th><th class="n">Valor</th><th>Base</th></tr>
+<tr><td>Matrículas no Ensino Fundamental, Brasil, 2024</td><td class="n">≈ 26 milhões</td><td>Inep, Notas Estatísticas do Censo da Educação Básica 2024 <span class="tag t-ok">FONTE</span></td></tr>
+<tr><td>Parcela dos anos finais (6º–9º) no fundamental</td><td class="n">≈ 43% → ≈ 11 mi</td><td><span class="tag t-as">PREMISSA</span> — a sinopse do Inep tem o número exato; <b>substituir</b></td></tr>
+<tr><td>7º–9º ano = 3/4 dos anos finais</td><td class="n">≈ 8,4 mi</td><td><span class="tag t-as">PREMISSA</span> (3 de 4 séries)</td></tr>
+<tr><td>Parcela da rede privada nos anos finais</td><td class="n">≈ 16,3%</td><td>Dado do Censo 2023 citado em imprensa <span class="tag t-nv">NÃO VERIF.</span> (2024 não localizado)</td></tr>
+<tr><td>Preço anual por aluno (hipótese)</td><td class="n">R$ 348</td><td>R$ 29 × 12 <span class="tag t-hp">HIPÓTESE</span></td></tr>
+</table>
+<figure>
+<svg viewBox="0 0 520 190" width="100%">
+  <rect x="0"   y="8"  width="520" height="48" rx="4" fill="#dfe8ff"/><text x="10" y="28" font-size="11" font-weight="700" fill="#162250">TAM — 7º–9º ano, todas as redes, Brasil</text><text x="10" y="45" font-size="10" fill="#1d2540">≈ 8,4 mi alunos × R$ 348 ≈ R$ 2,9 bi / ano</text>
+  <rect x="0" y="64" width="300" height="48" rx="4" fill="#9db9ff"/><text x="10" y="84" font-size="11" font-weight="700" fill="#162250">SAM — rede privada</text><text x="10" y="101" font-size="10" fill="#162250">≈ 1,37 mi alunos ≈ R$ 477 mi / ano</text>
+  <rect x="0" y="120" width="110" height="48" rx="4" fill="#1E59ED"/><text x="10" y="140" font-size="11" font-weight="700" fill="#fff">SOM (3 anos)</text><text x="10" y="157" font-size="10" fill="#fff">≈ 6 mil alunos ≈ R$ 2,1 mi</text>
+  <text x="122" y="148" font-size="9.5" fill="#5b6486">≈ 0,44% do SAM · ≈ 30 escolas de 200 alunos <tspan font-style="italic">(ilustrativo)</tspan></text>
+</svg>
+<figcaption>Cálculo aritmético sobre as premissas da tabela. Não é previsão de vendas.</figcaption></figure>
+<div class="box warn"><b class="t">Leitura honesta</b>
+(1) O TAM é teórico: inclui a rede pública, que tem outra dinâmica de compra (licitação, CPSI, conectividade) e não é alvo dos primeiros 3 anos. (2) O SAM depende da disposição das escolas privadas de pagar R$ 29 por aluno/mês; <b>isso nunca foi testado</b>. (3) Mensalidades médias variam muito: R$ 450–2.000 por mês segundo o portal Melhor Escola; média de R$ 531,44 em 2025 (todas as etapas) segundo a Sponte/Linx <span class="tag t-nv">NÃO VERIF.</span>. O preço sugerido equivale a ≈ 5,5% de uma mensalidade média. (4) A conta ignora segmentos adjacentes (Ensino Médio, 6º ano, cursinhos, redes de franquia), que ampliam o mercado, mas ficam fora do plano.</div>
+<h3>Mercado local inicial <span class="tag t-nv">NÃO VERIF.</span></h3>
+<p>O briefing da equipe cita para o Recife, no Censo Escolar 2025, cerca de 318 mil matrículas e 1.064 estabelecimentos (≈ 564 privados). O fundador pediu que esses números sejam reconferidos nas bases do Inep antes de uso externo; por isso não entram nas contas acima.</p>
+</div>
+
+<!-- ============ 6 ============ -->
+<div class="sec">
+<h1><span class="num">6</span>Modelo de negócio e preço</h1>
+<p><b>SaaS institucional B2B2C</b>: a escola contrata e os alunos usam. <span class="tag t-hp">HIPÓTESE</span> — nenhum preço foi testado com uma escola.</p>
+<table>
+<tr><th>Oferta</th><th>Para quem</th><th>Preço-hipótese</th></tr>
+<tr><td><b>Piloto pago</b> (6–8 semanas)</td><td>1 escola, 1 disciplina, 1–2 turmas, avaliação antes/depois</td><td>R$ [A DEFINIR] por turma; sugestão: cobrir o custo variável + implantação (valor simbólico, para formalizar o compromisso)</td></tr>
+<tr><td><b>Licença anual por aluno</b></td><td>Escolas privadas, 7º–9º ano</td><td>R$ 29/aluno/mês (R$ 348/ano), contrato anual, mínimo por turma</td></tr>
+<tr><td><b>Implantação e formação</b></td><td>Todas</td><td>Pacote único opcional (formação do professor, ingestão dos livros)</td></tr>
+<tr><td><b>Módulo para plataformas</b> (futuro)</td><td>Edtechs como a Teachy</td><td>Licenciamento/parceria — somente se houver interesse; <b>nenhum foi manifestado</b></td></tr>
+</table>
+<h3>Por que o preço por aluno faz sentido (e onde pode falhar)</h3>
+<ul>
+<li>Comparação de ordem de grandeza: aulas particulares individuais custam muitas vezes mais por hora; o argumento é “tutoria individual para todos por uma fração da mensalidade”. <span class="tag t-hp">HIPÓTESE</span></li>
+<li>Se a escola compra para a turma toda mas só 30% usa, o preço por <i>usuário ativo</i> sobe e o custo variável cai: o risco econômico não é o custo, é o <b>engajamento</b> e a renovação.</li>
+<li>Sensibilidade: a R$ 20 por aluno/mês a margem otimizada cai de 65% para ≈ 49%; a R$ 40, sobe para ≈ 74% (conta da seção 7).</li>
+</ul>
+<div class="box"><b class="t">Métricas que vamos acompanhar no piloto</b>
+Alunos ativos por semana / alunos licenciados · sessões por aluno/mês · minutos de voz por sessão · custo variável por sessão e por aluno ativo · % de lacunas que o professor adota ou descarta · avaliação antes/depois em questões equivalentes · NPS de professores e alunos · renovação.</div>
+</div>
+
+<!-- ============ 7 ============ -->
+<div class="sec">
+<h1><span class="num">7</span>Economia unitária</h1>
+<p>Construída a partir dos <b>preços de lista</b> dos provedores usados no código (pesquisa de 30–31/10/2026) e do comportamento real do tutor. As quantidades por sessão são <span class="tag t-as">PREMISSAS</span>; os preços são de terceiros <span class="tag t-nv">NÃO VERIF.</span> — confirme em cada página oficial antes de usar com investidores. Câmbio assumido: <b>R$ 5,50 / US$ 1</b> <span class="tag t-as">PREMISSA</span>.</p>
+<h3>Sessão de referência: 10 minutos com voz, ≈ 8 turnos do aluno</h3>
+<table>
+<tr><th>Componente</th><th>Premissa de uso</th><th>Preço de lista</th><th class="n">Lista (US$)</th><th class="n">Otimizado (US$)</th></tr>
+<tr><td>LLM do tutor (Haiku 5.5)</td><td>3 rodadas × ~9 mil tokens de entrada por turno; ~1,5 mil de saída</td><td>US$ 0,10 / 0,50 por 1 mi tokens</td><td class="n">0,028</td><td class="n">0,012</td></tr>
+<tr><td>Juiz + análise pós-sessão (Haiku)</td><td>juiz por resposta + 1 análise por sessão</td><td>idem</td><td class="n">0,013</td><td class="n">0,013</td></tr>
+<tr><td>STT (Deepgram Nova-3 multilíngue)</td><td>10 min de microfone aberto</td><td>≈ US$ 0,0092/min (fontes: US$ 0,0058–0,0092)</td><td class="n">0,092</td><td class="n">0,055</td></tr>
+<tr><td>TTS (ElevenLabs Flash v2.5)</td><td>~5 min de fala ≈ 4.000 caracteres</td><td>≈ US$ 0,04 / 1.000 caracteres</td><td class="n">0,160</td><td class="n">0,112</td></tr>
+<tr><td>Imagens (Gemini)</td><td>4 imagens por sessão</td><td>≈ US$ 0,04 por imagem <span class="tag t-nv">NÃO VERIF.</span></td><td class="n">0,160</td><td class="n">0,040</td></tr>
+<tr><td>Embeddings (Voyage voyage-4)</td><td>consulta por turno</td><td>US$ 0,06 / 1 mi tokens; 200 mi grátis</td><td class="n">≈ 0</td><td class="n">≈ 0</td></tr>
+<tr><td><b>Total por sessão</b></td><td></td><td></td><td class="n"><b>0,453</b></td><td class="n"><b>0,232</b></td></tr>
+<tr><td><b>Total em reais</b> (R$ 5,50)</td><td></td><td></td><td class="n"><b>R$ 2,49</b></td><td class="n"><b>R$ 1,28</b></td></tr>
+</table>
+<p class="small">“Otimizado” assume: 75% das imagens vêm de cache compartilhado entre alunos da mesma escola/livro; microfone cobrado só durante fala (detecção de voz), ~40% a menos; cache de prompt do LLM; desconto de volume de ~30% no TTS. <b>Nenhuma dessas otimizações foi medida</b>; são metas.</p>
+<figure>
+<svg viewBox="0 0 520 150" width="100%">
+  <text x="0" y="12" font-size="11" font-weight="700" fill="#162250">Custo variável por sessão de 10 min (US$)</text>
+  <g font-size="9.5" fill="#1d2540">
+    <text x="0" y="46">Preço de lista</text>
+    <rect x="90" y="32" width="9"  height="20" fill="#126CFC"/><rect x="99" y="32" width="15" height="20" fill="#162250"/>
+    <rect x="114" y="32" width="49" height="20" fill="#6b4fd8"/><rect x="163" y="32" width="85" height="20" fill="#f2a900"/><rect x="248" y="32" width="85" height="20" fill="#1f8a4c"/>
+    <text x="340" y="46" font-weight="700">0,453</text>
+    <text x="0" y="96">Otimizado</text>
+    <rect x="90" y="82" width="6" height="20" fill="#126CFC"/><rect x="96" y="82" width="7" height="20" fill="#162250"/>
+    <rect x="103" y="82" width="29" height="20" fill="#6b4fd8"/><rect x="132" y="82" width="60" height="20" fill="#f2a900"/><rect x="192" y="82" width="21" height="20" fill="#1f8a4c"/>
+    <text x="220" y="96" font-weight="700">0,232</text>
+  </g>
+  <g font-size="9" fill="#1d2540"><rect x="0" y="122" width="9" height="9" fill="#126CFC"/><text x="12" y="130">LLM tutor</text><rect x="70" y="122" width="9" height="9" fill="#162250"/><text x="82" y="130">juiz+análise</text><rect x="150" y="122" width="9" height="9" fill="#6b4fd8"/><text x="162" y="130">STT</text><rect x="195" y="122" width="9" height="9" fill="#f2a900"/><text x="207" y="130">TTS</text><rect x="240" y="122" width="9" height="9" fill="#1f8a4c"/><text x="252" y="130">imagens</text></g>
+</svg>
+<figcaption>Voz (STT + TTS) e imagens somam ≈ 91% do custo em preço de lista; o LLM é pouco relevante. Fonte: cálculo da tabela acima.</figcaption></figure>
+
+<h3>Do custo por sessão à margem por aluno</h3>
+<table>
+<tr><th>Item (por aluno ativo/mês; 8 sessões)</th><th class="n">Preço de lista</th><th class="n">Otimizado</th></tr>
+<tr><td>Custo variável</td><td class="n">R$ 19,92</td><td class="n">R$ 10,21</td></tr>
+<tr><td>Receita (R$ 29)</td><td class="n">R$ 29,00</td><td class="n">R$ 29,00</td></tr>
+<tr><td><b>Margem bruta</b> (só custo variável de IA)</td><td class="n"><b>≈ 31%</b></td><td class="n"><b>≈ 65%</b></td></tr>
+</table>
+<div class="box warn"><b class="t">O que isso significa</b>
+Em preço de lista, <b>voz e imagem tornam a margem fina</b> (31%). É preciso (a) cache agressivo de imagens e de falas repetidas, (b) cobrar o microfone só quando o aluno fala, (c) oferecer modo texto como padrão econômico, (d) negociar volume e (e) considerar a voz um recurso de plano superior. Custos fixos (hospedagem Render, MongoDB Atlas, suporte, segurança) <b>não foram medidos</b> e não estão na margem acima. A estrutura de custos é sensível ao câmbio: todos os provedores cobram em dólar. <span class="tag t-as">PREMISSA</span></div>
+</div>
+
+<!-- ============ 8 ============ -->
+<div class="sec">
+<h1><span class="num">8</span>Go-to-market</h1>
+<p><span class="tag t-hp">HIPÓTESE</span> A estratégia abaixo é um plano a validar, não resultados.</p>
+<h3>Fase 0 — hoje: descoberta e prova de conceito</h3>
+<ul><li>Entrevistar 15–20 coordenadores pedagógicos e professores do 7º–9º ano de escolas privadas do Recife: que plataformas usam, quanto pagam, o que impede a adoção de tutoria com IA, o que querem ver no painel.</li>
+<li>Mostrar a demonstração (História — Roma Antiga) e coletar cartas de intenção para um piloto.</li></ul>
+<h3>Fase 1 — piloto pago em 1 escola (6–8 semanas)</h3>
+<ul><li>1 escola, 1 disciplina, 1–2 turmas; avaliação inicial e final com questões equivalentes; consentimento dos responsáveis e base legal LGPD definidos <b>antes</b> de qualquer aluno real usar.</li>
+<li>Meta de aprendizado (não de marketing): medir se o tutor ajuda, quanto custa por aluno ativo e se o professor usa as lacunas. Publicar a metodologia, inclusive resultados fracos.</li></ul>
+<h3>Fase 2 — 5 a 10 escolas, expansão regional</h3>
+<ul><li>Venda consultiva ao diretor/mantenedor e à coordenação, com o relatório do piloto como prova. Canal: indicação entre escolas e redes de colégios.</li>
+<li>Segunda matéria (Matemática, Português) conforme o piloto mostrar demanda.</li></ul>
+<h3>Fase 3 — escala</h3>
+<ul><li>Redes de escolas e parcerias (ex.: edtechs que já vendem às escolas). Rede pública só com estratégia própria (licitação, CPSI do Marco Legal das Startups, dispositivos e conectividade variáveis).</li></ul>
+<div class="box"><b class="t">Relação com a Teachy (hipótese)</b>
+A Mento se posiciona como <b>camada de tutoria ao vivo e inteligência de aprendizagem</b> que complementa plataformas de professores. Perguntas a fazer à Teachy: como imaginam a tutoria individual, que sinais de aprendizagem observam, que integração seria viável, o que um piloto exigiria. Não há indicação de que a Teachy tenha oferecido ou demonstrado interesse em adquirir, investir ou fazer parceria. Ler as regras de propriedade intelectual do hackathon antes de qualquer submissão.</div>
+</div>
+
+<!-- ============ 9 ============ -->
+<div class="sec">
+<h1><span class="num">9</span>Concorrência e diferenciação</h1>
+<p>Informações de concorrentes vêm de pesquisa documentada no repositório em 30/10/2026 (sites públicos, comunicados) e <b>não foram testadas nos produtos reais</b> <span class="tag t-nv">NÃO VERIF.</span>. Não afirmamos que algum concorrente “não tem” um recurso.</p>
+<table>
+<tr><th>Categoria</th><th>Exemplos</th><th>Onde competem</th><th>Espaço que a Mento busca</th></tr>
+<tr><td>IA educacional brasileira</td><td>Teachy</td><td>Professores, materiais, avaliações, acompanhamento</td><td>Tutoria ao vivo + evidência por conceito (complementar; concorrente adjacente)</td></tr>
+<tr><td>IA para escolas (K-12)</td><td>Flint, Lyceum</td><td>Atividades criadas pelo professor, monitoramento, citações, quadro</td><td>Flint <b>sobrepõe bastante</b> (quadro, voz, citações, insights). Diferencial a validar: tutor que desenha ao vivo e clique-e-pergunta em qualquer objeto, citação do PDF do professor com trecho destacado, diagnóstico por pré-requisitos</td></tr>
+<tr><td>Tutor pessoal</td><td>Studdy, Khanmigo, Gauth</td><td>Explicação passo a passo, diálogo</td><td>Contexto curricular persistente + evidência ligada à escola</td></tr>
+<tr><td>Materiais → estudo</td><td>StudyFetch, Quizlet, Gizmo</td><td>PDFs viram flashcards/quizzes</td><td>Ingestão institucional + currículo definido pelo professor</td></tr>
+<tr><td>Assistentes gerais</td><td>ChatGPT, Claude, Gemini</td><td>Respostas para qualquer coisa — <b>substituto mais forte</b></td><td>Currículo, continuidade, verificação, professor no controle</td></tr>
+</table>
+<h3>Diferenciação defensável (e seus limites)</h3>
+<ul>
+<li><b>Quadro, voz e upload de PDF não são fosso</b> por si sós; qualquer concorrente bem financiado pode copiá-los em meses. Dizemos isso abertamente.</li>
+<li>O que acumula valor é o <b>ciclo de dados</b>: evidências por conceito ligadas a uma sequência de lições (grafo de pré-requisitos) do <i>livro daquela escola</i>. Quanto mais sessões, melhor o diagnóstico e mais difícil trocar de fornecedor. <span class="tag t-hp">HIPÓTESE</span></li>
+<li><b>Determinismo onde importa:</b> severidade, confiança e diagnóstico são regras auditáveis (<i>rules-v1</i>), não opinião da IA — facilita confiança de coordenação e conformidade.</li>
+<li><b>Professor no controle</b>: a IA sugere; o professor descarta. Sem rótulos psicológicos nem “estilos de aprendizagem” (sem respaldo científico).</li>
+</ul>
+</div>
+
+<!-- ============ 10 ============ -->
+<div class="sec">
+<h1><span class="num">10</span>Tecnologia, privacidade e defensabilidade</h1>
+<h2>Arquitetura <span class="tag t-ok">FATO</span></h2>
+<table>
+<tr><th>Camada</th><th>Tecnologia</th></tr>
+<tr><td>Front-end</td><td>Next.js (somente interface); quadro em DOM, renderizadores de texto, desenho, destaque e círculo; legendas sincronizadas com a fala.</td></tr>
+<tr><td>API</td><td>Fastify (TypeScript), SSE para o turno do tutor, contratos Zod compartilhados.</td></tr>
+<tr><td>Tutor</td><td>Claude Haiku 5.5 (tutor e juiz); prompts como arquivos de texto (base + perfil da matéria + contexto da turma + trechos do livro + resumo do aluno).</td></tr>
+<tr><td>Voz</td><td>Deepgram Nova-3 (STT) · ElevenLabs Flash v2.5 (TTS).</td></tr>
+<tr><td>Conhecimento</td><td>Voyage embeddings · MongoDB Atlas Vector Search + busca textual · extração de PDF e sequência de lições.</td></tr>
+<tr><td>Imagens</td><td>Google Gemini, cache por hash do prompt.</td></tr>
+<tr><td>Dados / hospedagem</td><td>MongoDB (Mongoose) · deploy em Render após CI verde.</td></tr>
+</table>
+<h2>Privacidade e conformidade <span class="tag t-hp">HIPÓTESE</span> de projeto</h2>
+<ul>
+<li>Alunos podem ser menores: a LGPD (Lei 13.709/2018, art. 14, melhor interesse da criança e do adolescente) exige base legal e, em regra, consentimento específico de um responsável. Há ainda legislação recente sobre proteção de crianças em ambientes digitais (ECA Digital) que <b>precisa ser analisada por advogado</b> <span class="tag t-nv">NÃO VERIF.</span>.</li>
+<li>Projeto <b>compatível com retenção zero</b> (“a IA esquece tudo; a escola lembra”): a memória fica no banco da Mento, estruturada, corrigível e apagável; o LLM não guarda estado. Dizemos “arquitetura compatível com ZDR”, <b>não</b> “somos ZDR”: os acordos de retenção zero com cada provedor ainda não existem.</li>
+<li>Dados pessoais fictícios do perfil do aluno nunca vão para LLM; identificadores pseudonimizados; o painel do professor mostra o que o aluno <i>entende</i>, não o que escreveu.</li>
+<li>Proibido por regra de produto: inferências psicológicas (atenção, ansiedade, personalidade), rótulos permanentes, ranking de alunos.</li>
+<li><b>Pendências antes de qualquer piloto real:</b> autenticação e multi-escola, política de retenção, contratos de operador/controlador, avaliação de transferência internacional (os provedores estão nos EUA), consentimento de responsáveis, canal de correção.</li>
+</ul>
+<h2>Defensabilidade, com os pés no chão</h2>
+<p>Hoje o fosso é fraco: o código foi escrito em dois dias e usa APIs de terceiros. A defensabilidade esperada vem de (1) dados proprietários de aprendizagem ligados ao currículo de cada escola, (2) integração no fluxo do professor e (3) confiança institucional (privacidade, validação pedagógica). Nenhuma dessas existe ainda em escala.</p>
+</div>
+
+<!-- ============ 11-12 ============ -->
+<div class="sec">
+<h1><span class="num">11</span>Tração e validação</h1>
+<div class="box fill"><b class="t">Tração atual</b>Clientes pagantes: <b>0</b> · Receita: <b>R$ 0</b> · Pilotos: <b>0</b> · Cartas de intenção: [PREENCHER, se houver] · Entrevistas com escolas: [PREENCHER] · Lista de espera: [PREENCHER].</div>
+<h3>O que temos de prova, e o que ela vale <span class="tag t-ok">FATO</span></h3>
+<table>
+<tr><th>Evidência</th><th>Resultado</th><th>O que prova — e o que não prova</th></tr>
+<tr><td>Latência do turno (<code>pnpm turn:bench</code>)</td><td>1ª ação p50 1,8 s (p95 2,6 s); 1º áudio ≈ 0,35 s; 0 erros. Após o prompt didático: p50 2,05 s, p95 3,09 s</td><td>Prova viabilidade técnica da voz+quadro. Não prova qualidade pedagógica.</td></tr>
+<tr><td>Aula roteirizada de 5 turnos</td><td>2–4 falas por resposta; toda resposta termina em pergunta; 2 verificações em 5 turnos</td><td>Teste automatizado com roteiro; <b>não</b> é teste com aluno real. Um humano falando com o prompt novo ainda não foi verificado.</td></tr>
+<tr><td>Testes automatizados</td><td>89 arquivos de teste; CI exige verde antes do deploy</td><td>Qualidade de engenharia; não valida valor para a escola.</td></tr>
+</table>
+<h3>Como vamos gerar tração (próximos 90 dias)</h3>
+<ul><li>20 entrevistas; 3 cartas de intenção; 1 piloto pago assinado; instrumento de avaliação antes/depois desenhado com um pesquisador em educação.</li></ul>
+
+<h1 style="margin-top:9mm"><span class="num">12</span>Equipe</h1>
+<p>O repositório mostra três pessoas trabalhando em paralelo, com divisão clara de responsabilidades (todos os nomes, cargos e biografias abaixo <b>precisam ser confirmados e completados</b> pela equipe):</p>
+<table>
+<tr><th>Frente</th><th>Pessoa (a confirmar)</th><th>Responsabilidade</th></tr>
+<tr><td>Quadro-branco: back-end, tutor, voz, recuperação</td><td>Eric Barreto (fundador) <span class="tag t-nv">CONFIRMAR</span></td><td>Prompts, orquestração do LLM, STT/TTS, desenho, juiz, ingestão e busca nos livros</td></tr>
+<tr><td>Quadro-branco: front-end e design system</td><td>Robério Filho <span class="tag t-nv">CONFIRMAR</span></td><td>Experiência do aluno: quadro, círculos, clique-e-pergunta, orbe/mascote, voz no cliente</td></tr>
+<tr><td>Interface do professor, dados e insights</td><td>Mateus Ataide <span class="tag t-nv">CONFIRMAR</span></td><td>Abas Alunos/Materiais, contexto da turma, análise → insights, listas de exercícios</td></tr>
+</table>
+<div class="box fill"><b class="t">A preencher pela equipe</b>
+Para cada pessoa: cargo, formação, experiência anterior relevante (educação, IA, vendas B2B, escolas), dedicação (tempo integral/parcial), participação societária. Lacunas de contratação que o investimento cobriria: [ex.: especialista pedagógico, vendas consultivas para escolas, responsável por privacidade/jurídico]. Conselheiros/mentores: [PREENCHER].</div>
+<p class="small">Evidência de execução (git): 214 commits em ~1,5 dia por 3 contribuidores; processo com contratos compartilhados e integração contínua.</p>
+</div>
+
+<!-- ============ 13 ============ -->
+<div class="sec">
+<h1><span class="num">13</span>Projeções financeiras</h1>
+<div class="box warn"><b class="t">Aviso</b>Não há histórico financeiro. Os números abaixo são <b>cenários ilustrativos</b> construídos sobre as premissas das seções 5–7, para mostrar a mecânica do negócio e o que precisa ser verdade. Não são previsão.</div>
+<h3>Premissas dos cenários <span class="tag t-as">PREMISSA</span></h3>
+<ul>
+<li>200 alunos de 7º–9º por escola cliente; preço R$ 348/ano; no ano 1 as escolas pagam 50% (piloto/desconto de lançamento).</li>
+<li>Margem bruta de IA: 65% (custo otimizado) — se não houver otimização, 31%.</li>
+<li>Despesas operacionais (equipe de 6–8 pessoas, marketing, jurídico, infraestrutura fixa): ≈ R$ 150 mil/mês = R$ 1,8 mi/ano, constantes por simplicidade.</li>
+</ul>
+<table>
+<tr><th>Cenário</th><th class="n">Escolas (fim a1 / a2 / a3)</th><th class="n">Alunos (a3)</th><th class="n">Receita a1</th><th class="n">Receita a2</th><th class="n">Receita a3</th></tr>
+<tr><td>Conservador</td><td class="n">2 / 6 / 15</td><td class="n">3.000</td><td class="n">R$ 70 mil</td><td class="n">R$ 418 mil</td><td class="n">R$ 1,04 mi</td></tr>
+<tr><td><b>Base</b></td><td class="n">3 / 12 / 30</td><td class="n">6.000</td><td class="n">R$ 104 mil</td><td class="n">R$ 835 mil</td><td class="n">R$ 2,09 mi</td></tr>
+<tr><td>Ambicioso</td><td class="n">6 / 24 / 60</td><td class="n">12.000</td><td class="n">R$ 209 mil</td><td class="n">R$ 1,67 mi</td><td class="n">R$ 4,18 mi</td></tr>
+</table>
+<p class="small">Receita do ano = alunos ao final do ano × R$ 348 (ano 1 × 50%). Simplificação: ignora o ritmo de entrada ao longo do ano.</p>
+<figure>
+<svg viewBox="0 0 520 190" width="100%">
+  <text x="0" y="12" font-size="11" font-weight="700" fill="#162250">Receita anual por cenário (R$ mil)</text>
+  <line x1="40" y1="165" x2="510" y2="165" stroke="#999"/>
+  <g font-size="9" fill="#1d2540" text-anchor="middle">
+    <!-- escala: 4180 mil -> 130px => 0.0311 px/mil -->
+    <rect x="70"  y="162.8" width="22" height="2.2"  fill="#9db9ff"/><rect x="94"  y="161.8" width="22" height="3.2" fill="#1E59ED"/><rect x="118" y="158.5" width="22" height="6.5" fill="#162250"/>
+    <rect x="180" y="152" width="22" height="13" fill="#9db9ff"/><rect x="204" y="139" width="22" height="26" fill="#1E59ED"/><rect x="228" y="113" width="22" height="52" fill="#162250"/>
+    <rect x="320" y="132.6" width="22" height="32.4" fill="#9db9ff"/><rect x="344" y="100" width="22" height="65" fill="#1E59ED"/><rect x="368" y="35" width="22" height="130" fill="#162250"/>
+    <text x="105" y="180">Ano 1</text><text x="215" y="180">Ano 2</text><text x="355" y="180">Ano 3</text>
+    <text x="81" y="158">70</text><text x="105" y="158">104</text><text x="129" y="158">209</text>
+    <text x="191" y="147">418</text><text x="215" y="134">835</text><text x="239" y="108">1.670</text>
+    <text x="331" y="128">1.040</text><text x="355" y="95">2.090</text><text x="379" y="30">4.180</text>
+  </g>
+  <g font-size="9"><rect x="400" y="20" width="9" height="9" fill="#9db9ff"/><text x="413" y="28">Conservador</text><rect x="400" y="34" width="9" height="9" fill="#1E59ED"/><text x="413" y="42">Base</text><rect x="400" y="48" width="9" height="9" fill="#162250"/><text x="413" y="56">Ambicioso</text></g>
+</svg>
+<figcaption>Valores da tabela (R$ mil). Cenários ilustrativos.</figcaption></figure>
+<h3>Ponto de equilíbrio (ilustrativo)</h3>
+<p>Margem bruta por aluno/ano com custo otimizado: R$ 348 − R$ 122 = <b>R$ 226</b>. Com despesas fixas de R$ 1,8 mi/ano, o equilíbrio exige ≈ <b>8.000 alunos pagantes</b> ≈ 40 escolas de 200 alunos ≈ 0,6% do SAM. No cenário base o ano 3 ainda <b>não</b> cobre o custo: é preciso capital até lá. Se a margem ficar em 31% (sem otimização), o equilíbrio sobe para ≈ 16.500 alunos. Esses números mostram que <b>otimizar o custo de voz e imagem é pré-requisito do modelo</b>, não detalhe técnico.</p>
+<table>
+<tr><th>Cenário base, ano 3</th><th class="n">R$ mil</th></tr>
+<tr><td>Receita (6.000 alunos × R$ 348)</td><td class="n">2.088</td></tr>
+<tr><td>Custo variável de IA (otimizado, R$ 122/aluno)</td><td class="n">(735)</td></tr>
+<tr><td><b>Lucro bruto</b></td><td class="n"><b>1.353</b></td></tr>
+<tr><td>Despesas operacionais (premissa)</td><td class="n">(1.800)</td></tr>
+<tr><td><b>Resultado operacional</b></td><td class="n"><b>(447)</b></td></tr>
+</table>
+</div>
+
+<!-- ============ 14 ============ -->
+<div class="sec">
+<h1><span class="num">14</span>Roadmap</h1>
+<figure>
+<svg viewBox="0 0 520 210" width="100%">
+  <g font-size="10" fill="#162250" font-weight="700"><text x="0" y="14">Hoje</text><text x="120" y="14">0–3 meses</text><text x="250" y="14">3–9 meses</text><text x="390" y="14">9–18 meses</text></g>
+  <rect x="0" y="22" width="110" height="170" rx="4" fill="#eef3ff"/><rect x="120" y="22" width="120" height="170" rx="4" fill="#dfe8ff"/><rect x="250" y="22" width="130" height="170" rx="4" fill="#cfdcff"/><rect x="390" y="22" width="130" height="170" rx="4" fill="#bccfff"/>
+  <g font-size="8.5" fill="#1d2540">
+    <text x="6" y="40">Protótipo E2E</text><text x="6" y="54">História / Roma</text><text x="6" y="68">Painel + insights</text><text x="6" y="82">CI/CD</text>
+    <text x="126" y="40">Autenticação, multi-</text><text x="126" y="52">escola e multi-turma</text><text x="126" y="68">Jurídico: LGPD,</text><text x="126" y="80">consentimento</text><text x="126" y="96">Otimizar custo de</text><text x="126" y="108">voz e imagem</text><text x="126" y="124">20 entrevistas</text><text x="126" y="136">Carta de intenção</text>
+    <text x="256" y="40">Piloto pago (6–8 sem.)</text><text x="256" y="52">avaliação antes/depois</text><text x="256" y="68">2ª matéria (Mat./Port.)</text><text x="256" y="84">Upload de materiais</text><text x="256" y="96">pelo professor</text><text x="256" y="112">Relatório do piloto</text>
+    <text x="396" y="40">5–10 escolas</text><text x="396" y="56">Integrações (SIS/LMS)</text><text x="396" y="72">Acordos ZDR com</text><text x="396" y="84">provedores</text><text x="396" y="100">Painel de coordenação</text><text x="396" y="116">Famílias (módulo)</text><text x="396" y="132">Estudo de eficácia</text>
+  </g>
+</svg>
+<figcaption>Roadmap proposto. Datas relativas ao fechamento da captação. <span class="tag t-hp">HIPÓTESE</span></figcaption></figure>
+<h3>Marcos que destravam uma rodada seguinte <span class="tag t-hp">HIPÓTESE</span></h3>
+<ul>
+<li>Piloto concluído com metodologia transparente e custo por aluno ativo medido.</li>
+<li>3–5 escolas pagantes com renovação; uso semanal sustentado por ≥ 40% dos alunos licenciados.</li>
+<li>Margem bruta ≥ 60% medida em produção.</li>
+<li>Conformidade LGPD revisada por advogado; contratos de operador com os provedores.</li>
+</ul>
+<h3>Fora de escopo por ora</h3>
+<p>Ensino Médio e superior, rede pública, módulo de famílias, nota/diário de classe, LMS, modelos próprios treinados, multiagentes complexos.</p>
+</div>
+
+<!-- ============ 15 ============ -->
+<div class="sec">
+<h1><span class="num">15</span>Captação e uso dos recursos</h1>
+<div class="box fill"><b class="t">A preencher pelo fundador</b>
+<b>Valor da captação:</b> R$ [VALOR] · <b>Instrumento:</b> [SAFE / nota conversível / equity] · <b>Pré-money ou teto:</b> R$ [VALOR] · <b>Diluição:</b> [%] · <b>Runway:</b> [N] meses · <b>Investidores já conversando:</b> [PREENCHER ou “nenhum”]. Este documento não sugere valuation: sem tração, qualquer número seria inventado.</div>
+<h3>Proposta de distribuição (percentuais) <span class="tag t-hp">HIPÓTESE</span></h3>
+<table>
+<tr><th>Destino</th><th class="n">%</th><th>Para quê</th></tr>
+<tr><td>Produto e engenharia</td><td class="n">40%</td><td>Autenticação, multi-escola, upload de materiais, segunda matéria, otimização de custo, confiabilidade</td></tr>
+<tr><td>Pesquisa pedagógica e piloto</td><td class="n">15%</td><td>Pesquisador em educação, desenho do estudo antes/depois, incentivos às escolas piloto</td></tr>
+<tr><td>Vendas consultivas e implantação</td><td class="n">20%</td><td>1–2 pessoas de relacionamento com escolas, formação de professores</td></tr>
+<tr><td>Jurídico, privacidade e segurança</td><td class="n">10%</td><td>LGPD, contratos, testes de segurança, acordos de retenção zero</td></tr>
+<tr><td>Infraestrutura e provedores de IA</td><td class="n">10%</td><td>Custo variável dos pilotos (R$ 1,3–2,5 por sessão de 10 min), hospedagem, observabilidade</td></tr>
+<tr><td>Reserva e administrativo</td><td class="n">5%</td><td></td></tr>
+</table>
+<h3>Saída (exit)</h3>
+<p>Caminhos possíveis, <b>sem nenhum compromisso ou interesse manifestado</b>: aquisição por edtech/plataforma educacional, parceria de licenciamento, ou crescimento independente com novas rodadas. Dependem de tração que ainda não existe.</p>
+</div>
+
+<!-- ============ 16 ============ -->
+<div class="sec">
+<h1><span class="num">16</span>Riscos e mitigações</h1>
+<table>
+<tr><th>Risco</th><th>Gravidade</th><th>Mitigação</th></tr>
+<tr><td><b>Eficácia pedagógica não comprovada</b>: o tutor pode não gerar ganho de aprendizagem</td><td>Alta</td><td>Piloto com avaliação antes/depois e metodologia aberta; pesquisador independente; pivotar o foco para o painel do professor se o tutor sozinho não mostrar ganho.</td></tr>
+<tr><td><b>Margem fina por voz e imagem</b></td><td>Alta</td><td>Cache de imagens/falas, cobrança do microfone só na fala, modo texto padrão, voz como plano superior, negociação de volume; medir custo por aluno ativo no piloto.</td></tr>
+<tr><td><b>LGPD / menores / reputação</b></td><td>Alta</td><td>Nenhum aluno real antes de base legal e consentimento; arquitetura de retenção mínima; revisão jurídica; contratos de operador; transparência sobre uso de IA.</td></tr>
+<tr><td><b>Alucinação ou conteúdo inadequado</b> do tutor</td><td>Alta</td><td>Respostas ancoradas no material com citação validada; aviso fora do material; professor revisa; mecanismo de denúncia/correção; testes de segurança.</td></tr>
+<tr><td><b>Concorrência</b> (Teachy, Flint, Khanmigo, ChatGPT etc.) copia recursos</td><td>Alta</td><td>Competir pelo ciclo de dados e pela relação com a escola; considerar parceria em vez de confronto; velocidade de execução.</td></tr>
+<tr><td><b>Ciclo de venda para escolas</b> é lento e depende de decisores</td><td>Média</td><td>Pilotos curtos e baratos; indicação entre escolas; venda ao coordenador com relatório de evidência.</td></tr>
+<tr><td><b>Dependência de provedores</b> (Anthropic, ElevenLabs, Deepgram, Google, Voyage, MongoDB) e câmbio</td><td>Média</td><td>Camadas de abstração já existentes por provedor; alternativas mapeadas (ex.: Azure/Cartesia para TTS); preços em dólar entram no reajuste do contrato.</td></tr>
+<tr><td><b>Qualidade fora da demonstração</b>: só uma matéria/livro testado; PDFs escaneados</td><td>Média</td><td>Testar 5+ livros e 3 matérias antes do piloto; OCR/visão para páginas sem camada de texto.</td></tr>
+<tr><td><b>Equipe pequena e sem experiência de vendas a escolas</b> [confirmar]</td><td>Média</td><td>Contratação-chave com a captação; conselheiros do setor educacional.</td></tr>
+<tr><td><b>Propriedade intelectual do hackathon</b></td><td>Média</td><td>Ler as regras do evento (titularidade, licença do patrocinador, exclusividade) antes de submeter.</td></tr>
+<tr><td><b>Desconfiança de professores</b> (“a IA vai me substituir”)</td><td>Média</td><td>Professor decide; painel serve a ele; formação; a IA nunca decide aprovação.</td></tr>
+</table>
+</div>
+
+<!-- ============ ANEXOS ============ -->
+<div class="sec" id="fontes">
+<h1>Anexo A — Formato esperado por VCs e fontes</h1>
+<h3>O que investidores de estágio inicial esperam de um memorando</h3>
+<p>Resumo de guias de fundos e ferramentas de captação, consultados em 31/10/2026 (fontes de vendors e blogs de VC, <b>não pesquisas primárias com investidores</b> <span class="tag t-nv">NÃO VERIF.</span>): contar a história da empresa com <b>problema, solução, tamanho de mercado, equipe, diferenciação de produto, projeções financeiras e mitigação de risco</b>; incluir <b>modelo de negócio, aquisição de clientes, preço e proposta de valor</b>; declarar <b>quanto se capta e como será gasto</b> (planos vagos corroem a confiança); falar de diluição e de rodadas futuras; e evitar TAM “de cima para baixo” sem dados. O memorando típico tem em torno de 3.000 palavras e o plano de negócios é o roteiro operacional da empresa. O modelo clássico de deck (Sequoia, YC) lista: propósito, problema, solução, <i>por que agora</i>, mercado, concorrência, produto, modelo de negócio, equipe e finanças; Michael Seibel (YC) enfatiza clareza imediata: o que a empresa faz, equipe, tração, insight único, tamanho de mercado e pedido.</p>
+<p>Este documento cobre todos esses itens, e acrescenta seções de <b>economia unitária</b>, <b>riscos</b> e <b>honestidade sobre o que é premissa</b> porque, sem tração, é isso que dá credibilidade.</p>
+<h3>Fontes (consultadas em 31/10/2026)</h3>
+<ul class="src">
+<li>Memorandos de investimento: <a href="https://nicdetommaso.beehiiv.com/p/what-s-inside-an-early-stage-vc-investment-memo">nicdetommaso.beehiiv.com — What’s inside an early-stage VC investment memo</a>; <a href="https://aspireapp.com/blog/investment-memorandum">aspireapp.com — Investment memorandum</a>; <a href="https://qubit.capital/blog/early-stage-vc-investment-memo">qubit.capital — Early-stage VC investment memo</a>; <a href="https://www.goingvc.com/post/whats-inside-an-early-stage-vc-investment-memo">goingvc.com</a>; <a href="https://carta.com/uk/en/learn/private-funds/management/portfolio-management/investment-memo/">carta.com — Investment memos</a>.</li>
+<li>Pitch a investidores: <a href="https://paulgraham.com/investors.html">Paul Graham — How to Present to Investors</a>; <a href="https://www.saastr.com/how-to-pitch-your-seed-stage-startup-with-y-combinators-michael-seibel">SaaStr — Michael Seibel (YC)</a>; modelo Sequoia e regra 10/20/30 de Guy Kawasaki (2005) citados via sites espelho <span class="tag t-nv">NÃO VERIF.</span>.</li>
+<li>Mercado: Inep, <a href="https://cefort.ufam.edu.br/repositoriocp/wp-content/uploads/tainacan-items/71/3943/notas_estatisticas_censo_da_educacao_basica_2024.pdf">Notas Estatísticas do Censo da Educação Básica 2024</a> (≈ 26 mi matrículas no fundamental; anos finais com queda de 3,6% em 5 anos); rede privada nos anos finais 16,3% (Censo 2023, via <a href="https://sbtnews.sbt.com.br/noticia/brasil/quase-9-milhoes-de-brasileiros-de-18-a-29-anos-nao-concluiram-a-educacao-basica-aponta-censo-escolar-2023">SBT News</a>); rede privada ≈ 20,2% de todas as matrículas em 2024 (<a href="https://www.extraclasse.org.br/?p=114219">Extra Classe</a>).</li>
+<li>Mensalidades: <a href="https://www.melhorescola.com.br/artigos/descubra-o-valor-medio-da-mensalidade-de-escolas-particulares-no-brasil">Melhor Escola</a> (R$ 450–2.000); <a href="https://viva.com.br/carreira-e-educacao/custo-medio-de-mensalidades-escolares-cresceu-25-entre-2021-e-2025.html">Viva / Sponte (Linx)</a> (média R$ 531,44 em 2025).</li>
+<li>Preços de IA: Haiku 5.5 — <a href="https://techenclave.com/news/items/claude-haiku-5-5-launches-with-0-10-input-pricing-for-shorter-prompts">TechEnclave</a>, <a href="https://pricepertoken.com/pricing-page/model/anthropic-claude-haiku-5.5">pricepertoken.com</a> (conferir em platform.claude.com); Deepgram Nova-3 — <a href="https://www.activepieces.com/blog/deepgram-pricing-2026-per-minute-rates-and-add-ons">Activepieces</a>, <a href="https://soniox.com/pricing/stt/soniox-vs-deepgram">Soniox</a>; ElevenLabs, Voyage, Cartesia, Azure — páginas oficiais citadas em <code>docs/11-technology-research.md</code> (30/10/2026).</li>
+<li>Concorrência: <code>docs/09-market-and-competitors.md</code>, <code>docs/15-studdy-teardown.md</code>, <a href="https://flintk12.com/">flintk12.com</a>, <a href="https://studdyai.com/">studdyai.com</a>, <a href="https://www.morningstar.com/news/pr-newswire/20261001cn57751/gauth-launches-unlimited-digital-canvas-gives-students-one-continuous-whiteboard-to-visualize-explore-and-understand-complex-topics">comunicado do Gauth (1/10/2026)</a>.</li>
+<li>Tutoria individual: Bloom, B. S. (1984), “The 2 Sigma Problem”, <i>Educational Researcher</i> — efeito debatido na literatura posterior.</li>
+</ul>
+</div>
+
+<div class="sec">
+<h1>Anexo B — Fatos medidos no projeto</h1>
+<table>
+<tr><th>Medida</th><th>Valor</th><th>Origem</th></tr>
+<tr><td>Primeira ação do tutor (mediana, ponta a ponta)</td><td>1,8 s (p95 2,56 s)</td><td>Hand-off do back-end, 30/10/2026 (22h42 -03), <code>pnpm turn:bench 3</code></td></tr>
+<tr><td>Primeiro byte de áudio (TTS)</td><td>≈ 0,35 s</td><td>idem</td></tr>
+<tr><td>Primeira ação com prompt didático</td><td>p50 2,05 s · p95 3,09 s · script completo p50 4,8 s</td><td>idem, §6</td></tr>
+<tr><td>Erros nos testes de latência</td><td>0</td><td>idem</td></tr>
+<tr><td>Linhas de código TS/TSX · arquivos de teste · commits</td><td>≈ 31 mil · 89 · 214</td><td>repositório em 31/10/2026</td></tr>
+<tr><td>Modelo do tutor</td><td>claude-haiku-5-5, thinking desligado</td><td>decisão D55 (<code>docs/10-decisions.md</code>)</td></tr>
+<tr><td>Verificação com pessoa real falando, alto-falante sem fone</td><td><b>não verificada</b></td><td>Hand-off §6 e §9</td></tr>
+</table>
+<h1 style="margin-top:8mm">Anexo C — Lista de premissas e itens não verificados</h1>
+<ul>
+<li>Parcela dos anos finais no fundamental (43%) e fração 3/4 para 7º–9º: substituir pela sinopse estatística do Inep.</li>
+<li>Rede privada nos anos finais (16,3% em 2023): confirmar 2024.</li>
+<li>Preço de R$ 29/aluno/mês, 200 alunos/escola, 8 sessões/mês, 10 min/sessão: <b>não testados</b>.</li>
+<li>Preços de provedores (Anthropic, Deepgram, ElevenLabs, Gemini): conferir em páginas oficiais; câmbio R$ 5,50.</li>
+<li>Otimizações de custo (cache de imagens 75%, STT 40% menor, TTS −30%): metas, não medições.</li>
+<li>Despesas operacionais de R$ 150 mil/mês: placeholder.</li>
+<li>Dados do PISA 2022 e ECA Digital: conferir nas fontes oficiais.</li>
+<li>Funcionalidades de concorrentes: não testadas nos produtos reais.</li>
+<li>Marca “Mento” e origem dos ativos de marca: disponibilidade no INPI não verificada.</li>
+<li>Telas do professor: o bloco de alunos usa dados fictícios; <b>informar isso verbalmente</b> ao investidor, mesmo onde o selo visual “dados simulados” tiver sido removido da interface.</li>
+</ul>
+<h1 id="preencher" style="margin-top:8mm">Anexo D — O que só a equipe pode preencher</h1>
+<table>
+<tr><th>Campo</th><th>Onde entra</th></tr>
+<tr><td>Valor, instrumento, teto/pré-money, runway, investidores em conversa</td><td>Seção 1 e 15</td></tr>
+<tr><td>Nomes, cargos, experiência, dedicação e sociedade de cada pessoa; lacunas de contratação; mentores</td><td>Seção 12</td></tr>
+<tr><td>Tração real: entrevistas, cartas de intenção, lista de espera, qualquer conversa com escolas</td><td>Seção 11</td></tr>
+<tr><td>Preço do piloto; escola(s) candidata(s)</td><td>Seção 6 e 8</td></tr>
+<tr><td>Regras do hackathon sobre propriedade intelectual</td><td>Seção 16</td></tr>
+<tr><td>Contato (e-mail, site, telefone)</td><td>Capa</td></tr>
+</table>
+</div>
+
+</body>
+</html>
