@@ -21,3 +21,4 @@
 | 2026-10-30 | Sessions in MongoDB with history, model research | persistence, latency | [2026-10-30-15-sessions-in-mongodb-and-model-research.md](2026-10-30-15-sessions-in-mongodb-and-model-research.md) | 6ee3d49…314d48a |
 | 2026-10-30 | Faster tutor model, ElevenLabs plan | latency | [2026-10-30-16-faster-tutor-model.md](2026-10-30-16-faster-tutor-model.md) | see git log |
 | 2026-10-30 | Document PR #8 and run the final test | handoff, testing | [2026-10-30-17-document-pr-and-final-test.md](2026-10-30-17-document-pr-and-final-test.md) | see git log |
+| 2026-10-30 | Push the prompts, voice end-to-end test | testing | [2026-10-30-18-push-prompts-and-voice-e2e.md](2026-10-30-18-push-prompts-and-voice-e2e.md) | see git log |
