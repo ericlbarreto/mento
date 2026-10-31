@@ -3,7 +3,6 @@
 // Owner: Person 2. The tutoring session (Stitch S2 loading, S3 board + chat, S4 chat closed): composes the shared
 // chrome, the PR #6 board, captions, orb, controls and chat around useSessionController. Plan 2026-10-30-2330 §3.
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { useRouter } from "next/navigation";
 import { Board, MOCK_STUDENTS, type StudentSummary } from "@mento/board";
 import { Footer, Orb, SimulatedDataBadge, TopBar, type TopBarNavItem } from "@mento/ui";
 import { API_URL, MOCK_API, apiUrl, getSession, listSessions, listStudents, streamTurn } from "@/lib/api";
@@ -12,6 +11,7 @@ import { ChatPanel } from "../_components/chat/ChatPanel";
 import { InputControls, PlaybackControls } from "../_components/controls/SessionControls";
 import { SessionHeader } from "../_components/header/SessionHeader";
 import { SessionErrorCard, SessionLoading } from "../_components/loading/SessionLoading";
+import { SessionOptions } from "../_components/menu/SessionOptions";
 import { createSessionAudio } from "../_components/sessionAudio";
 import { makeSelection, readStudentId } from "../_components/sessionModel";
 import { useEndSession } from "../_components/useEndSession";
@@ -30,14 +30,13 @@ const API = { getSession, streamTurn };
 const dotted = "bg-[radial-gradient(color-mix(in_srgb,var(--ink-soft)_45%,transparent)_1.2px,transparent_1.2px)] bg-size-[24px_24px]";
 
 export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; onOpenHistory?: () => void }) {
-  const router = useRouter();
   // Tutor voice when the API serves `speak.audio_url` (none in mock mode).
   const [audio] = useState(() => (MOCK_API ? undefined : createSessionAudio(apiUrl)));
   const c = useSessionController({ sessionId, api: API, audio });
   const { player, session, setSelection } = c;
 
-  // Tab close / reload ends the lesson (keepalive, reason "beacon"). The explicit end (endNow) is for track N2's menu.
-  useEndSession({ sessionId, onEnded: () => router.push("/") });
+  // Tab close / reload ends the lesson (keepalive, reason "beacon"). The options menu ends it explicitly (endNow).
+  const { endNow } = useEndSession({ sessionId, onEnded: () => undefined });
 
   // Generated images come from the API; in mock mode the fixtures point at this app's own origin.
   const [assetBaseUrl, setAssetBaseUrl] = useState(MOCK_API ? "" : API_URL);
@@ -132,6 +131,7 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
               onOpenHistory={onOpenHistory}
               chatOpen={chatOpen}
               onOpenChat={focusChat}
+              options={<SessionOptions controller={c} endNow={endNow} topic={`${subjectName}: ${title}`} />}
             />
           </div>
           {/* Click-and-ask listens here (bubbling from the board elements); Enter on a focused element does the same. */}

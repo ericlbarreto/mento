@@ -1,21 +1,11 @@
 "use client";
 
 // Owner: Person 2. Session header (Stitch S3/S4): back to the start (without ending the lesson), the
-// "{Matéria} · {título}" breadcrumb, the lesson history button, "Material Didático" (inert until Person 1's
-// files route) and the options menu (inert until track N2). With the chat closed (S4) it shows the
-// "Conversa em tempo real" pill that reopens it.
+// "{Matéria} · {título}" breadcrumb, the lesson history button and the options menu slot (S5, track N2).
+// With the chat closed (S4) it shows the "Conversa em tempo real" pill that reopens it.
+import type { ReactNode } from "react";
 import Link from "next/link";
-import {
-  Button,
-  IconArrowLeft,
-  IconBookOpen,
-  IconButton,
-  IconChevronLeft,
-  IconHistory,
-  IconMessage,
-  IconMoreVertical,
-  cx,
-} from "@mento/ui";
+import { IconArrowLeft, IconChevronLeft, IconHistory, IconMessage, cx } from "@mento/ui";
 
 export function SessionHeader({
   subjectName,
@@ -24,6 +14,7 @@ export function SessionHeader({
   onOpenHistory,
   chatOpen,
   onOpenChat,
+  options,
 }: {
   subjectName: string;
   title: string;
@@ -33,6 +24,8 @@ export function SessionHeader({
   onOpenHistory?: () => void;
   chatOpen: boolean;
   onOpenChat: () => void;
+  /** The "⋮" session options menu. */
+  options?: ReactNode;
 }) {
   return (
     <div className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2">
@@ -66,10 +59,6 @@ export function SessionHeader({
       </button>
 
       <div className="ml-auto flex items-center gap-3">
-        <Button inert variant="secondary" size="sm" className="rounded-(--radius-pill)">
-          <IconBookOpen className="size-4" aria-hidden="true" />
-          Material Didático
-        </Button>
         {!chatOpen && (
           <button
             type="button"
@@ -85,9 +74,7 @@ export function SessionHeader({
             <IconChevronLeft className="size-4 text-(--ink-soft)" aria-hidden="true" />
           </button>
         )}
-        <IconButton inert aria-label="Mais opções" variant="ghost">
-          <IconMoreVertical />
-        </IconButton>
+        {options}
       </div>
     </div>
   );
