@@ -5,20 +5,22 @@ import type {
   Citation,
   CircleAnnotateArgs,
   Column,
+  DiagramBody,
   DrawArgs,
   HighlightArgs,
   WriteTimelineArgs,
 } from "@mento/contracts";
 
-export type ElementType = "text" | "timeline" | "image" | "svg" | "question";
+export type ElementType = "text" | "timeline" | "image" | "svg" | "question" | "diagram";
 export type Author = "tutor" | "student";
 
 export type HighlightColor = z.infer<typeof HighlightArgs>["color"];
 export type CircleColor = z.infer<typeof CircleAnnotateArgs>["color"];
 
+/** `shape_id`: the annotation targets one shape of a diagram instead of the whole element / a text match. */
 export type Annotation =
-  | { kind: "highlight"; color: HighlightColor; action_id: string }
-  | { kind: "circle"; color: CircleColor; text_to_match: string; action_id: string };
+  | { kind: "highlight"; color: HighlightColor; action_id: string; shape_id?: string }
+  | { kind: "circle"; color: CircleColor; text_to_match: string; action_id: string; shape_id?: string };
 
 /** `draw` placeholder and its late result share one shape; `type` is image (url) or svg (streamed). */
 export interface DrawData {
@@ -37,6 +39,8 @@ export interface ElementDataByType {
   image: DrawData;
   svg: DrawData;
   question: Pick<VerificationArgs, "verification_id" | "concept" | "concept_key" | "question" | "kind">;
+  /** `draw_diagram`: resolved by the server, absolute geometry inside `view`. */
+  diagram: DiagramBody;
 }
 
 interface ElementBase<T extends ElementType> {

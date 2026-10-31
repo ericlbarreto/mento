@@ -36,7 +36,7 @@ export const ElementFrame = memo(function ElementFrame({
   if (!element) return null;
   const Renderer = renderers[element.type] as ComponentType<RendererProps> | undefined;
   // Stand-in until the hand-drawn marker (T5): the latest highlight tints the element.
-  const highlight = element.annotations.findLast((a) => a.kind === "highlight");
+  const highlight = element.annotations.findLast((a) => a.kind === "highlight" && !a.shape_id);
   return (
     <div
       data-element-id={element.id}
