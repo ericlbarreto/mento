@@ -2,6 +2,7 @@
 
 > Roteiro em pt-BR (o produto e a plateia são brasileiros; o arquivo fica no repositório em inglês). Versão de 31/10/2026.
 > Base: `docs/20-demo-runbook.md` (demo de História — Roma Antiga), `docs/business-plan/plano-de-negocios-mento.pdf` e a pesquisa de pitches no fim deste arquivo.
+> **Tese do pitch: Desafio 3 da Teachy** — “usar IA no dia a dia de forma segura, economizando tempo e preservando a aprendizagem”. Dados do plano: Cetic.br 2024/2025, TALIS 2024, Bastani et al. (PNAS 2025), Gallup 2025 (ver `plano-de-negocios-mento.pdf`, seção 2).
 > Regras de honestidade (AGENTS.md): **não há clientes, receita, pilotos nem eficácia comprovada.** Os alunos do painel do professor são **fictícios**. Diga isso em voz alta.
 
 ## 0. Antes de subir ao palco
@@ -31,7 +32,7 @@ Papéis: **uma pessoa fala e conduz a demo**, uma vigia logs/latência e o inter
 | 0:55–1:10 | **Solução em uma frase** | Dizer o que é a Mento | ≈ 35 |
 | 1:10–3:35 | **DEMO AO VIVO** | 6 momentos, 2 min 25 s | ≈ 150 (o resto é o produto falando) |
 | 3:35–4:05 | **Por que é diferente** | O ciclo, não o quadro | ≈ 70 |
-| 4:05–4:35 | **Negócio + honestidade** | Mercado, preço, o que temos e o que não temos | ≈ 70 |
+| 4:05–4:35 | **Três respostas ao desafio + honestidade** | Segura, preserva a aprendizagem, economiza tempo; o que temos e o que não temos; piloto | ≈ 75 |
 | 4:35–5:00 | **Pedido e fecho** | Frase de efeito + pedido concreto | ≈ 55 |
 
 \*Ritmo-alvo: 130 palavras/minuto (≈ 2 palavras por segundo), com pausas. Total falado ≈ 505 palavras; o restante são as falas do tutor e silêncios da demo. **Se estourar, corte do bloco “Por que é diferente”, nunca da demo.**
@@ -41,18 +42,16 @@ Papéis: **uma pessoa fala e conduz a demo**, uma vigia logs/latência e o inter
 ### 0:00–0:25 · Gancho (em pé, sem tela, ou só o logo)
 
 > *(Olhando para a plateia, voz calma.)*
-> “Levanta a mão quem já travou numa matéria e não tinha ninguém por perto para explicar… *(pausa de 2 s)* Agora levanta a mão quem já usou o ChatGPT para isso. *(pausa)* Ele respondeu. Mas **ele sabia o que o seu professor ensinou? Ele descobriu se você entendeu?** *(pausa)* Não. Ele só respondeu.”
+> “Quatro em cada dez alunos dos anos finais **já usam IA** para estudar. *(pausa)* Mas **78% das escolas não têm nenhuma regra** sobre isso. *(pausa)* E o único experimento controlado que vimos mostrou que quem treina com um chatbot comum **tira nota pior** na prova sem IA: **menos 17%**. *(pausa de 2 s)* O desafio de vocês pergunta como usar IA com segurança, economizando tempo e **sem estragar a aprendizagem**. A resposta é: **o desenho da IA decide.**”
 
-Alternativas de abertura (escolha **uma** no ensaio):
-- **Número:** “Em 2022, o Brasil ficou em torno de 379 pontos em matemática no PISA, contra cerca de 472 da média da OCDE.” *(só use depois de conferir o número na OCDE — está marcado como não verificado no plano)*
-- **Cena:** “Uma turma de 35 alunos e uma professora. Quantos deles vão ter uma explicação **só deles** hoje?”
+Alternativa (cena): “Uma professora, trinta e cinco alunos, e 15 horas por semana só para preparar aula e corrigir prova. Quantos alunos vão ter uma explicação só deles hoje?” *(TALIS 2024: 15,4 h/semana)*
 
 ### 0:25–0:55 · Problema
 
-> “Em sala de aula, uma professora para trinta e cinco. Em casa, uma IA que responde tudo, mas **não conhece o livro, não conhece a turma e não deixa nenhum registro** do que o aluno realmente aprendeu. A professora só descobre a lacuna **na prova** — semanas depois, quando já é tarde.
-> O problema não é falta de resposta. É falta de **ensino individual** e de **evidência** para quem ensina.”
+> “O aluno usa IA, mas ela **entrega a resposta**: ele treina com muleta e vai pior na prova. A escola não tem regra: **78%** sem guia. E o professor não tem tempo: **15 horas por semana** preparando e corrigindo, e só descobre a lacuna **na prova**, semanas depois.
+> O problema não é falta de IA. É IA **sem desenho pedagógico** e **sem o professor no controle**.”
 
-**Frase de efeito:** *“A IA respondeu. Mas ninguém ensinou — e ninguém ficou sabendo.”*
+**Frase de efeito:** *“A IA respondeu. Mas ninguém ensinou — e ninguém ficou sabendo.”* · alternativa: *“Não é usar ou não usar IA. É qual IA, desenhada por quem, sob o controle de quem.”*
 
 ### 0:55–1:10 · Solução em uma frase
 
@@ -85,12 +84,12 @@ Diga a frase de contexto **antes** de clicar: *“O professor subiu o livro de H
 
 **Frase de efeito:** *“O quadro é a interface. O produto é o ciclo.”*
 
-### 4:05–4:35 · Negócio e honestidade
+### 4:05–4:35 · Três respostas ao desafio e honestidade
 
-> “Vendemos para **escolas**, começando pelo 7º ao 9º ano de escolas privadas. Só nesse recorte são **mais de um milhão de alunos** — pela nossa conta, algo na casa de 1,4 milhão — e testamos a hipótese de **R$ 29 por aluno por mês**, cerca de 5% de uma mensalidade média.
-> Vou ser direto, porque confiança é o nosso produto: **hoje não temos clientes, receita nem prova de eficácia.** Temos um protótipo que funciona de ponta a ponta, construído em dois dias por três pessoas, e uma tese testável: um **piloto de 6 a 8 semanas** numa escola, com avaliação antes e depois.”
+> “Resumindo as três respostas ao desafio: **segura**, porque ancorada no livro do professor, com citação e o professor decide; **preserva a aprendizagem**, porque dá pista em vez de resposta e verifica; **economiza tempo**, porque a conversa vira diagnóstico e lista de exercícios sem o professor fazer nada.
+> E vou ser direto, porque confiança é o nosso produto: **hoje não temos clientes nem prova de eficácia.** Temos um protótipo que funciona de ponta a ponta, feito em dois dias por três pessoas, e um **piloto de 6 a 8 semanas** desenhado para medir três coisas: a nota **sem IA** antes e depois, as **horas do professor** e a **segurança** das respostas. Se der fraco, a gente publica mesmo assim.”
 
-*(Dados: 1,4 mi = 8,4 mi alunos de 7º–9º × 16,3% na rede privada; **premissas e fontes no plano de negócios** — se perguntarem, diga que é estimativa nossa, a ser confirmada com os dados do Inep.)*
+*(Mercado, se perguntarem: 7º–9º ano, escolas privadas, começando pelo Recife; ≈ 1,4 milhão de alunos pela nossa conta, premissa a confirmar com o Inep. **Não falar de preço**: não foi definido nem testado.)*
 
 ### 4:35–5:00 · Pedido e fecho
 
@@ -145,14 +144,14 @@ Respostas **curtas (≤ 30 s)** e honestas. Se não souber: “Não sabemos aind
 5. **“Funciona para matemática?”** — “Hoje só demonstramos História, com um livro. Matemática é a próxima matéria, ainda não está pronta.”
 6. **“Os dados do painel são reais?”** — “Os alunos são fictícios. A lacuna que vocês viram foi gerada de verdade a partir da conversa ao vivo.” *(se for verdade no dia — confirme no ensaio)*
 
-**Mercado e negócio**
+**Desafio 3, mercado e próximos passos**
 
-7. **“Qual o tamanho do mercado?”** — “Contamos de baixo para cima: 7º–9º ano, ≈ 8,4 milhões de alunos no Brasil (premissa nossa sobre o Censo 2024: ≈ 26 mi no fundamental), ≈ 1,4 milhão na rede privada; a R$ 348/ano são ≈ R$ 480 milhões no recorte privado. Premissas no plano; vamos confirmar com o Inep.”
-8. **“Quanto cobram? Por que pagariam?”** — “Hipótese: R$ 29 por aluno/mês, ≈ 5% da mensalidade. Nunca foi testado com uma escola. É o que o piloto e as entrevistas validam.”
-9. **“A margem fecha?”** — “Em preço de lista, voz e imagem deixam a margem em ≈ 31%; com cache de imagens, cobrança do microfone só na fala e volume, estimamos ≈ 65%. É meta, não medição — o piloto mede custo por aluno ativo.” (≈ R$ 1,3–2,5 por sessão de 10 min)
-10. **“Qual o custo por sessão?”** — “Estimado em R$ 1,30 a 2,50 por 10 minutos com voz, dominado por voz e imagem; o LLM é pouco.” (premissas de preço de provedores, a conferir)
-11. **“Como vendem? Escola é difícil.”** — “Piloto pago curto com uma escola do Recife, 1 disciplina, 1–2 turmas; depois indicação entre escolas. Rede pública só com estratégia própria.”
-12. **“Qual a tração?”** — “Zero clientes, zero receita. [Se houver: N entrevistas / N cartas de intenção.] Preferimos dizer isso a inflar.”
+7. **“Como vocês sabem que isso preserva a aprendizagem?”** — “Ainda não sabemos. O desenho segue o que o estudo da PNAS mostrou: tutor com pista em vez de resposta não piorou a prova, o chatbot comum piorou 17%. Nós **não** provamos o efeito: o piloto mede a nota sem IA antes e depois, com turma de comparação.”
+8. **“Como isso economiza tempo do professor?”** — “Três mecanismos: a dúvida individual vai para o tutor, a conversa vira diagnóstico automático (conceito, lição de origem, próximo passo), e a lista de exercícios sai do livro. Não medimos horas ainda; o piloto mede com questionário e diário de tempo. O dado de 5,9 h do Gallup é dos EUA e autorrelato — não é nosso.”
+9. **“E a segurança? O aluno é menor.”** — “Respostas só do livro do professor, citação validada, aviso quando sai do material; sem inferência psicológica; dado pessoal nunca vai ao modelo; arquitetura compatível com retenção zero (não somos certificados). Antes de aluno real: base legal LGPD, consentimento e revisão jurídica.”
+10. **“O aluno não vai simplesmente pedir a resposta?”** — “Pode tentar. O tutor dá pista em três níveis e pergunta de volta; medimos quantas vezes entregou a resposta direta. É um risco real que o piloto monitora.”
+11. **“Qual o tamanho do mercado? Quanto cobram?”** — “Recorte: 7º–9º ano de escolas privadas, ≈ 1,4 milhão de alunos pela nossa conta, premissa a confirmar. Preço **ainda não definimos**: só faz sentido depois do piloto, com custo real por aluno e disposição a pagar medidos.”
+12. **“Qual a tração?”** — “Zero clientes. [Se houver: N entrevistas / N cartas de intenção.] Preferimos dizer isso a inflar.”
 
 **Concorrência**
 
@@ -163,15 +162,15 @@ Respostas **curtas (≤ 30 s)** e honestas. Se não souber: “Não sabemos aind
 **Tecnologia e privacidade**
 
 16. **“E os dados de menores? LGPD?”** — “Arquitetura compatível com retenção zero: a IA não guarda estado, a memória fica no banco da escola, corrigível e apagável; dados pessoais nunca vão para o modelo. Não somos ZDR certificados. Antes de qualquer aluno real: base legal, consentimento dos responsáveis e revisão jurídica.”
-17. **“Dependem de APIs de terceiros?”** — “Sim (Anthropic, ElevenLabs, Deepgram, Google, Voyage, MongoDB). Cada uma está atrás de uma camada própria, com alternativas mapeadas; o custo entra no preço.”
+17. **“Dependem de APIs de terceiros?”** — “Sim (Anthropic, ElevenLabs, Deepgram, Google, Voyage, MongoDB). Cada uma está atrás de uma camada própria, com alternativas mapeadas; o custo real por sessão é medido no piloto.”
 18. **“Quão rápido é?”** — “Medimos 1,8 s de mediana entre a fala e a primeira ação no quadro; 2 s com o prompt didático novo.”
 19. **“O que não funciona ainda?”** — “Sem login nem multi-escola; uma matéria; sem teste com alunos reais; barge-in com alto-falante sem fone ainda não testado com microfone real.”
 
 **Equipe e pedido**
 
 20. **“Por que vocês?”** — [PREENCHER: experiência, execução (214 commits em ~1,5 dia, CI, contratos compartilhados), acesso a escolas.]
-21. **“O que fariam com o dinheiro?”** — “40% produto, 15% pesquisa e piloto, 20% vendas e implantação, 10% jurídico/privacidade, 10% IA/infra, 5% reserva — plano completo no PDF.”
-22. **“Qual o valor/pré-money?”** — [PREENCHER] — sem tração, evite inventar um número; fale em marco: “o que precisamos para chegar ao piloto concluído”.
+21. **“O que fariam com o apoio/dinheiro?”** — “Primeiro o necessário para o piloto: login e multi-turma, revisão jurídica LGPD, desenho do estudo com pesquisador em educação e custo dos provedores de IA durante o piloto. Percentuais só depois de definir a escola e o valor.”
+22. **“Qual o pedido?”** — [PREENCHER] — sem tração, evite inventar valor; fale em marco: “o que precisamos para chegar ao piloto concluído”.
 
 ## 6. O que os jurados avaliam e erros comuns
 

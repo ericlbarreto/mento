@@ -44,3 +44,18 @@ Researched VC memo format and hackathon pitch practice (web, 2026-10-31), read t
 ## Commit / PR
 
 - Branch feat/business-plan (PR link in the final report).
+
+## Follow-up prompt (verbatim, Portuguese), same day
+
+```text
+Eu não sei se esse plano de negócio está tão legal. Não sei se precisa já colocar questão de preços. Eu não sei se faz muito sentido. Precisa ser algo bem. Sobre a ideia, eu acho hackathon e tal, como a gente levar isso para o mercado, enfim, mas é
+```
+
+```text
+@"/Users/eric/Downloads/Hackathon Desafios.pdf"
+Cara, o nosso desafio, basicamente, é o desafio 3. Esse plano de negócio precisa ser voltado à tese do desafio 3, mostrando que a gente realmente resolve. Procure dados que a gente pode mostrar para que fique claro que realmente está resolvendo o problema tanto do lado do aluno como do lado do professor.
+```
+
+### Outcome (English)
+
+Read the Challenges deck (46 pages; Challenge 3 = safe AI, saves time, preserves learning). Rewrote the plan as 12 pages organized around the three pillars, with student, teacher and school data (Cetic.br, TALIS 2024, Bastani PNAS 2025, Gallup 2025), a product-decision-to-evidence table, a pilot to measure effects, and no pricing or projections. Updated the pitch hook, closing blocks and Q&A to the same thesis; D75 rewritten.
