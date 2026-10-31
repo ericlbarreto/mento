@@ -11,3 +11,5 @@
 | 2026-10-31 | Executing the whole teacher backend plan | phases 0–6 | [2026-10-31-0013-executing-the-plan.md](2026-10-31-0013-executing-the-plan.md) | 5a8ed31 (rebased to 87590f3) |
 | 2026-10-31 | Branch and pull request for the teacher backend | process | [2026-10-31-0117-branch-and-pr.md](2026-10-31-0117-branch-and-pr.md) | 5a8ed31, PR #7 |
 | 2026-10-31 | Rebase on main (Eric's whiteboard back-end) and test both sides live | process, integration | [2026-10-31-0119-rebase-on-main-and-live-test.md](2026-10-31-0119-rebase-on-main-and-live-test.md) | 87590f3 (force-with-lease), PR #7 comment |
+| 2026-10-31 | Plan: upload linked to a subject, with embeddings in the vector store | upload, integration | [2026-10-31-0134-upload-linked-to-subject-plan.md](2026-10-31-0134-upload-linked-to-subject-plan.md) | none |
+| 2026-10-31 | Export the prompts to the log, then implement the upload linked to a subject | process, upload | [2026-10-31-0147-prompt-export-and-upload-implementation.md](2026-10-31-0147-prompt-export-and-upload-implementation.md) | 5174be8, PR #7 |
