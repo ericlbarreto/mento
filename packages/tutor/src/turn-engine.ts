@@ -327,8 +327,17 @@ export class TurnEngine {
           .then((messages) => {
             if (state.signal.aborted) return;
             if (messages.length) state.timing.image_ready_ms = Math.round(this.now() - state.t0);
-            // Late actions join the same ordering as the rest of the script.
-            for (const m of messages) state.emit(m.type === "action" ? { ...m, order: state.order++ } : m);
+            // Late actions join the same ordering as the rest of the script, and are stored like the others
+            // (so a session re-opened from the history shows the image).
+            for (const m of messages) {
+              if (m.type !== "action") {
+                state.emit(m);
+                continue;
+              }
+              const order = state.order++;
+              state.emit({ ...m, order });
+              state.persist({ type: "tutor_action", payload: { turn_id: state.turn_id, action_id: m.action.id, order, name: m.action.name, args: m.action.args } });
+            }
           })
           .catch((err) => this.log("draw failed", err)),
       );

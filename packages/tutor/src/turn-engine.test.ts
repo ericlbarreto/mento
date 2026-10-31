@@ -128,13 +128,16 @@ describe("TurnEngine: voice, drawing and search", () => {
 
   it("starts the draw pipeline, delivers its late messages before turn_done and keeps the order increasing", async () => {
     const draw: DrawPipeline = { start: async (a) => [{ type: "action", order: 99, action: { id: "late", name: "draw_result", args: { element_id: a.args.id, url: "/api/gen/x.jpg" } } }] };
-    const { engine, session } = await setup([[toolEvent("draw", { id: "colosseum", column: "visuals", prompt: "Coliseu", is_structured: false, max_dimensions: { w: 500, h: 400 } }), stopEvent()]], { draw });
+    const { engine, session, repo } = await setup([[toolEvent("draw", { id: "colosseum", column: "visuals", prompt: "Coliseu", is_structured: false, max_dimensions: { w: 500, h: 400 } }), stopEvent()]], { draw });
     const { messages } = await run(engine, session, opening);
     expect(actionNames(messages)).toEqual(["draw", "draw_result"]);
     expect(types(messages).at(-1)).toBe("turn_done");
     expect(types(messages)).toContain("script_done");
     const orders = messages.flatMap((m) => (m.type === "action" ? [m.order] : []));
     expect(orders).toEqual([0, 1]); // the pipeline's own order (99) is replaced by the next number
+    // late actions are stored too, so a session re-opened from the history shows the image
+    const stored = (await repo.listEvents(session)).filter((e) => e.type === "tutor_action").map((e) => (e.payload as { name: string; order: number }));
+    expect(stored.map((p) => [p.name, p.order])).toEqual([["draw", 0], ["draw_result", 1]]);
   });
 
   it("answers a search_materials call with a second round, keeps real citations and drops fake ones", async () => {
