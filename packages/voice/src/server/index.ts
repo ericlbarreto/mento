@@ -1,2 +1,4 @@
-// Person 3: mintSttToken(), synthesizeSpeech() (Node only).
-export {};
+export * from "./alignment";
+export * from "./async-queue";
+export * from "./errors";
+export * from "./deepgram-token";

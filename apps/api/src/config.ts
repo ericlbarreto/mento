@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 
 // Load the repo-root .env (git-ignored) when present. Packages never read env; only this file does.
@@ -14,6 +15,12 @@ const schema = z.object({
   WEB_ORIGIN: z.string().default("http://localhost:3000"),
   LOG_LEVEL: z.string().default("info"),
   DEMO_MODE: z.enum(["live", "fixture"]).default("live"),
+  DATA_DIR: z.string().default(fileURLToPath(new URL("../../../data", import.meta.url))),
+  DEEPGRAM_API_KEY: z.string().default(""),
+  ELEVENLABS_API_KEY: z.string().default(""),
+  ELEVENLABS_VOICE_ID: z.string().default(""),
+  ELEVENLABS_MODEL: z.string().default("eleven_flash_v2_5"),
+  TTS_MODE: z.enum(["http", "ws"]).default("ws"),
 });
 
 export type Config = z.infer<typeof schema>;
