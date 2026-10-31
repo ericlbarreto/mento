@@ -8,3 +8,12 @@ export { Badge, SimulatedDataBadge, type BadgeProps, type BadgeTone } from "./co
 export { Spinner, type SpinnerProps } from "./components/Spinner";
 export { VisuallyHidden } from "./components/VisuallyHidden";
 export { cx } from "./components/cx";
+export { Orb, type OrbProps } from "./orb/Orb";
+export {
+  ORB_STATES,
+  orbFace,
+  orbFaceSrc,
+  orbStateLabels,
+  type OrbFace,
+  type OrbState,
+} from "./orb/orbModel";
