@@ -1,7 +1,7 @@
 "use client";
 
 // Owner: Person 2. End-of-conversation lifecycle (decision D63): the student ends it explicitly, or the tab is
-// closed. There is no client idle timer; the server ends a session after 60 min idle. Ends at most once per mount.
+// closed or reloaded (pagehide). There is no client idle timer; the server ends a session after 60 min idle. Ends at most once per mount.
 import { useCallback, useEffect, useRef } from "react";
 import type { SessionEndReason } from "@mento/contracts";
 import { endSession as apiEndSession } from "@/lib/api";
@@ -21,7 +21,7 @@ export function useEndSession({
 }) {
   /** Ended explicitly: nothing else is sent from this mount. */
   const ended = useRef(false);
-  /** The tab-close request went out for the current hidden period. */
+  /** The tab-close request already went out for this page lifetime. */
   const closeSent = useRef(false);
   /** A navigation started by this app is in progress (not a tab close). */
   const navigating = useRef(false);
@@ -47,30 +47,30 @@ export function useEndSession({
     [sessionId],
   );
 
-  // Tab close: the page turns hidden. A refresh also unloads the page, and until resume after end (D62) lands
-  // that would end the session too, so the request goes only on visibilitychange → hidden while this app is not
-  // navigating. It uses fetch keepalive (reason "beacon"), which outlives the page.
+  // Tab close or refresh: `pagehide` (a tab switch only hides the page and never ends the lesson). A refresh is
+  // harmless under D62: the next turn reopens the session. The request uses fetch keepalive (reason "beacon"),
+  // which outlives the page. Full-page navigations started by this app (same-origin links) are not a close.
   useEffect(() => {
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") {
-        // Back on the tab (or from the bfcache): a later close must be able to fire again.
-        navigating.current = false;
-        closeSent.current = false;
-        return;
-      }
+    const onPageHide = () => {
       if (ended.current || closeSent.current || navigating.current) return;
       closeSent.current = true;
       void latest.current.end(sessionId, "beacon", { keepalive: true }).catch(() => undefined);
     };
-    // Same-origin link clicks are navigations within the app, not a tab close.
+    // Back from the bfcache: a later close must be able to fire again.
+    const onPageShow = () => {
+      navigating.current = false;
+      closeSent.current = false;
+    };
     const onClick = (e: MouseEvent) => {
       const link = e.target instanceof Element ? e.target.closest("a[href]") : null;
       if (link instanceof HTMLAnchorElement && link.origin === window.location.origin && !link.target) navigating.current = true;
     };
-    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", onPageHide);
+    window.addEventListener("pageshow", onPageShow);
     document.addEventListener("click", onClick, { capture: true });
     return () => {
-      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("pageshow", onPageShow);
       document.removeEventListener("click", onClick, { capture: true });
     };
   }, [sessionId]);
