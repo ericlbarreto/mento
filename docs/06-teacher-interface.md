@@ -49,13 +49,21 @@ Table: name, conversations (n), last activity, open gaps (n), latest insight, a 
 
 "Proactive" means the system creates insights **automatically after each conversation**; the teacher does not request an analysis. New insights show a "new" marker.
 
+#### As implemented in the front-end (D69)
+
+The page follows the Stitch "Alunos" and "Detalhes do aluno" screens and reads the teacher API (`apps/web/src/app/(teacher)/professor/`; mock with `NEXT_PUBLIC_MOCK_API=1`).
+
+- **Students tab:** four cards (students mapped, concepts in mapping, active gaps, mediation suggestions), the editable class notes (`PUT /class-context`, a description naming a student is refused with 422), the class block built from the real gaps (D71): **Tópicos com mais dificuldade** (open gaps grouped by topic, the students and their stage, the lesson where it starts) and **Intervenção para a próxima aula** (top 3 topics; **Dispensar** applies to every student's suggestion in the topic, D73), and the table "Fichas pedagógicas individuais" (student, diagnosis status, last conversation, top gap or concept, "Ver diagnóstico").
+- **Student page:** header with the pedagogical focus (lesson most recently studied); **concept map** (one row per concept, one dot per conversation, `n`, state: consolidated, in transition, in sampling, active gap); each open gap with its stage (Em observação, Lacuna, Persistente), the analysis' diagnosis in paraphrase, the likely origin (earlier lesson and pages) and the counts, with **Dispensar**; **the student's own words are never shown nor sent by the API (D70)**; (D73: no per-student intervention nor support-material blocks); "Conceitos superados e pontos fortes" (Superado, Ponto forte, Em sondagem); the conversations by lesson with their analysis status.
+- **Live:** the screens refresh on `insight_created` / `analysis_status` (SSE) and poll every 20 s as a fallback. States for loading, empty and "API unreachable" (with retry).
+
 ### 1.5 Create student
 
 Form: **name**. The student then appears in the student picker of the whiteboard start screen. (Alternative: create rows directly in the database/seed.) No password: students pick their own name in the prototype.
 
-### 1.6 Exercise lists (D68, mock)
+### 1.6 Exercise lists (D72)
 
-Each class intervention has a **Gerar lista de exercícios** button. It generates questions on the gaps behind the intervention and offers two PDFs: **with answers** (teacher) and **without answers** (students). The questions are marked as AI-generated and to be reviewed before use; nothing is sent to students automatically.
+Each intervention has **Gerar lista de exercícios**: Claude writes 5 questions (3 multiple choice, 2 open) on the topic from the lesson of the book where the difficulty starts. The card shows "generating", then the questions and two PDFs (teacher with answers, students without). Every list is kept and listed in **Materiais → Listas de exercícios geradas** (with delete). Storage: `exercise_lists` (docs/07). Replaces the simulated lists of D68.
 
 ## Tab 2 — Materials ("Materiais")
 
