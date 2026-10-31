@@ -176,3 +176,15 @@ interface Repository {
 ## 11. Change rule
 
 This file and `packages/contracts` change **together**, additively, after a message to the other two people. Never rename a field in place; add the new one, migrate, then remove the old one.
+
+## 12. Additions of 2026-10-30 (voice-first back-end design)
+
+Source of truth in code: `packages/contracts` (`actions.ts`, `stream.ts`, `events.ts`, `speech.ts`). Design: `docs/superpowers/specs/2026-10-30-whiteboard-backend-design.md`.
+
+- **Turn stream** is a union tagged by `type`: `action`, `svg_chunk`, `speech_alignment`, `script_done`, `turn_done`, `error` (replaces the old `{order, action}` / `{done}` shape).
+- **`speak` args** gain `audio_url` and `audio_format` (voice mode only).
+- **`draw_result`** is an action (server → client) that carries `element_id` and `url`.
+- **Student captions**: `SttCaption` is produced in the browser by `useStt()`; only `user_message.text` and `stt { provider, duration_ms, confidence? }` are sent and stored.
+- **`TurnRequest`**: `appended` is a list of `user_message` or `verification_answer`; `interrupted` gains `spoken_ms`; optional `client_timing`.
+- **Sessions** are created with `student_id` only (no `material_id`): the tutor searches all materials. `session_started` loses `material_id`; citations keep `material_id`.
+- **Ids** are strings everywhere (MongoDB `_id`).

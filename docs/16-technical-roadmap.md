@@ -65,19 +65,21 @@ The server keeps the authoritative log; the client sends only what is new (Studd
 
 ### 3.2 Response (SSE)
 
-Each SSE message is one JSON object:
+Each SSE message is `event: <type>` + `data: <JSON>`, and the JSON always has a `type` (the union is `StreamMessage` in `@mento/contracts`; full list in `docs/frontend-contract.md`):
 
 ```json
-{ "order": 0, "action": { "id": "a1", "name": "write_text", "args": { ... } } }
-{ "order": 1, "action": { "id": "a2", "name": "speak",      "args": { ... } } }
-{ "stream": "svg", "element_id": "timeline_1", "chunk": "<svg ..." }
-{ "order": 7, "action": { "id": "a8", "name": "draw_result", "args": { "element_id": "colosseum", "url": "/files/gen/colosseum.png" } } }
-{ "done": true }
+{ "type": "action", "order": 0, "action": { "id": "act_1", "name": "write_text", "args": { "id": "title", "column": "main", "html": "<h1>…</h1>" } } }
+{ "type": "action", "order": 1, "action": { "id": "act_2", "name": "speak", "args": { "text": "…", "audio_url": "/api/tts/act_2", "audio_format": "pcm_s16le_24000" } } }
+{ "type": "speech_alignment", "action_id": "act_2", "words": [ { "word": "Hoje", "start_ms": 0, "end_ms": 260 } ] }
+{ "type": "svg_chunk", "element_id": "diagram", "chunk": "<svg …" }
+{ "type": "script_done", "turn_id": "turn_1" }
+{ "type": "action", "order": 6, "action": { "id": "act_7", "name": "draw_result", "args": { "element_id": "colosseum", "url": "/files/gen/colosseum.jpg" } } }
+{ "type": "turn_done", "turn_id": "turn_1", "timing": { "first_action_ms": 1380 } }
 ```
 
-- `order` defines playback order (Studdy: `turnIndex.orderIndex.subOrderIndex`).
-- Late results (`draw_result`) arrive after the script and update an existing element (placeholder → final), like Studdy's `added` then `edited` events.
-- A turn is **one script**, generated in one LLM call (target: first action ≤ ~1.5 s, whole script in 2–8 s; Studdy measured 1.4–1.7 s and 2–8 s).
+- `order` defines playback order; `speak` is the clock.
+- `script_done` means every action of the script was emitted: the client opens the microphone after the last `speak`, without waiting for images. `turn_done` comes when pending images finished or timed out.
+- Late results (`draw_result`) arrive after `script_done` and update an existing element.
 
 ### 3.3 Playback on the client
 
