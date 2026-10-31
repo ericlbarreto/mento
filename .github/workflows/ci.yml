@@ -1,20 +1,33 @@
 name: CI
 
+# The `check` job is the gate: Render deploys the API only after it passes (Settings → Auto-Deploy → "After CI Checks Pass").
+# See docs/ci-cd.md.
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch makes the older run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Enable pnpm (pinned by the packageManager field)
+        run: corepack enable
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - name: Enable pnpm (pinned by the packageManager field)
-        run: corepack enable
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
