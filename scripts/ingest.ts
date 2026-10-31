@@ -18,6 +18,8 @@ if (!file || !title || !subject) {
 const SUBJECT_NAMES: Record<string, string> = {
   history: "História",
   math: "Matemática",
+  biology: "Biologia",
+  physics: "Física",
   geography: "Geografia",
   science: "Ciências",
   portuguese: "Língua Portuguesa",

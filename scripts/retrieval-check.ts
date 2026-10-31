@@ -1,3 +1,6 @@
+// Usage: pnpm retrieval:check [--questions=<file.json>] [--material=<materialId>]
+// Default: fixtures/retrieval/questions.json over every material. The file has the same shape:
+// { "questions": [{ "question": "…", "expect_page": 12 | null }] }.
 import { readFileSync } from "node:fs";
 import { connectMongo, disconnectMongo, MongoChunkStore } from "@mento/db";
 import { createRetriever, embedWithVoyage } from "@mento/sources";
@@ -6,7 +9,10 @@ process.loadEnvFile(new URL("../.env", import.meta.url));
 const { MONGODB_URI, VOYAGE_API_KEY } = process.env;
 if (!MONGODB_URI || !VOYAGE_API_KEY) throw new Error("MONGODB_URI and VOYAGE_API_KEY must be set in .env");
 
-const { questions } = JSON.parse(readFileSync(new URL("../fixtures/retrieval/questions.json", import.meta.url), "utf8")) as {
+const arg = (name: string) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
+const questionsFile = arg("questions") ?? new URL("../fixtures/retrieval/questions.json", import.meta.url);
+const material_id = arg("material");
+const { questions } = JSON.parse(readFileSync(questionsFile, "utf8")) as {
   questions: { question: string; expect_page: number | null }[];
 };
 const p50 = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]! : NaN);
@@ -28,7 +34,7 @@ try {
   let hits = 0;
   for (const { question, expect_page } of questions) {
     const t0 = performance.now();
-    const chunks = await retriever.searchChunks({ query: question, k: 3 });
+    const chunks = await retriever.searchChunks({ query: question, k: 3, ...(material_id ? { material_id } : {}) });
     const ms = performance.now() - t0;
     totals.push(ms);
     const pages = chunks.map((c) => c.page);
