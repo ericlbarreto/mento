@@ -521,7 +521,7 @@ describe("API surface", () => {
     const paths = Object.keys((await app.inject("/api/openapi.json")).json().paths);
     for (const p of [
       "/api/overview", "/api/students", "/api/students/{id}", "/api/students/{id}/insights", "/api/students/{id}/evolution", "/api/students/{id}/sessions",
-      "/api/insights", "/api/insights/{id}", "/api/class-context", "/api/sessions/{id}/analysis", "/api/dev/analyze/{sessionId}",
+      "/api/insights", "/api/insights/{id}", "/api/class-context", "/api/sessions/{id}/analysis", "/api/sessions/{id}/finish", "/api/sessions/{id}/resume", "/api/dev/analyze/{sessionId}",
       "/api/stream/teacher", "/api/materials", "/api/materials/{id}", "/api/files/{id}",
     ]) expect(paths, p).toContain(p);
   });

@@ -78,11 +78,17 @@ export class MongoTurnRepository implements SessionHistory {
     return { id };
   }
 
-  async getSession(session_id: string): Promise<{ id: string; student_id: string; modality: "text" | "voice"; subject: SessionSubject | null } | null> {
+  async getSession(session_id: string): Promise<{ id: string; student_id: string; modality: "text" | "voice"; subject: SessionSubject | null; ended_at: string | null } | null> {
     ensureConnected();
     if (!mongoose.isValidObjectId(session_id)) return null;
     const d = await SessionModel.findById(session_id).lean<SessionLean | null>();
-    return d ? { id: String(d._id), student_id: d.student_id, modality: d.modality, subject: toSubject(d.subject) } : null;
+    return d ? {
+      id: String(d._id),
+      student_id: d.student_id,
+      modality: d.modality,
+      subject: toSubject(d.subject),
+      ended_at: d.ended_at ? d.ended_at.toISOString() : null,
+    } : null;
   }
 
   async appendEvent(session_id: string, event: { type: EventType; payload: unknown }): Promise<Event> {
@@ -96,6 +102,10 @@ export class MongoTurnRepository implements SessionHistory {
     if (event.type === "session_ended") {
       set.ended_at = now;
       set.end_reason = (payload as { reason?: string } | null)?.reason ?? null;
+    }
+    if (event.type === "session_resumed") {
+      set.ended_at = null;
+      set.end_reason = null;
     }
     await SessionModel.updateOne({ _id: session_id }, { $set: set, ...(event.type === "turn_timing" ? { $inc: { turn_count: 1 } } : {}) });
     if (event.type === "user_message") {
@@ -111,8 +121,42 @@ export class MongoTurnRepository implements SessionHistory {
     return docs.map((d) => ({ id: String(d._id), session_id: d.session_id, ts: d.ts.toISOString(), type: d.type, payload: d.payload }));
   }
 
+  async finishSession(session_id: string, reason: string): Promise<"finished" | "already_finished" | "not_found"> {
+    ensureConnected();
+    if (!mongoose.isValidObjectId(session_id)) return "not_found";
+
+    const now = new Date();
+    const previous = await SessionModel.findOneAndUpdate(
+      { _id: session_id, ended_at: null },
+      { $set: { ended_at: now, end_reason: reason, last_activity_at: now } },
+      { returnDocument: "before" },
+    ).lean<SessionLean | null>();
+    if (!previous) return (await SessionModel.exists({ _id: session_id })) ? "already_finished" : "not_found";
+
+    await EventModel.create({ session_id, ts: now, type: "session_ended", payload: { reason } });
+    return "finished";
+  }
+
+  async resumeSession(session_id: string): Promise<"resumed" | "already_active" | "not_found"> {
+    ensureConnected();
+    if (!mongoose.isValidObjectId(session_id)) return "not_found";
+
+    const now = new Date();
+    const previous = await SessionModel.findOneAndUpdate(
+      { _id: session_id, ended_at: { $ne: null } },
+      { $set: { ended_at: null, end_reason: null, last_activity_at: now } },
+      { returnDocument: "before" },
+    ).lean<SessionLean | null>();
+    if (!previous) return (await SessionModel.exists({ _id: session_id })) ? "already_active" : "not_found";
+
+    const previous_ended_at = previous.ended_at?.toISOString();
+    if (!previous_ended_at) throw new Error(`session ${session_id} resumed without an ended_at timestamp`);
+    await EventModel.create({ session_id, ts: now, type: "session_resumed", payload: { previous_ended_at } });
+    return "resumed";
+  }
+
   async endSession(session_id: string, reason: string): Promise<void> {
-    await this.appendEvent(session_id, { type: "session_ended", payload: { reason } });
+    await this.finishSession(session_id, reason);
   }
 
   async getClassContext(): Promise<{ grade_level: string; description: string }> {
