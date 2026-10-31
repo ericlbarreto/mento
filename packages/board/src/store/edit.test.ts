@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { Action } from "@mento/contracts";
 import { anchorOf, applyAction, applyActions, applyEdit, restoreRemoved } from "./reducer";
 import { createBoardStore } from "./store";
-import { emptyBoard } from "./types";
+import { type BoardAction, emptyBoard } from "./types";
+import { defaultHandlers } from "../queue";
 
 let n = 0;
 const text = (id: string, column: "main" | "visuals" | "side" = "main"): Action => ({ id: `a${++n}`, name: "write_text", args: { id, column, html: `<p>${id}</p>` } });
@@ -90,5 +91,41 @@ describe("store edits", () => {
     store.restoreRemoved({ element: el, after_id: "b" });
     expect(store.getColumn("main")).toEqual(["b", "c"]);
     expect(instant).toEqual([true, true, true]);
+  });
+});
+
+describe("tutor move_element", () => {
+  const move = (id: string, column: "main" | "visuals" | "side", after_id: string | null): BoardAction => ({ id: `a${++n}`, name: "move_element", args: { id, column, after_id } });
+
+  it("moves like the student's edit, and is dropped on a deleted id", () => {
+    const onWarning = vi.fn();
+    expect(applyAction(board(), move("c", "main", null)).columns.main).toEqual(["c", "a", "b"]);
+    expect(applyAction(board(), move("a", "side", "n")).columns.side).toEqual(["n", "a"]);
+    const s = applyEdit(board(), { op: "remove", element_id: "a" });
+    expect(applyAction(s, move("a", "main", null), { onWarning })).toBe(s);
+    expect(onWarning).toHaveBeenCalledOnce();
+  });
+
+  it("has a default handler (played like any board action)", () => {
+    expect((defaultHandlers as Record<string, unknown>).move_element).toBeTypeOf("function");
+  });
+
+  it("announces live layout changes before the commit, never during a restore", () => {
+    const store = createBoardStore({ initial: board() });
+    const seen: string[] = [];
+    store.subscribeLayout((c) => seen.push(`${c.by}:${c.kind}:${c.id}:${store.getColumn("main").join(",")}`));
+    store.dispatch(move("c", "main", null));
+    store.dispatch({ id: "r1", name: "remove_element", args: { id: "b" } });
+    store.applyEdit({ op: "move", element_id: "a", column: "main", after_id: "a" }); // no change: silent
+    store.instant(() => store.dispatch(move("a", "main", null)));
+    const el = store.getElement("c")!;
+    store.applyEdit({ op: "remove", element_id: "c" });
+    store.restoreRemoved({ element: el, after_id: null });
+    expect(seen).toEqual([
+      "tutor:move:c:a,b,c",
+      "tutor:remove:b:c,a,b",
+      "student:remove:c:a,c",
+      "student:restore:c:a",
+    ]);
   });
 });

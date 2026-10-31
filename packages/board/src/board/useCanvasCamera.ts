@@ -427,6 +427,14 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number, writer?: B
     // --- Store: new elements, draw_result replacing a placeholder and highlight/circle move the camera.
     let prevElements: ReadonlyMap<string, ElementState> = store.getState().elements;
     const unsubscribeAdded = store.subscribeAdded(scheduleFollow);
+    // The tutor moved a block: look at it once the reflow (240 ms) settled.
+    let moveTimer: ReturnType<typeof setTimeout> | undefined;
+    const unsubscribeLayout = store.subscribeLayout(({ kind, id, by }) => {
+      if (kind !== "move" || by !== "tutor") return;
+      lastId = id;
+      clearTimeout(moveTimer);
+      moveTimer = setTimeout(() => requestAnimationFrame(() => follow(id)), 260);
+    });
     const unsubscribeAll = store.subscribe(() => {
       const next = store.getState().elements;
       if (next.size === 0 && prevElements.size > 0) {
@@ -482,6 +490,8 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number, writer?: B
       stop();
       clearTimeout(followTimer);
       unsubscribeAdded();
+      unsubscribeLayout();
+      clearTimeout(moveTimer);
       unsubscribeAll();
       unsubscribeFocus?.();
       resize.disconnect();

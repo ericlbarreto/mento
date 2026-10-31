@@ -5,7 +5,7 @@
 // camera: no React render per pointer move.
 import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import type { Column } from "@mento/contracts";
-import { type BoardStore, anchorOf } from "../../store";
+import { type BoardStore, type LayoutChange, anchorOf } from "../../store";
 import type { CanvasControls } from "../useCanvasCamera";
 import type { BoardWriter } from "../writer";
 import { type BoardEditingEnv, type BoardEditor, createSelection } from "./context";
@@ -41,6 +41,23 @@ export const columnLabel: Record<Column, string> = {
   visuals: "Imagens",
   side: "Anotações",
 };
+
+/** An inert copy of a block (drag ghost, fading tutor removal): no ids, no toolbar, not focusable. */
+function cloneFrame(frame: HTMLElement): HTMLElement {
+  const clone = frame.cloneNode(true) as HTMLElement;
+  for (const a of [
+    "data-element-id",
+    "tabindex",
+    "data-dragging",
+    "data-selected",
+    "data-removing",
+  ])
+    clone.removeAttribute(a);
+  clone.querySelectorAll("[data-board-control]").forEach((n) => n.remove());
+  clone.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
+  clone.style.cssText = `width:${frame.offsetWidth}px;transform-origin:0 0;outline:none;pointer-events:none;`;
+  return clone;
+}
 
 interface Move {
   id: string;
@@ -131,7 +148,6 @@ export function useEditor({
         const element = state.elements.get(id);
         if (!element) return;
         const removed = { element, after_id: anchorOf(state, id) };
-        flip.capture();
         store.applyEdit({ op: "remove", element_id: id });
         env.outbox.hold({ op: "remove", edit_id: newEditId(), element_id: id }, removed);
         if (selection.get() === id) selection.set(null);
@@ -156,7 +172,6 @@ export function useEditor({
       const env = latest.current.editing;
       const removed = env?.outbox.undo();
       if (!removed) return;
-      flip.capture();
       store.restoreRemoved(removed);
       announce("Bloco restaurado.");
       focusFrame(removed.element.id);
@@ -237,7 +252,6 @@ export function useEditor({
       const env = latest.current.editing;
       const state = store.getState();
       if (commit && env && state.elements.has(m.id) && !isSamePlace(state, m.id, m.target)) {
-        flip.capture();
         const edit = {
           op: "move" as const,
           element_id: m.id,
@@ -425,9 +439,39 @@ export function useEditor({
       if (move?.via === "keyboard") end(false);
     };
 
+    // Every move, delete or undo (the student's or the tutor's) slides the blocks from where they were. A block
+    // the tutor removes fades out where it stood (the student's own delete already faded before the commit).
+    const onLayout = (change: LayoutChange) => {
+      flip.capture();
+      if (change.kind !== "remove" || change.by !== "tutor" || reduced()) return;
+      const frame = frameOf(change.id);
+      const w = world();
+      const layer = ghostRef.current;
+      if (!frame || !w || !layer || typeof frame.animate !== "function") return;
+      const wr = w.getBoundingClientRect();
+      const fr = frame.getBoundingClientRect();
+      const scale = scaleOf(w);
+      const clone = cloneFrame(frame);
+      clone.style.position = "absolute";
+      clone.style.opacity = "1";
+      clone.style.left = `${(fr.left - wr.left) / scale}px`;
+      clone.style.top = `${(fr.top - wr.top) / scale}px`;
+      layer.appendChild(clone);
+      clone
+        .animate(
+          [
+            { opacity: 1, transform: "scale(1)" },
+            { opacity: 0, transform: "scale(0.97)" },
+          ],
+          { duration: 150, easing: "ease-out", fill: "forwards" },
+        )
+        .finished.finally(() => clone.remove());
+    };
+
     const attach = () => {
       const vp = viewportRef.current;
       if (!vp) return () => undefined;
+      const unsubscribeLayout = store.subscribeLayout(onLayout);
       vp.addEventListener("click", onClick);
       vp.addEventListener("keydown", onKeyDown, true);
       vp.addEventListener("pointerdown", onPointerDownAnywhere, true);
@@ -437,6 +481,7 @@ export function useEditor({
       window.addEventListener("pointercancel", onPointerUp);
       return () => {
         end(false);
+        unsubscribeLayout();
         vp.removeEventListener("click", onClick);
         vp.removeEventListener("keydown", onKeyDown, true);
         vp.removeEventListener("pointerdown", onPointerDownAnywhere, true);

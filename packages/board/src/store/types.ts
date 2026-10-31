@@ -1,6 +1,7 @@
 // Board state shapes (docs/16 §5.1): elements keyed by id + per-column order.
 import type { z } from "zod";
 import type {
+  Action,
   AskVerificationArgs,
   Citation,
   CircleAnnotateArgs,
@@ -72,6 +73,24 @@ export interface BoardState {
 export type BoardEdit =
   | { op: "remove"; element_id: string }
   | { op: "move"; element_id: string; column: Column; after_id: string | null };
+
+/**
+ * The tutor reorganizes the board: same absolute move as the student's (after `after_id`, null = top).
+ * Local until `move_element` lands in @mento/contracts' Action; then BoardAction is just Action.
+ */
+export interface MoveElementAction {
+  id: string;
+  name: "move_element";
+  args: { id: string; column: Column; after_id: string | null };
+}
+export type BoardAction = Action | MoveElementAction;
+
+/** A layout change the board animates (FLIP reflow), announced right before the store commits it. */
+export interface LayoutChange {
+  kind: "move" | "remove" | "restore";
+  id: string;
+  by: Author;
+}
 
 /** What undo needs to put a deleted element back where it was. */
 export interface RemovedElement {

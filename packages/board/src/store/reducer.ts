@@ -1,7 +1,7 @@
 // Pure board reducer: one Action in, next BoardState out. Never throws on bad targets:
 // unknown ids are ignored and reported through `onWarning` (the model can reference stale ids).
-import type { Action, Column } from "@mento/contracts";
-import type { Annotation, BoardEdit, BoardState, ElementState, RemovedElement } from "./types";
+import type { Column } from "@mento/contracts";
+import type { Annotation, BoardAction, BoardEdit, BoardState, ElementState, RemovedElement } from "./types";
 
 export interface ApplyContext {
   /** Timestamp for `created_at`; defaults to Date.now(). */
@@ -9,7 +9,7 @@ export interface ApplyContext {
   onWarning?: (message: string) => void;
 }
 
-export function applyAction(state: BoardState, action: Action, ctx: ApplyContext = {}): BoardState {
+export function applyAction(state: BoardState, action: BoardAction, ctx: ApplyContext = {}): BoardState {
   const now = ctx.now ?? Date.now();
   const warn = (message: string) => ctx.onWarning?.(`${action.name} (${action.id}): ${message}`);
   // The student deleted this element: the tutor can neither change nor re-create it (late drawings included).
@@ -69,6 +69,11 @@ export function applyAction(state: BoardState, action: Action, ctx: ApplyContext
       return drop(state, el);
     }
 
+    case "move_element": {
+      const { id, column, after_id } = action.args;
+      return applyEdit(state, { op: "move", element_id: id, column, after_id }, { onWarning: (m) => warn(m) });
+    }
+
     case "highlight":
     case "circle_annotate": {
       const el = state.elements.get(action.args.target_id);
@@ -98,7 +103,7 @@ export function applyAction(state: BoardState, action: Action, ctx: ApplyContext
 }
 
 /** Replays a list of actions from an empty or given board (used by tests and session resume). */
-export function applyActions(state: BoardState, actions: readonly Action[], ctx: ApplyContext = {}): BoardState {
+export function applyActions(state: BoardState, actions: readonly BoardAction[], ctx: ApplyContext = {}): BoardState {
   return actions.reduce((s, a) => applyAction(s, a, ctx), state);
 }
 
