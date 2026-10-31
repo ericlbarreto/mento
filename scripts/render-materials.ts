@@ -13,53 +13,57 @@ const CHROME = process.env.CHROME_PATH ?? "/Applications/Google Chrome.app/Conte
 const MATERIALS = fileURLToPath(new URL("../materials/", import.meta.url));
 const SRC = join(MATERIALS, "src");
 
-// Installed macOS fonts with full pt-BR coverage (no font download, no dependency): Avenir Next for the text,
-// Noteworthy (handwritten, close to the board's Caveat) for box titles only.
+// Installed macOS fonts with full pt-BR coverage (no font download, no dependency): Charter (a book serif made
+// for reading on paper) for the text, Seravek (humanist sans) for titles, labels and tables. Soft ink, generous
+// leading and margins, quiet boxes marked by a colored rule instead of filled cards.
 const CSS = `
-@page { size: A4; margin: 20mm 19mm 18mm; @bottom-center { content: counter(page); font: 10pt "Avenir Next", sans-serif; color: #555; } }
+@page { size: A4; margin: 24mm 24mm 22mm; @bottom-center { content: counter(page); font: 9.5pt "Seravek", "Gill Sans", sans-serif; color: #8a8f99; } }
 @page :first { @bottom-center { content: none; } }
 * { box-sizing: border-box; }
-html { font-family: "Avenir Next", "Helvetica Neue", Arial, sans-serif; font-size: 11.5pt; line-height: 1.55; color: #1f2328;
-  hyphens: none; -webkit-hyphens: none; font-variant-ligatures: none; font-feature-settings: "liga" 0, "clig" 0, "dlig" 0; font-kerning: normal; }
+html { font-family: "Charter", "Iowan Old Style", Georgia, serif; font-size: 11pt; line-height: 1.68; color: #3b4150;
+  hyphens: none; -webkit-hyphens: none; font-variant-ligatures: none; font-feature-settings: "liga" 0, "clig" 0, "dlig" 0; font-kerning: normal;
+  -webkit-font-smoothing: antialiased; }
 body { margin: 0; }
 .nb { white-space: nowrap; }
 .url { overflow-wrap: anywhere; }
-p { margin: 0 0 0.6em; orphans: 3; widows: 3; }
-strong { font-weight: 600; }
-h2, h3 { break-after: avoid; line-height: 1.25; }
-.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: center; }
-.cover h1 { font-size: 30pt; font-weight: 700; margin: 0 0 0.4em; color: #3b2a8a; }
-.cover .subtitle { font-size: 15pt; margin: 0 0 3em; color: #444; }
-.cover .note { font-size: 10pt; color: #555; margin: 0; }
+p { margin: 0 0 0.85em; orphans: 3; widows: 3; }
+strong { font-weight: 700; color: #2a3040; }
+h2, h3 { break-after: avoid; line-height: 1.25; font-family: "Seravek", "Gill Sans", "Avenir Next", sans-serif; }
+.cover { height: 245mm; display: flex; flex-direction: column; justify-content: center; text-align: left; padding: 0 4mm; }
+.cover h1 { font-family: "Seravek", "Gill Sans", sans-serif; font-size: 30pt; font-weight: 600; line-height: 1.15; margin: 0 0 0.5em; color: #22305e; letter-spacing: -0.01em; }
+.cover .subtitle { font-family: "Seravek", "Gill Sans", sans-serif; font-size: 13pt; margin: 0 0 3.5em; color: #6b7180; letter-spacing: 0.04em; text-transform: uppercase; }
+.cover .note { font-size: 9.5pt; color: #8a8f99; margin: 0; padding-top: 0.8em; border-top: 0.6pt solid #d9dce3; max-width: 70%; }
 .toc { break-before: page; }
-.toc h2, .part h2 { font-size: 20pt; color: #3b2a8a; margin: 0 0 0.8em; }
-.toc ol { list-style: none; padding: 0; margin: 0; }
-.toc li { display: flex; align-items: baseline; gap: 0.4em; margin: 0 0 0.55em; white-space: nowrap; }
-.toc-n { min-width: 1.4em; font-weight: 600; }
+.toc h2, .part h2 { font-size: 19pt; font-weight: 600; color: #22305e; margin: 0 0 1.2em; }
+.toc ol { list-style: none; padding: 0; margin: 0; font-family: "Seravek", "Gill Sans", sans-serif; font-size: 11pt; }
+.toc li { display: flex; align-items: baseline; gap: 0.5em; margin: 0 0 0.75em; white-space: nowrap; color: #3b4150; }
+.toc-n { min-width: 1.6em; font-weight: 600; color: #4a5a9a; }
 .toc-t { flex: none; }
-.toc-dots { flex: 1; overflow: hidden; color: #888; letter-spacing: 0.1em; }
-.toc-p { flex: none; font-variant-numeric: tabular-nums; }
+.toc-dots { flex: 1; overflow: hidden; color: #c3c7d0; letter-spacing: 0; }
+.toc-p { flex: none; font-variant-numeric: tabular-nums; color: #6b7180; }
 .chapter, .part { break-before: page; }
-.chapter-title { font-size: 21pt; font-weight: 700; color: #3b2a8a; margin: 0 0 0.9em; white-space: nowrap; }
-h3 { font-size: 13.5pt; font-weight: 600; color: #2d2470; margin: 1.1em 0 0.4em; }
-ul, ol { margin: 0 0 0.7em; padding-left: 1.5em; }
-li { margin: 0 0 0.25em; }
-.box { break-inside: avoid; border: 1.2pt solid #c9c2ef; background: #f5f3ff; border-radius: 6pt; padding: 0.6em 0.9em 0.3em; margin: 0.9em 0; }
-.box-title { font-family: "Noteworthy", "Avenir Next", sans-serif; font-weight: 700; font-size: 13pt; color: #3b2a8a; margin-bottom: 0.2em; }
-.box-glossario { background: #f3f8ff; border-color: #b9d3f5; }
-.box-glossario .box-title { color: #1d4f91; }
-.box-atencao { background: #fff6ed; border-color: #f2c79b; }
-.box-atencao .box-title { color: #9a4a00; }
-.box-fonte-historica, .box-experimento { background: #f2faf4; border-color: #b8dfc3; }
-.box-fonte-historica .box-title, .box-experimento .box-title { color: #1e6b37; }
-table { border-collapse: collapse; width: 100%; margin: 0.8em 0 1em; break-inside: avoid; font-size: 10.5pt; }
-th, td { border: 0.8pt solid #c8c8d0; padding: 0.35em 0.6em; text-align: left; vertical-align: top; }
-th { background: #eeecf8; font-weight: 600; }
+.chapter-title { font-size: 20pt; font-weight: 600; color: #22305e; margin: 0 0 1.2em; padding-bottom: 0.45em; border-bottom: 0.8pt solid #d9dce3; white-space: nowrap; letter-spacing: -0.005em; }
+h3 { font-size: 12.5pt; font-weight: 600; color: #2f3d73; margin: 1.6em 0 0.5em; }
+ul, ol { margin: 0 0 0.9em; padding-left: 1.4em; }
+li { margin: 0 0 0.35em; }
+li::marker { color: #8a93b8; }
+.box { break-inside: avoid; border-left: 2.4pt solid #8d9be0; background: #f6f7fb; border-radius: 0 3pt 3pt 0; padding: 0.75em 1.1em 0.35em; margin: 1.3em 0; font-size: 10.5pt; }
+.box-title { font-family: "Seravek", "Gill Sans", sans-serif; font-weight: 600; font-size: 8.5pt; letter-spacing: 0.12em; text-transform: uppercase; color: #4a5a9a; margin-bottom: 0.45em; }
+.box-glossario { border-left-color: #6fa3d8; background: #f4f8fc; }
+.box-glossario .box-title { color: #2f6aa3; }
+.box-atencao { border-left-color: #e0a066; background: #fdf7f1; }
+.box-atencao .box-title { color: #a65a17; }
+.box-fonte-historica, .box-experimento { border-left-color: #7cbf93; background: #f4faf6; }
+.box-fonte-historica .box-title, .box-experimento .box-title { color: #2f7a4a; }
+table { border-collapse: collapse; width: 100%; margin: 1.1em 0 1.3em; break-inside: avoid; font-family: "Seravek", "Gill Sans", sans-serif; font-size: 9.8pt; line-height: 1.45; }
+th, td { border-bottom: 0.6pt solid #e1e3ea; padding: 0.5em 0.7em; text-align: left; vertical-align: top; }
+th { border-bottom: 1pt solid #b9bfd0; font-weight: 600; color: #22305e; background: none; }
+tr:last-child td { border-bottom: 0.8pt solid #b9bfd0; }
 code { font-family: Menlo, monospace; font-size: 0.9em; }
 `;
 
 // Chapter titles never wrap (the PDF's first line must be the whole "Capítulo N — Título"): shrink the long ones.
-const FIT_TITLES = `<script>for (const h of document.querySelectorAll(".chapter-title")) { let s = 21; while (h.scrollWidth > h.clientWidth && s > 11) h.style.fontSize = (s -= 0.5) + "pt"; }</script>`;
+const FIT_TITLES = `<script>for (const h of document.querySelectorAll(".chapter-title")) { let s = 20; while (h.scrollWidth > h.clientWidth && s > 11) h.style.fontSize = (s -= 0.5) + "pt"; }</script>`;
 
 function html(book: Book, pages: PageMap): string {
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
