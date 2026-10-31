@@ -1,0 +1,116 @@
+{
+  "_note": "Mock of what ingestion extracts from the teacher's PDF (outline + lesson sequence). Real data will come from packages/sources. Content in pt-BR.",
+  "id": "mat_roma",
+  "title": "Apostila de História — Unidade 3: Antiguidade Clássica",
+  "subject": "História",
+  "page_count": 68,
+  "sequence": [
+    {
+      "lesson_id": "L1",
+      "order": 1,
+      "title": "Grécia Antiga: pólis e cidadania",
+      "pages": [10, 19],
+      "taught_in_class": true,
+      "summary": "As cidades-Estado gregas (pólis), Atenas e Esparta. Quem era cidadão em Atenas: homens livres, nascidos na cidade, filhos de atenienses; mulheres, estrangeiros e escravizados ficavam de fora. Origem da democracia ateniense.",
+      "key_concepts": ["Pólis", "Cidadania na Antiguidade", "Democracia ateniense"],
+      "activities": [
+        "Atividade 1.1: comparar Atenas e Esparta em um quadro",
+        "Atividade 1.2: listar quem podia e quem não podia votar em Atenas"
+      ],
+      "prerequisites": []
+    },
+    {
+      "lesson_id": "L2",
+      "order": 2,
+      "title": "Formas de governo: monarquia, república, democracia e império",
+      "pages": [20, 25],
+      "taught_in_class": true,
+      "summary": "Conceitos-base usados em toda a unidade. Monarquia: poder de um rei, normalmente hereditário e vitalício. República: não há rei; o poder é exercido por magistrados eleitos com mandato limitado e por assembleias. Democracia: participação dos cidadãos nas decisões. Império: poder concentrado em um imperador que governa vastos territórios.",
+      "key_concepts": ["Formas de governo", "Monarquia", "República", "Império"],
+      "activities": [
+        "Atividade 2.1: classificar exemplos de governos em monarquia, república ou império",
+        "Atividade 2.2: responder 'quem manda, como chega ao poder e por quanto tempo' para cada forma de governo"
+      ],
+      "prerequisites": ["L1"]
+    },
+    {
+      "lesson_id": "L3",
+      "order": 3,
+      "title": "Fundação de Roma e Monarquia romana",
+      "pages": [26, 31],
+      "taught_in_class": true,
+      "summary": "Lenda de Rômulo e Remo (753 a.C.), os sete reis de Roma e o fim da monarquia em 509 a.C. Linha do tempo de Roma: Monarquia (753–509 a.C.), República (509–27 a.C.), Império (27 a.C.–476 d.C.).",
+      "key_concepts": ["Fundação de Roma", "Monarquia romana", "Cronologia de Roma"],
+      "activities": [
+        "Atividade 3.1: montar a linha do tempo dos três períodos de Roma"
+      ],
+      "prerequisites": ["L2"]
+    },
+    {
+      "lesson_id": "L4",
+      "order": 4,
+      "title": "República romana: instituições e conflitos sociais",
+      "pages": [32, 41],
+      "taught_in_class": true,
+      "summary": "Dois cônsules eleitos por um ano, o Senado (controlava finanças e aconselhava os cônsules) e as assembleias. Patrícios (aristocracia proprietária de terras) e plebeus (maioria livre: comerciantes, artesãos, camponeses). Revoltas da plebe e criação dos tribunos da plebe, que podiam vetar leis contrárias aos plebeus.",
+      "key_concepts": ["Instituições da República", "Patrícios e plebeus", "Tribunos da plebe"],
+      "activities": [
+        "Atividade 4.1: quadro comparativo patrícios × plebeus",
+        "Atividade 4.2: organograma das instituições da República"
+      ],
+      "prerequisites": ["L2", "L3"]
+    },
+    {
+      "lesson_id": "L5",
+      "order": 5,
+      "title": "Expansão romana e Guerras Púnicas",
+      "pages": [42, 47],
+      "taught_in_class": true,
+      "summary": "Roma e Cartago (norte da África, atual Tunísia) disputaram o controle do comércio no mar Mediterrâneo. Após a Primeira Guerra Púnica, Roma conquistou a Sicília. Com as conquistas, o Mediterrâneo passou a ser chamado de 'Mare Nostrum'. A atividade usa um mapa do Mediterrâneo.",
+      "key_concepts": ["Expansão romana", "Guerras Púnicas", "Mare Nostrum"],
+      "activities": [
+        "Atividade 5.1: localizar Roma, Cartago, Sicília e Hispânia no mapa do Mediterrâneo",
+        "Atividade 5.2: explicar por que Roma e Cartago entraram em guerra"
+      ],
+      "prerequisites": ["L4"]
+    },
+    {
+      "lesson_id": "L6",
+      "order": 6,
+      "title": "Crise da República e início do Império",
+      "pages": [48, 55],
+      "taught_in_class": true,
+      "summary": "Concentração de terras, guerras civis e generais com exércitos próprios enfraquecem a República. Júlio César concentra poderes e é assassinado em 44 a.C. Em 27 a.C., Otávio recebe o título de Augusto: mantém o Senado na aparência, mas concentra o poder como princeps — início do Império.",
+      "key_concepts": ["Crise da República", "Júlio César", "Augusto e o Império"],
+      "activities": [
+        "Atividade 6.1: explicar com suas palavras a diferença entre a República e o governo de Augusto",
+        "Atividade 6.2: listar três causas da crise da República"
+      ],
+      "prerequisites": ["L2", "L4"]
+    },
+    {
+      "lesson_id": "L7",
+      "order": 7,
+      "title": "Cotidiano e cultura no Império: o Coliseu e o pão e circo",
+      "pages": [56, 61],
+      "taught_in_class": false,
+      "summary": "O Coliseu foi inaugurado em 80 d.C., já no Império. A política do 'pão e circo' distribuía alimento e espetáculos para reduzir a insatisfação da população urbana.",
+      "key_concepts": ["Coliseu", "Pão e circo"],
+      "activities": [
+        "Atividade 7.1: situar o Coliseu na linha do tempo de Roma"
+      ],
+      "prerequisites": ["L3", "L6"]
+    },
+    {
+      "lesson_id": "L8",
+      "order": 8,
+      "title": "A queda do Império Romano do Ocidente",
+      "pages": [62, 67],
+      "taught_in_class": false,
+      "summary": "Crise econômica, divisão do Império e invasões germânicas; fim do Império do Ocidente em 476 d.C.",
+      "key_concepts": ["Queda do Império"],
+      "activities": [],
+      "prerequisites": ["L6"]
+    }
+  ]
+}

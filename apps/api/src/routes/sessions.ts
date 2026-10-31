@@ -9,10 +9,14 @@ import {
   ListSessionsResponse,
   SessionDetailResponse,
 } from "@mento/contracts";
+import { getAnalysisData, startAnalysis } from "../controllers/teacher.controller";
 
-// Sessions are stored in MongoDB (sessions + events collections).
-// POST /api/sessions: from a subject (its books are the sources) or a free whiteboard (subject_id omitted or null).
-// GET /api/sessions, GET /api/sessions/:id: the history screen and re-opening a conversation.
+// Whiteboard (Person 3): sessions are stored in MongoDB (sessions + events collections).
+//   POST /api/sessions: from a subject (its books are the sources) or a free whiteboard (subject_id omitted or null).
+//   GET /api/sessions, GET /api/sessions/:id: the history screen and re-opening a conversation. POST /sessions/:id/end.
+// Teacher side (Person 1): `/end` triggers the analysis of the stored conversation; POST|GET /sessions/:id/analysis run and read it.
+const Params = z.object({ id: z.string() });
+
 const plugin: FastifyPluginAsyncZod = async (app) => {
   app.get("/sessions", { schema: { querystring: ListSessionsQuery, response: { 200: ListSessionsResponse, 503: ErrorResponse } } }, async (request) => {
     return { sessions: await request.server.container.history.listSessions(request.query) };
@@ -52,15 +56,25 @@ const plugin: FastifyPluginAsyncZod = async (app) => {
     "/sessions/:id/end",
     { schema: { params: z.object({ id: z.string().min(1) }), body: EndSessionRequest } },
     async (request, reply) => {
-      const { repo, engine, tts } = request.server.container;
+      const { repo, engine, tts, sessionEnded } = request.server.container;
       const { id } = request.params;
       if (!(await repo.getSession(id))) return reply.status(404).send({ error: "session_not_found" });
       await repo.endSession(id, request.body.reason);
       engine?.forget(id);
       tts?.cancelAll();
+      // Teacher side: analyse the stored conversation in the background (never delays or fails the answer).
+      sessionEnded.handle(id).catch((err) => request.log.warn({ err }, "post-session analysis failed"));
       return { ok: true };
     },
   );
+
+  app.post(
+    "/sessions/:id/analysis",
+    { schema: { params: Params, querystring: z.object({ force: z.enum(["true", "false"]).optional() }) } },
+    async (request, reply) => reply.code(202).send(await startAnalysis(app.container, request.params.id, request.query.force === "true")),
+  );
+
+  app.get("/sessions/:id/analysis", { schema: { params: Params } }, async (request) => getAnalysisData(app.container, request.params.id));
 };
 
 export default plugin;

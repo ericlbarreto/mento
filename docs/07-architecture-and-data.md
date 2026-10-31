@@ -67,6 +67,23 @@ Whiteboard conversation ─► events + evidence ─► analysis (after each ses
                                   Teacher: Students tab (metrics, student detail)
 ```
 
+### Teacher-side data model as implemented (2026-10-30, D57–D63)
+
+The block above is the conceptual model. What exists in MongoDB today (`packages/db`, snake_case, relations as string ids):
+
+| Collection | Notes |
+|---|---|
+| `students` | `fixture_id`, `name`, `is_simulated`, `profile` (birth date, enrollment, class, guardian), `school_history[]`, `current_term[]`: fictional, read-only, never sent to an LLM |
+| `classcontexts` | singleton: `grade_level`, `description` |
+| `materials` (shared with the whiteboard) | one per book: `title`, `subject` (key) and `subject_id`, `pages`, `chapters`, `status` (`queued → processing → ready | failed`), and from the upload `file`, `progress`, **`sequence`** (lessons with prerequisites), `pages_needing_ocr`, `toc_pages`, `passages`. Lab data has `is_fixture` and never reaches the tutor |
+| `chunks` (shared) | embedded passages (Voyage, 1024 numbers) the tutor searches; filled by the upload job through the whiteboard's `ingestPdf` |
+| `analyses` | one per session (unique `session_id`): status, `input_hash`, versions, findings, summary, rejections |
+| `insights` | `gap | progress | suggestion` rows with `severity`, `rule`, `diagnosis`, `root_cause`, `metrics`, `evidence`, `status` |
+
+**Whiteboard collections (Person 3):** `subjects`, `sessions`, `events`, `evidences`, plus the shared `materials` and `chunks` above. The teacher code only resets its own collections and fixture materials.
+
+**Conversations (Person 3):** `sessions`, `events` and `evidences` are written by the tutor and read, never written, by the analysis (`MongoConversationReader` → `toSessionBundle`, D65). The material and the lesson of a conversation are derived from the sources the tutor cited. The JSON file in `fixtures/analysis-lab/` is only a demo/test source.
+
 ## Event contract (single typed schema for all channels)
 
 **Client → server** (stored as events; full list in `workstreams/contracts-spec.md` §3): user messages (`kind` = chat, speech, board_select, quick_action), answers to verifications, interruptions, end of conversation. Audio chunks go to the STT provider, not to our API.

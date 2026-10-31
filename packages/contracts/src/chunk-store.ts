@@ -43,6 +43,8 @@ export interface ChunkStore {
   textSearch(query: string, limit: number, filter: ChunkFilter): Promise<Chunk[]>;
   getPagePassages(material_id: string, page: number): Promise<Chunk[]>;
   insertPassages(passages: PassageRecord[]): Promise<void>;
+  /** Remove every passage of a material (a failed or repeated ingestion must not leave or duplicate passages). */
+  deletePassages?(material_id: string): Promise<void>;
   createMaterial(material: MaterialRecord): Promise<{ id: string }>;
   updateMaterial(id: string, patch: Partial<MaterialRecord>): Promise<void>;
   /** Ready materials, only those of `subject_id` when it is given. */

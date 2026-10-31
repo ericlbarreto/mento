@@ -6,7 +6,7 @@ export interface PdfPage {
 }
 
 /** Text layer of every page of a PDF (1-based page numbers). Pages without a text layer come back with empty text. */
-export async function extractPdfPages(data: Uint8Array): Promise<PdfPage[]> {
+export async function extractPdfPages(data: Uint8Array, onPage?: (done: number, total: number) => void): Promise<PdfPage[]> {
   const task = getDocument({ data: new Uint8Array(data), useSystemFonts: false, verbosity: 0 });
   const doc = await task.promise;
   const pages: PdfPage[] = [];
@@ -17,6 +17,7 @@ export async function extractPdfPages(data: Uint8Array): Promise<PdfPage[]> {
       const text = content.items.map((item) => ("str" in item ? item.str + (item.hasEOL ? "\n" : " ") : "")).join("").replace(/[ \t]+/g, " ").trim();
       pages.push({ page: n, text });
       page.cleanup();
+      onPage?.(n, doc.numPages);
     }
   } finally {
     await task.destroy();
