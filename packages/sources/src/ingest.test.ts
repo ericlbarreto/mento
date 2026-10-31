@@ -28,7 +28,7 @@ describe("ingestPdf", () => {
     const { store, materials, passages } = memoryStore();
     const chapters = [{ title: "A República", start_page: 1, end_page: 1 }, { title: "O Império", start_page: 2, end_page: 3 }];
     const report = await ingestPdf({ data: pdf, title: "História de Roma", subject: "history", chapters, store, embed });
-    expect(report).toEqual({ material_id: "mat1", pages: 3, passages: 2, empty_pages: [2] });
+    expect(report).toEqual({ material_id: "mat1", pages: 3, passages: 2, empty_pages: [2], toc_pages: [] });
     expect(passages.map((p) => [p.page, p.chapter, p.passage_idx, p.material_id, p.subject])).toEqual([
       [1, "A República", 0, "mat1", "history"],
       [3, "O Império", 0, "mat1", "history"],
@@ -43,5 +43,16 @@ describe("ingestPdf", () => {
     await expect(ingestPdf({ data: pdf, title: "t", subject: "s", store, embed: async () => { throw new Error("voyage down"); }, log: (m) => logs.push(m) })).rejects.toThrow("voyage down");
     expect(materials["mat1"]?.status).toBe("failed");
     expect(logs[0]).toContain("1 page(s) without a text layer: 2");
+  });
+
+  it("skips table-of-contents pages and stores cleaned text", async () => {
+    const { store, passages } = memoryStore();
+    const toc = makePdf([
+      "Summary ............ 11 ............ 13 ............ 16 ............ 20",
+      "Rome fought Carthage in the Punic Wars. The first war began in 264 BC.",
+    ]);
+    const report = await ingestPdf({ data: toc, title: "t", subject: "history", store, embed });
+    expect(report.toc_pages).toEqual([1]);
+    expect(passages.map((p) => p.page)).toEqual([2]);
   });
 });

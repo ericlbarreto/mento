@@ -110,3 +110,13 @@ export async function ensureChunkIndexes(): Promise<string[]> {
   if (!db) throw new Error("MongoDB is not connected");
   return ensureSearchIndexes(db.collection(ChunkModel.collection.name));
 }
+
+/** Remove every material with this title and all of its passages (used by `pnpm ingest --replace`). */
+export async function deleteMaterialsByTitle(title: string): Promise<{ materials: number; chunks: number }> {
+  const ids = (await MaterialModel.find({ title }).select("_id").lean<{ _id: unknown }[]>()).map((d) => String(d._id));
+  if (ids.length === 0) return { materials: 0, chunks: 0 };
+  const chunks = await ChunkModel.deleteMany({ material_id: { $in: ids } });
+  const materials = await MaterialModel.deleteMany({ _id: { $in: ids } });
+  return { materials: materials.deletedCount, chunks: chunks.deletedCount };
+}
+

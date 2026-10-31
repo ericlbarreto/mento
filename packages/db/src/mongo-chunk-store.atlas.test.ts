@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { MongoChunkStore, ensureChunkIndexes } from "./mongo-chunk-store";
+import { MongoChunkStore, deleteMaterialsByTitle, ensureChunkIndexes } from "./mongo-chunk-store";
 import { connectMongo, disconnectMongo } from "./connection";
 
 // Runs only against a real Atlas cluster: ATLAS_TEST_URI=mongodb+srv://... pnpm --filter @mento/db test
@@ -37,11 +37,25 @@ describe.skipIf(!uri)("MongoChunkStore on Atlas", () => {
 
   it("finds the closest passage by vector and by text, with the subject filter", async () => {
     const vec = Array.from({ length: 1024 }, (_, i) => (i === 0 ? 1 : 0));
-    const byVector = await store.vectorSearch(vec, 2, { subject });
+    // Atlas Search indexes new documents asynchronously (a few seconds): wait until both appear.
+    let byVector = await store.vectorSearch(vec, 2, { subject });
+    for (let i = 0; i < 30 && byVector.length < 2; i++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      byVector = await store.vectorSearch(vec, 2, { subject });
+    }
     expect(byVector[0]?.page).toBe(1);
     const byText = await store.textSearch("aqueduto", 2, { subject });
     expect(byText[0]?.page).toBe(2);
     expect((await store.listCatalog()).some((m) => m.material_id === material_id)).toBe(true);
     expect((await store.getPagePassages(material_id, 1))[0]?.text).toContain("Senado");
+  }, 60_000);
+
+  it("deletes a material and its passages by title", async () => {
+    const title = `Apagar ${subject}`;
+    const { id } = await store.createMaterial({ title, subject, chapters: [], pages: 1, status: "ready" });
+    await store.insertPassages([{ material_id: id, subject, page: 1, passage_idx: 0, text: "Texto temporário.", embedding: Array.from({ length: 1024 }, () => 0) }]);
+    expect(await deleteMaterialsByTitle(title)).toEqual({ materials: 1, chunks: 1 });
+    expect(await store.getPagePassages(id, 1)).toEqual([]);
+    expect(await deleteMaterialsByTitle(title)).toEqual({ materials: 0, chunks: 0 });
   }, 60_000);
 });
