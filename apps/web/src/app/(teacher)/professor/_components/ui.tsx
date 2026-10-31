@@ -45,14 +45,6 @@ export function Chip({ tone = "neutral", dot, children, className }: { tone?: To
   );
 }
 
-export function SimulatedBadge() {
-  return (
-    <span className="inline-flex items-center rounded-full border border-[var(--accent)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.03em] text-[var(--accent-ink)]">
-      Dados simulados
-    </span>
-  );
-}
-
 export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   return (
     <span

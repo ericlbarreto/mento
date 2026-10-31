@@ -150,10 +150,10 @@ export default function StudentsTab() {
               label="Alunos mapeados"
               value={stats.students}
               unit="estudantes"
-              note={stats.simulatedStudents > 0 ? `${stats.simulatedStudents} simulados` : `${stats.withConversations} já conversaram com o tutor`}
+              note={stats.withConversations === 1 ? "1 já conversou com o tutor" : `${stats.withConversations} já conversaram com o tutor`}
               icon={<IconUsers size={18} />}
             />
-            <MetricCard label="Conceitos em mapeamento" value={stats.concepts} unit="tópicos" note="avaliados pelas perguntas do tutor" icon={<IconBook size={18} />} />
+            <MetricCard label="Conceitos avaliados" value={stats.concepts} unit="tópicos" note="avaliados pelas perguntas do tutor" icon={<IconBook size={18} />} />
             <MetricCard
               label="Lacunas ativas"
               value={stats.gapsOpen}

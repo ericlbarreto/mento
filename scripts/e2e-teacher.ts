@@ -82,7 +82,10 @@ try {
 
   console.log("\n# 4. class context");
   check("a description naming a student is rejected (422)", (await send("PUT", "/class-context", { grade_level: "8º ano", description: "O Diego se distrai." })).status === 422);
+  const originalContext = await get("/class-context");
   check("a valid description is saved", (await send("PUT", "/class-context", { grade_level: "9º ano", description: "Turma de 9º ano, gosta de debates." })).status === 200 && (await get("/class-context")).grade_level === "9º ano");
+  // Put the demo class (8º ano) back so the run does not leave the teacher UI on another grade.
+  await send("PUT", "/class-context", { grade_level: originalContext.grade_level, description: originalContext.description });
 
   console.log("\n# 5. upload linked to a subject → embeddings in the vector store");
   const subjectRes = await send("POST", "/subjects", { name: "História (e2e)", key: "history_e2e" });

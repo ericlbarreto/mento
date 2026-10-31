@@ -1,8 +1,8 @@
 // Owner: Person 1. Fictional data for the teacher UI until the teacher API (PR #7) is wired in.
-// Every student is simulated, so the UI shows the "Dados simulados" badge.
+// Every student is fictional (is_simulated: true).
 import type { ClassContext, Gap, Material, SessionItem, Student } from "./types";
 
-const CLASS = { class_name: "8º B", grade_level: "8º ano" as const, is_simulated: true };
+const CLASS = { class_name: "8º A", grade_level: "8º ano" as const, is_simulated: true };
 
 export const MOCK_STUDENTS: Student[] = [
   { id: "stu_maya", name: "Maya Pereira", ...CLASS },
