@@ -202,12 +202,13 @@ Every element the tutor creates has a stable `id` and a `column` (`main` | `visu
 | `speak` | `text`, `style?`, `purpose?` (`explain`/`hint`/`praise`/`question`/`transition`), `hint_level?` (1–3), `sources?`, `outside_material?`, `audio_url?`, `audio_format?` | Play `audio_url` (voice mode) or show `text` as a caption (text mode). Show `sources` as citation chips; mark `outside_material: true` visibly |
 | `write_text` | `id`, `column`, `html`, `purpose?`, `hint_level?`, `sources?`, `outside_material?` | Handwritten text block. `html` is already sanitized server-side (only `h1–h3, p, b, i, br, ul, ol, li, span`, no attributes) |
 | `write_timeline` | `id`, `column`, `events: [{ date, label }]` (1–12) | Timeline component |
-| `highlight` | `target_id`, `color` (`yellow`/`green`/`pink`/`blue`) | Marker highlight on an existing element |
+| `highlight` | `target_id`, `color` (`yellow`/`green`/`pink`/`blue`), `shape_id?`, `text_to_match?` (1–120) | Marker highlight on an existing element; with `text_to_match`, only that passage (case-insensitive match; the server guarantees it occurs) |
 | `circle_annotate` | `target_id`, `text_to_match`, `color` (`red`/`blue`/`green`) | Circle that text inside the element (case-insensitive match; the server guarantees it occurs) |
 | `draw` | `id`, `column`, `prompt`, `is_structured`, `max_dimensions: { w, h }` | Insert a **placeholder** of that size; the picture comes later in `draw_result` |
 | `draw_result` | `element_id`, `url` | Replace the placeholder with the image at `API_URL + url` (`/api/gen/<key>.jpg`). Use `mix-blend-mode: multiply` so the white background disappears on the beige board |
 | `update_element` | `id`, `html` | Replace the content of an element (also used as the image fallback: a caption card `[ilustração: …]`) |
 | `remove_element` | `id` | Remove the element |
+| `move_element` | `id`, `column`, `after_id` (`null` = top) | The tutor tidies the board: move the element to `column`, right after `after_id` (same placement rule as a student move, D79) |
 | `ask_verification` | `id`, `column`, `verification_id`, `concept`, `concept_key`, `question`, `kind` (`explain`/`transfer`/`place_on_timeline`) | Show the question on the board and wait; send the answer as a `verification_answer` |
 
 Citation (`Citation`): `{ material_id, page, quote }`. The quote was checked against that page of the book; fake citations are removed by the server before the action is sent. To open the source, use the material id from `GET /api/subjects` and the page number.

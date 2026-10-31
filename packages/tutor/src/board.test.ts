@@ -155,3 +155,31 @@ describe("Board: student edits (plan F)", () => {
     expect(lines[1]).toMatch(/^Removed by the student: t2 \(text\), .*t11 \(text\) and 2 more$/);
   });
 });
+
+describe("Board: the tutor tidies and marks passages", () => {
+  const move = (id: string, column: "main" | "visuals" | "side", after_id: string | null): Action => ({ id: `mv_${id}`, name: "move_element", args: { id, column, after_id } });
+
+  it("validates move_element: the target exists and is not deleted, after_id is null or in the target column", () => {
+    const board = Board.fromActions([writeText("a", "<p>A</p>"), writeText("b", "<p>B</p>"), writeText("n", "<p>N</p>", "side")]);
+    expect(board.validate(move("b", "main", null))).toEqual({ ok: true });
+    expect(board.validate(move("b", "side", "n"))).toEqual({ ok: true });
+    expect(board.validate(move("b", "side", "a"))).toMatchObject({ ok: false });
+    expect(board.validate(move("b", "main", "b"))).toMatchObject({ ok: false });
+    expect(board.validate(move("ghost", "main", null))).toMatchObject({ ok: false });
+    board.applyEdit({ op: "remove", element_id: "a" });
+    expect(board.validate(move("a", "main", null))).toMatchObject({ ok: false, reason: expect.stringContaining("deleted by the student") });
+    expect(board.validate(move("b", "main", "a"))).toMatchObject({ ok: false, reason: expect.stringContaining("deleted by the student") });
+  });
+
+  it("applies move_element in the column order (and from stored actions)", () => {
+    const board = Board.fromActions([writeText("a", "<p>A</p>"), writeText("b", "<p>B</p>"), writeText("c", "<p>C</p>"), move("c", "main", "a"), move("a", "side", null)]);
+    expect(board.snapshot()).toBe("c | text | main | C\nb | text | main | B\na | text | side | A");
+  });
+
+  it("highlight text_to_match must occur in the target's text", () => {
+    const board = Board.fromActions([writeText("t", "<p>O Senado tinha medo</p>")]);
+    const hl = (text_to_match: string): Action => ({ id: "h", name: "highlight", args: { target_id: "t", color: "blue", text_to_match } });
+    expect(board.validate(hl("o senado"))).toEqual({ ok: true });
+    expect(board.validate(hl("o povo"))).toMatchObject({ ok: false, reason: "text_to_match not found in t" });
+  });
+});

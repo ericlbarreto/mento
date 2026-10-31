@@ -47,6 +47,11 @@ describe("student board edits in the runtime", () => {
     expect([...rt.editIds]).toEqual(["e1", "e2", "e3"]);
   });
 
+  it("replays the tutor's move_element like any other action", () => {
+    const rt = restoreRuntime([text("a"), text("b"), action(1, "move_element", { id: "b", column: "main", after_id: null }, "act_mv")]);
+    expect(rt.board.snapshot()).toBe("b | text | main | b\na | text | main | a");
+  });
+
   it("answers applied, already_applied, already_removed and element_not_found", () => {
     const rt = restoreRuntime([text("a"), text("b")]);
     expect(applyStudentEdit(rt, { op: "remove", edit_id: "e1", element_id: "a" })).toBe("applied");

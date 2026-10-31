@@ -103,7 +103,14 @@ export class Board {
       case "highlight": {
         const target = this.target(action.args.target_id);
         if ("reason" in target) return target;
-        return action.args.shape_id ? this.hasShape(target.el, action.args.shape_id) : OK;
+        if (action.args.shape_id) {
+          const shape = this.hasShape(target.el, action.args.shape_id);
+          if (!shape.ok) return shape;
+        }
+        if (action.args.text_to_match && !norm(target.el.text).includes(norm(action.args.text_to_match))) {
+          return fail(`text_to_match not found in ${action.args.target_id}`);
+        }
+        return OK;
       }
       case "circle_annotate": {
         const target = this.target(action.args.target_id);
@@ -122,6 +129,15 @@ export class Board {
       case "remove_element":
         if (this.removed.has(action.args.id)) return fail(`${action.args.id}: ${DELETED}`);
         return this.elements.has(action.args.id) ? OK : fail(`unknown element: ${action.args.id}`);
+      case "move_element": {
+        const target = this.target(action.args.id);
+        if ("reason" in target) return target;
+        const after = action.args.after_id;
+        if (after === null) return OK;
+        if (after === action.args.id) return fail(`after_id cannot be the element itself: ${after}`);
+        if (this.removed.has(after)) return fail(`${after}: ${DELETED}`);
+        return this.elements.get(after)?.column === action.args.column ? OK : fail(`after_id ${after} is not in column ${action.args.column}`);
+      }
       case "draw_result":
         return fail("draw_result is server-only");
     }
@@ -169,6 +185,8 @@ export class Board {
       const target = this.elements.get(action.args.id);
       if (target) this.unlink(target);
       this.elements.delete(action.args.id);
+    } else if (action.name === "move_element") {
+      this.place(action.args.id, action.args.column, action.args.after_id);
     }
   }
 
@@ -182,20 +200,25 @@ export class Board {
   applyEdit(edit: BoardEdit): void {
     const el = this.elements.get(edit.element_id);
     if (!el) return;
-    this.unlink(el);
     if (edit.op === "remove") {
+      this.unlink(el);
       this.elements.delete(el.id);
       this.removed.set(el.id, el.type);
       return;
     }
-    el.column = edit.column;
-    const ids = this.column(edit.column);
-    if (edit.after_id === null) ids.unshift(el.id);
-    else {
-      const i = ids.indexOf(edit.after_id);
-      if (i >= 0) ids.splice(i + 1, 0, el.id);
-      else ids.push(el.id);
-    }
+    this.place(el.id, edit.column, edit.after_id);
+  }
+
+  /** Put an element in `column` right after `after_id` (null = top; not found in that column = end). */
+  private place(id: string, column: string, after_id: string | null): void {
+    const el = this.elements.get(id);
+    if (!el) return;
+    this.unlink(el);
+    el.column = column;
+    const ids = this.column(column);
+    const i = after_id === null ? -1 : ids.indexOf(after_id);
+    if (after_id !== null && i < 0) ids.push(id);
+    else ids.splice(i + 1, 0, id);
   }
 
   /** Elements column by column (main, visuals, side), each in the student's order. */

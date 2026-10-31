@@ -55,6 +55,8 @@ export const HighlightArgs = z.object({
   color: z.enum(["yellow", "green", "pink", "blue"]),
   /** Only one shape of a `draw_diagram` element. */
   shape_id: ShapeId.optional(),
+  /** Only this passage of the element (must occur in its text, like `circle_annotate`); omitted = the whole element. */
+  text_to_match: z.string().min(1).max(120).optional(),
 });
 
 export const CircleAnnotateArgs = z.object({
@@ -84,6 +86,8 @@ export type DiagramArgs = z.infer<typeof DiagramArgs>;
 
 export const UpdateElementArgs = z.object({ id: ElementId, html: z.string().min(1).max(4000) });
 export const RemoveElementArgs = z.object({ id: ElementId });
+/** The tutor tidies the board: element `id` goes to `column`, right after `after_id` (null = top of the column). */
+export const MoveElementArgs = z.object({ id: ElementId, column: Column, after_id: ElementId.nullable() });
 
 /** What the model may send; the server adds `verification_id` and `concept_key`. */
 export const AskVerificationBase = z.object({
@@ -100,7 +104,7 @@ export const AskVerificationArgs = AskVerificationBase.extend({
 
 export const ActionName = z.enum([
   "speak", "write_text", "write_timeline", "highlight", "circle_annotate",
-  "draw", "draw_result", "update_element", "remove_element", "ask_verification", "draw_diagram",
+  "draw", "draw_result", "update_element", "remove_element", "ask_verification", "draw_diagram", "move_element",
 ]);
 export type ActionName = z.infer<typeof ActionName>;
 
@@ -119,5 +123,6 @@ export const Action = z.discriminatedUnion("name", [
   action("remove_element", RemoveElementArgs),
   action("ask_verification", AskVerificationArgs),
   action("draw_diagram", DiagramArgs),
+  action("move_element", MoveElementArgs),
 ]);
 export type Action = z.infer<typeof Action>;
