@@ -5,6 +5,11 @@ import type { ExerciseKind, ExerciseList, UpdateExerciseListBody } from "@mento/
 export const MIN_OPTIONS = 2;
 export const MAX_OPTIONS = 6;
 export const MAX_QUESTIONS = 30;
+/** Same limits as `UpdateExerciseListBody` (@mento/contracts), so the editor never sends what the API rejects. */
+export const MAX_TITLE = 160;
+export const MAX_TEXT = 2000;
+export const MAX_OPTION = 500;
+export const MAX_PAGE = 10000;
 
 export interface QuestionDraft {
   /** Stable React key while editing (the API re-numbers ids on save). */
@@ -57,21 +62,29 @@ export function blankQuestion(kind: ExerciseKind): QuestionDraft {
 /** What blocks saving, in the teacher's words (pt-BR), one line per problem. Empty when the draft can be saved. */
 export function problemsOf(draft: ListDraft): string[] {
   const out: string[] = [];
-  if (!draft.title.trim()) out.push("Dê um título à lista.");
+  const title = draft.title.trim();
+  if (!title) out.push("Dê um título à lista.");
+  else if (title.length > MAX_TITLE) out.push(`O título pode ter no máximo ${MAX_TITLE} caracteres.`);
   if (draft.questions.length === 0) out.push("A lista precisa de pelo menos uma questão.");
   if (draft.questions.length > MAX_QUESTIONS) out.push(`No máximo ${MAX_QUESTIONS} questões.`);
   draft.questions.forEach((q, i) => {
     const n = `Questão ${i + 1}`;
+    const tooLong = (text: string, max: number, what: string) => text.trim().length > max && out.push(`${n}: ${what} pode ter no máximo ${max} caracteres.`);
     if (!q.prompt.trim()) out.push(`${n}: escreva o enunciado.`);
-    if (q.page.trim() && !/^\d{1,5}$/.test(q.page.trim())) out.push(`${n}: a página deve ser um número.`);
+    tooLong(q.prompt, MAX_TEXT, "o enunciado");
+    tooLong(q.explanation, MAX_TEXT, "o “por quê”");
+    const page = q.page.trim();
+    if (page && (!/^\d{1,5}$/.test(page) || Number(page) < 1 || Number(page) > MAX_PAGE)) out.push(`${n}: a página deve ser um número de 1 a ${MAX_PAGE}.`);
     if (q.kind === "open") {
       if (!q.answer.trim()) out.push(`${n}: escreva a resposta esperada.`);
+      tooLong(q.answer, MAX_TEXT, "a resposta esperada");
       return;
     }
     const opts = q.options.map((o) => o.trim());
     if (opts.length < MIN_OPTIONS) out.push(`${n}: use pelo menos ${MIN_OPTIONS} alternativas.`);
     else if (opts.some((o) => !o)) out.push(`${n}: preencha todas as alternativas (ou exclua a vazia).`);
     else if (new Set(opts).size !== opts.length) out.push(`${n}: há alternativas repetidas.`);
+    else if (opts.some((o) => o.length > MAX_OPTION)) out.push(`${n}: cada alternativa pode ter no máximo ${MAX_OPTION} caracteres.`);
     if (!opts[q.correct]) out.push(`${n}: marque a alternativa correta.`);
   });
   return out;

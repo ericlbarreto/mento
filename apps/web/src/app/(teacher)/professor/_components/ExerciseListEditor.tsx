@@ -191,35 +191,38 @@ export function ExerciseListEditor({ list, open, onClose }: { list: ExerciseList
 
   return (
     <Modal open={open} onClose={close} wide title="Editar lista de exercícios" description="As mudanças valem para os dois PDFs: o do professor (com respostas) e o do aluno.">
-      <label className="block">
-        <span className={label}>Título da lista</span>
-        <input className={cx(field, "text-[17px] font-bold")} value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
-      </label>
+      {/* Locked while saving: an edit made then would not be in the request and would be lost on close. */}
+      <fieldset disabled={saving} className="m-0 min-w-0 border-0 p-0">
+        <label className="block">
+          <span className={label}>Título da lista</span>
+          <input className={cx(field, "text-[17px] font-bold")} value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+        </label>
 
-      <ol className="mt-5 space-y-4">
-        {draft.questions.map((q, i) => (
-          <QuestionForm
-            key={q.key}
-            q={q}
-            index={i}
-            total={draft.questions.length}
-            onChange={edit(q.key)}
-            onMove={(by) => setDraft((d) => moveQuestion(d, q.key, by))}
-            onRemove={() => setDraft((d) => removeQuestion(d, q.key))}
-          />
-        ))}
-      </ol>
+        <ol className="mt-5 space-y-4">
+          {draft.questions.map((q, i) => (
+            <QuestionForm
+              key={q.key}
+              q={q}
+              index={i}
+              total={draft.questions.length}
+              onChange={edit(q.key)}
+              onMove={(by) => setDraft((d) => moveQuestion(d, q.key, by))}
+              onRemove={() => setDraft((d) => removeQuestion(d, q.key))}
+            />
+          ))}
+        </ol>
 
-      {draft.questions.length < MAX_QUESTIONS && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={() => add("choice")} className="py-1.5 text-[14px]">
-            <IconPlus size={15} /> Questão de múltipla escolha
-          </Button>
-          <Button variant="secondary" onClick={() => add("open")} className="py-1.5 text-[14px]">
-            <IconPlus size={15} /> Questão dissertativa
-          </Button>
-        </div>
-      )}
+        {draft.questions.length < MAX_QUESTIONS && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => add("choice")} className="py-1.5 text-[14px]">
+              <IconPlus size={15} /> Questão de múltipla escolha
+            </Button>
+            <Button variant="secondary" onClick={() => add("open")} className="py-1.5 text-[14px]">
+              <IconPlus size={15} /> Questão dissertativa
+            </Button>
+          </div>
+        )}
+      </fieldset>
 
       {tried && problems.length > 0 && (
         <ul role="alert" className="mt-4 list-disc space-y-0.5 rounded-xl bg-[var(--danger-soft)] py-3 pl-8 pr-4 text-[14px] font-semibold text-[var(--danger)]">

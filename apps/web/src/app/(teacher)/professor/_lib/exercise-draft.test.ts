@@ -67,12 +67,32 @@ describe("exercise list draft (D83)", () => {
     const q = { ...blankQuestion("choice"), prompt: "?", options: ["A", "A", ""], page: "x" };
     expect(problemsOf({ title: " ", questions: [q] })).toEqual([
       "Dê um título à lista.",
-      "Questão 1: a página deve ser um número.",
+      "Questão 1: a página deve ser um número de 1 a 10000.",
       "Questão 1: preencha todas as alternativas (ou exclua a vazia).",
     ]);
     expect(problemsOf({ title: "T", questions: [{ ...q, options: ["A", "A"], page: "" }] })).toEqual(["Questão 1: há alternativas repetidas."]);
     expect(problemsOf({ title: "T", questions: [blankQuestion("open")] })).toEqual(["Questão 1: escreva o enunciado.", "Questão 1: escreva a resposta esperada."]);
     expect(problemsOf({ title: "T", questions: [] })).toEqual(["A lista precisa de pelo menos uma questão."]);
+  });
+
+  it("uses the API's limits, so a draft it accepts is never a 400 (title length, page range, text length)", () => {
+    const q = { ...blankQuestion("open"), prompt: "?", answer: "a" };
+    expect(problemsOf({ title: "x".repeat(161), questions: [{ ...q, page: "0" }] })).toEqual([
+      "O título pode ter no máximo 160 caracteres.",
+      "Questão 1: a página deve ser um número de 1 a 10000.",
+    ]);
+    expect(problemsOf({ title: "T", questions: [{ ...q, prompt: "x".repeat(2001) }] })).toEqual(["Questão 1: o enunciado pode ter no máximo 2000 caracteres."]);
+    const choice = { ...blankQuestion("choice"), prompt: "?", options: ["a", "x".repeat(501)] };
+    expect(problemsOf({ title: "T", questions: [choice] })).toEqual(["Questão 1: cada alternativa pode ter no máximo 500 caracteres."]);
+    const edge = {
+      title: "x".repeat(160),
+      questions: [
+        { ...q, page: "10000", prompt: "x".repeat(2000) },
+        { ...choice, options: ["a", "x".repeat(500)] },
+      ],
+    };
+    expect(problemsOf(edge)).toEqual([]);
+    expect(UpdateExerciseListBody.safeParse(toBody(edge)).success).toBe(true);
   });
 
   it("removing an option keeps the right one marked; never below 2 or above 6 options", () => {
