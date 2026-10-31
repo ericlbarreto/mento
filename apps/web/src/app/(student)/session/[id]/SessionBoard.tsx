@@ -101,8 +101,8 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
   // "Continuar por texto" closes the mic notice and opens the chat (the notice comes back if the mic state changes).
   const [noticeClosedFor, setNoticeClosedFor] = useState<string | null>(null);
 
-  // Leaving the page (tab close / reload) ends the lesson (keepalive, reason "beacon"): that is what sends the
-  // conversation to the teacher-side analysis. Coming back reopens it paused (below); there is no end button.
+  // Leaving the page ("Voltar ao início": reason "user_left"; tab close / reload: "beacon") ends the lesson (keepalive):
+  // that is what sends the conversation to the teacher-side analysis. Coming back reopens it paused (below); there is no end button.
   useEndSession({ sessionId, onEnded: () => undefined });
 
   // A reopened lesson starts paused: "Retomar conversa" is the click that unlocks the audio and the mic.
