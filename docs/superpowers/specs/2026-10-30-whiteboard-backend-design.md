@@ -153,7 +153,7 @@ Phase 2, only if measured to help: Flux (`/v2/listen`, ~260 ms end-of-turn detec
 | Deepgram Nova-3 `pt-BR` streaming (server key, 24 kHz linear16 of the TTS audio) | Heard "27 antes de Cristo, o senado deu a Otávio o título de Augusto." (dropped the first word "Em"; `smart_format` turned "vinte e sete" into "27"). Portuguese streaming works |
 | Deepgram temporary token (`POST /v1/auth/grant`) | **HTTP 403** with the current key: the key needs the Member role or higher. Browser subprotocol for the JWT still to verify |
 | ElevenLabs voice list | The current key lacks `voices_read`; the pt-BR voice still has to be chosen in the ElevenLabs UI (`ELEVENLABS_VOICE_ID`) |
-| Gemini images | Free tier (limit 0) on the key in `.env`: billing not enabled yet |
+| Gemini images, `gemini-3.1-flash-lite-image` (6 Rome prompts × 2 rounds) | p50 5.1 s, max 5.8 s, ~0.7–1.0 MB JPEG, $0.40 for 12 images. Colored-pencil style, white background, no text or frame. **Default** (`IMAGE_MODEL`) |
+| Gemini images, `gemini-nano-banana-2.1` (same prompts) | p50 15.1 s, max 42.3 s: slightly more faithful scenes (ruined Colosseum, togas) but often above the 12 s draw timeout. Not used live; can seed the cache offline |
 | Anthropic `claude-sonnet-5-5`, direct (`pnpm llm:smoke`, 3 runs × 2 scenarios) | First token 0.70–1.00 s; first complete tool block 1.46 s (opening) and 1.49–1.95 s (student question); 27/27 tool blocks valid; prompt cache read 4,744 tokens on every call (pre-warm works) |
 | End to end through the API (`pnpm turn:bench 1`, text mode, empty retriever) | First action 1.6 / 2.3 / 3.0 s on turns 1–3 (p50 2.3 s, **above the 1.5 s target**); the 3.0 s value is the bridging `speak`; script done 3.5–9.5 s; 0 errors. Follow-up: emit the first `speak` sentence before its block closes, keep the transcript shorter, and compare `claude-haiku-5-5` for the tutor |
-

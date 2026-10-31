@@ -23,7 +23,8 @@
     "fixtures:check": "tsx scripts/fixture-check.ts",
     "voice:smoke": "tsx scripts/voice-smoke.ts",
     "llm:smoke": "tsx scripts/llm-smoke.ts",
-    "turn:bench": "tsx scripts/turn-bench.ts"
+    "turn:bench": "tsx scripts/turn-bench.ts",
+    "images:pregenerate": "tsx scripts/pregenerate-images.ts"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

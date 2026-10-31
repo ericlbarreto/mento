@@ -24,6 +24,8 @@ const schema = z.object({
   ANTHROPIC_API_KEY: z.string().default(""),
   TUTOR_MODEL: z.string().default("claude-sonnet-5-5"),
   JUDGE_MODEL: z.string().default("claude-haiku-5-5"),
+  GEMINI_API_KEY: z.string().default(""),
+  IMAGE_MODEL: z.string().default("gemini-3.1-flash-lite-image"),
   PROMPTS_DIR: z.string().default(fileURLToPath(new URL("../../../prompts", import.meta.url))),
 });
 

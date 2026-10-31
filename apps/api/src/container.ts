@@ -1,11 +1,17 @@
 import { join } from "node:path";
 import {
   AnthropicLlm,
+  ClaudeJudge,
+  GeminiImageClient,
+  ImageDrawPipeline,
+  ImageStore,
+  InMemoryEvidenceStore,
   TurnEngine,
+  captionOnlyDraw,
   emptyRetriever,
   loadPromptsSync,
-  noopDraw,
-  noopJudge,
+  type DrawPipeline,
+  type EvidenceStore,
   type TurnRepository,
 } from "@mento/tutor";
 import { InMemoryTurnRepository } from "@mento/tutor/testing";
@@ -21,6 +27,10 @@ export interface Container {
   tts: TtsService | null;
   /** In memory until Person 1's MongoDB repository replaces it. */
   repo: TurnRepository;
+  /** Generated images (served by GET /api/gen/:file). */
+  images: ImageStore;
+  /** In memory until Person 1's MongoDB repository implements insertEvidence. */
+  evidence: EvidenceStore;
   /** null when ANTHROPIC_API_KEY is not set: the turn route answers 503. */
   engine: TurnEngine | null;
 }
@@ -40,15 +50,26 @@ function buildTts(config: Config): TtsService | null {
   }
 }
 
-function buildEngine(config: Config, repo: TurnRepository, tts: TtsService | null): TurnEngine | null {
+function buildDraw(config: Config, images: ImageStore): DrawPipeline {
+  if (!config.GEMINI_API_KEY) return captionOnlyDraw;
+  return new ImageDrawPipeline({
+    client: new GeminiImageClient({ apiKey: config.GEMINI_API_KEY, model: config.IMAGE_MODEL }),
+    store: images,
+    model: config.IMAGE_MODEL,
+  });
+}
+
+function buildEngine(config: Config, repo: TurnRepository, tts: TtsService | null, images: ImageStore, evidence: EvidenceStore): TurnEngine | null {
   if (!config.ANTHROPIC_API_KEY) return null;
+  const llm = new AnthropicLlm({ apiKey: config.ANTHROPIC_API_KEY });
+  const retriever = emptyRetriever; // Plan 5 replaces this with the MongoDB hybrid search
   return new TurnEngine({
-    llm: new AnthropicLlm({ apiKey: config.ANTHROPIC_API_KEY }),
+    llm,
     repo,
-    retriever: emptyRetriever, // Plan 5 replaces this with the MongoDB hybrid search
+    retriever,
     tts,
-    draw: noopDraw, // Plan 4
-    judge: noopJudge, // Plan 4
+    draw: buildDraw(config, images),
+    judge: new ClaudeJudge({ llm, model: config.JUDGE_MODEL, repo, retriever, evidence }),
     prompts: loadPromptsSync(config.PROMPTS_DIR),
     models: { tutor: config.TUTOR_MODEL },
   });
@@ -61,6 +82,8 @@ export function createContainer(config: Config, overrides: Partial<Container> = 
     new InMemoryTurnRepository({
       catalog: [{ material_id: "demo-roma", title: "História de Roma (demo)", subject: "history", chapters: ["A República", "O Império"] }],
     });
-  const engine = "engine" in overrides ? (overrides.engine ?? null) : buildEngine(config, repo, tts);
-  return { config, mongo: new MongoService(config.MONGODB_URI), mintSttToken, ...overrides, tts, repo, engine };
+  const images = overrides.images ?? new ImageStore(join(config.DATA_DIR, "files", "gen"));
+  const evidence = overrides.evidence ?? new InMemoryEvidenceStore();
+  const engine = "engine" in overrides ? (overrides.engine ?? null) : buildEngine(config, repo, tts, images, evidence);
+  return { config, mongo: new MongoService(config.MONGODB_URI), mintSttToken, ...overrides, tts, repo, images, evidence, engine };
 }
