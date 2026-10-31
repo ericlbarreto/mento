@@ -453,12 +453,21 @@ export function resolveDiagram(input: unknown): ResolvedDiagram {
   }
 
   // 4a. A box label sits at the center unless an arrow starts there (forces drawn from the center of mass):
-  // then it moves to the upper-left quarter of the box, so the arrow never crosses the text.
+  // then it moves a quarter of the box up, down, left or right, away from every arrow leaving the center.
   for (const i of items.values()) {
     if (i.geo.kind !== "rect" || !i.label) continue;
     const g = i.geo;
-    const busy = [...items.values()].some((a) => a.geo.kind === "arrow" && len(sub(a.geo.p, g.c)) < 0.5);
-    if (busy) i.label = { ...i.label, ...add(g.c, rot({ x: -g.w / 4, y: -g.h / 4 }, g.angle)) };
+    const dirs = [...items.values()].flatMap((a) => (a.geo.kind === "arrow" && len(sub(a.geo.p, g.c)) < 0.5 ? [unit(sub(a.geo.q, a.geo.p))] : []));
+    if (!dirs.length) continue;
+    const options = [
+      { x: 0, y: -g.h / 4 },
+      { x: 0, y: g.h / 4 },
+      { x: -g.w / 4, y: 0 },
+      { x: g.w / 4, y: 0 },
+    ].map((o) => rot(o, g.angle));
+    const crowd = (o: V) => Math.max(...dirs.map((d) => d.x * unit(o).x + d.y * unit(o).y));
+    const best = options.reduce((a, b) => (crowd(b) < crowd(a) ? b : a));
+    i.label = { ...i.label, ...add(g.c, best) };
   }
 
   // 4b. Labels past arrow tips / beside lines and points, nudged off boxes, lines and other labels.
