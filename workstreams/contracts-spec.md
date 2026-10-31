@@ -188,3 +188,12 @@ Source of truth in code: `packages/contracts` (`actions.ts`, `stream.ts`, `event
 - **`TurnRequest`**: `appended` is a list of `user_message` or `verification_answer`; `interrupted` gains `spoken_ms`; optional `client_timing`.
 - **Sessions** are created with `student_id` only (no `material_id`): the tutor searches all materials. `session_started` loses `material_id`; citations keep `material_id`.
 - **Ids** are strings everywhere (MongoDB `_id`).
+
+## 13. Retrieval additions of 2026-10-30
+
+Source of truth in code: `packages/contracts/src/{retrieval,chunk-store}.ts`. Design: `docs/superpowers/specs/2026-10-30-whiteboard-backend-design.md` §6.1.
+
+- `Repository.searchChunks({ query, k, material_id?, subject? }) → Chunk[]` replaces the old `searchChunks(material_id, query, k)`: the tutor searches **all** materials; `material_id` and `subject` are optional filters.
+- `Chunk = { id, material_id, subject, chapter?, page, passage_idx, text, score? }` (a passage of ~400 tokens inside one page). `validateCitation(c)` is true when `c.quote` occurs on that page (whitespace- and case-insensitive).
+- Ingestion (`@mento/sources/ingest`) stores passages with a 1024-dimension `embedding`; the catalog entry of each ready material is `{ material_id, title, subject, chapters: string[] }`.
+- `createSession` no longer takes `material_id`, and `session_started` has no `material_id`.

@@ -26,6 +26,7 @@ const schema = z.object({
   JUDGE_MODEL: z.string().default("claude-haiku-5-5"),
   GEMINI_API_KEY: z.string().default(""),
   IMAGE_MODEL: z.string().default("gemini-3.1-flash-lite-image"),
+  VOYAGE_API_KEY: z.string().default(""),
   PROMPTS_DIR: z.string().default(fileURLToPath(new URL("../../../prompts", import.meta.url))),
 });
 
