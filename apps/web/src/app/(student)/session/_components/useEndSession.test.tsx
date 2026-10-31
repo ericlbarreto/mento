@@ -34,10 +34,10 @@ function mount(end: EndSessionFn) {
   document.body.appendChild(host);
   root = createRoot(host);
   act(() => root!.render(<Probe />));
-  return (text: string) => {
+  return (text: string, init: MouseEventInit = {}) => {
     const link = [...host!.querySelectorAll("a")].find((a) => a.textContent === text)!;
     link.addEventListener("click", (e) => e.preventDefault()); // jsdom does not navigate
-    act(() => link.click());
+    act(() => void link.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, button: 0, ...init })));
   };
 }
 
@@ -58,6 +58,16 @@ describe("useEndSession", () => {
     click("Mesma página");
     click("Nova aba");
     expect(end).not.toHaveBeenCalled();
+  });
+
+  it("a Cmd/Ctrl-click opens home in another tab: the lesson stays open, and a later normal exit still ends it", () => {
+    const end = vi.fn<EndSessionFn>(async () => undefined);
+    const click = mount(end);
+    click("Voltar ao início", { metaKey: true });
+    click("Voltar ao início", { ctrlKey: true });
+    expect(end).not.toHaveBeenCalled();
+    click("Voltar ao início");
+    expect(end).toHaveBeenCalledExactlyOnceWith("s1", "user_left", { keepalive: true });
   });
 
   it("closing the tab ends the lesson (beacon)", () => {

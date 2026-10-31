@@ -64,6 +64,8 @@ export function useEndSession({
     // A same-origin link that leaves this page ("Voltar ao início") leaves the lesson: it ends it (reason "user_left")
     // so the teacher-side analysis runs. Client-side navigations never fire `pagehide`, so this is the only signal.
     const onClick = (e: MouseEvent) => {
+      // A modified or non-primary click opens another tab or window: the student stays in the lesson.
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const link = e.target instanceof Element ? e.target.closest("a[href]") : null;
       if (!(link instanceof HTMLAnchorElement) || link.origin !== window.location.origin || link.target) return;
       navigating.current = true;
