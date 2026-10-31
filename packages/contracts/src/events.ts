@@ -4,7 +4,7 @@ import { ElementId } from "./actions";
 /** The only event list (contracts-spec section 3). Payload shapes per type live with their writers. */
 export const EventType = z.enum([
   "session_started", "user_message", "tutor_action", "verification_asked", "verification_answered",
-  "hint_given", "evidence_recorded", "interrupted", "mic_state", "turn_timing", "session_ended",
+  "hint_given", "evidence_recorded", "interrupted", "mic_state", "turn_timing", "session_ended", "session_resumed",
 ]);
 export type EventType = z.infer<typeof EventType>;
 

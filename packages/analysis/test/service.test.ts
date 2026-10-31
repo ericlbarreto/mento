@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RULES_VERSION, WriterOutput, type Insight, type TeacherEvent, type TeacherRepository } from "@mento/contracts";
+import { RULES_VERSION, WriterOutput, type ConversationSource, type Insight, type SessionBundle, type TeacherEvent, type TeacherRepository } from "@mento/contracts";
 import {
   AnalysisService,
   InMemoryConversationSource,
@@ -105,6 +105,80 @@ describe("determinism (BR-09)", () => {
 });
 
 describe("insights are upserted, never duplicated (BR-10)", () => {
+  it("BR-10 a resumed session reuses its analysis until new learning evidence arrives", async () => {
+    const w = await labWorld();
+    const bundle = structuredClone((await w.conversations.getSessionBundle("ses_ana_01"))!);
+    const conversations: ConversationSource = {
+      async listAllSessions() { return [bundle.session]; },
+      async listSessionsByStudent(studentId) { return bundle.session.student_id === studentId ? [bundle.session] : []; },
+      async getSessionBundle(sessionId) { return sessionId === bundle.session.id ? structuredClone(bundle) : null; },
+    };
+    const service = new AnalysisService({ repo: w.repo, conversations, now: fakeClock("2026-11-02T00:00:00.000Z") });
+    const appendEvent = (event: Omit<SessionBundle["events"][number], "id" | "session_id" | "seq" | "ts">) => {
+      const seq = bundle.events.length + 1;
+      const stored = {
+        ...event,
+        id: `${bundle.session.id}_resumed_${seq}`,
+        session_id: bundle.session.id,
+        seq,
+        ts: new Date(Date.parse(bundle.session.started_at) + seq * 60_000).toISOString(),
+      } as SessionBundle["events"][number];
+      bundle.events.push(stored);
+      return stored;
+    };
+
+    const first = await service.run(bundle.session.id);
+    const firstInsights = await w.repo.listInsights({ student_id: bundle.session.student_id });
+    const previousEndedAt = bundle.session.ended_at!;
+    appendEvent({ type: "session_resumed", payload: { previous_ended_at: previousEndedAt } });
+    appendEvent({ type: "session_ended", payload: { reason: "manual" } });
+
+    const lifecycleOnly = await service.run(bundle.session.id);
+    expect(lifecycleOnly.cached).toBe(true);
+    expect(lifecycleOnly.analysis.id).toBe(first.analysis.id);
+    expect(lifecycleOnly.analysis.attempts).toBe(1);
+    expect(await w.repo.listInsights({ student_id: bundle.session.student_id })).toEqual(firstInsights);
+
+    appendEvent({ type: "session_resumed", payload: { previous_ended_at: previousEndedAt } });
+    const verificationId = "ver_resumed";
+    appendEvent({
+      type: "verification_asked",
+      payload: { verification_id: verificationId, element_id: "el_resumed", concept: "Formas de governo", concept_key: "formas de governo", lesson_id: "L6", question: "Qual era a diferença?", kind: "open" },
+    });
+    const answer = appendEvent({ type: "verification_answered", payload: { verification_id: verificationId, element_id: "el_resumed", answer: "Ainda não sei." } });
+    const evidenceId = "evd_resumed";
+    bundle.evidence.push({
+      id: evidenceId,
+      session_id: bundle.session.id,
+      student_id: bundle.session.student_id,
+      concept: "Formas de governo",
+      concept_key: "formas de governo",
+      lesson_id: "L6",
+      result: "incorrect",
+      independent: true,
+      hints_used: 0,
+      rationale: "The resumed answer is still incorrect.",
+      ts: answer.ts,
+    });
+    appendEvent({
+      type: "evidence_recorded",
+      payload: { evidence_id: evidenceId, verification_id: verificationId, concept: "Formas de governo", concept_key: "formas de governo", result: "incorrect", independent: true, hints_used: 0, rationale: "The resumed answer is still incorrect." },
+    });
+    appendEvent({ type: "session_ended", payload: { reason: "manual" } });
+
+    const second = await service.run(bundle.session.id);
+    expect(second.cached).toBe(false);
+    expect(second.analysis.id).toBe(first.analysis.id);
+    expect(second.analysis.attempts).toBe(2);
+    const open = await w.repo.listInsights({ student_id: bundle.session.student_id, concept_key: "formas de governo", status: ["new", "accepted"] });
+    expect(open.filter((insight) => insight.kind === "gap")).toHaveLength(1);
+    expect(open.filter((insight) => insight.kind === "suggestion")).toHaveLength(1);
+    for (const insight of open) {
+      expect(new Set(insight.evidence.map((item) => item.event_id)).size).toBe(insight.evidence.length);
+      expect(insight.evidence.some((item) => item.event_id === answer.id)).toBe(true);
+    }
+  });
+
   it("BR-10 the same concept in two sessions is one gap whose severity rises and whose evidence grows", async () => {
     const w = await labWorld();
     await w.service.run("ses_ana_01");
