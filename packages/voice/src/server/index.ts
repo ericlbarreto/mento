@@ -12,6 +12,7 @@ export * from "./deepgram-token";
 export * from "./tts/types";
 export * from "./tts/cache";
 export * from "./tts/service";
+export * from "./tts/spoken-text";
 export { ElevenLabsHttpProvider } from "./tts/elevenlabs-http";
 export { ElevenLabsWsProvider } from "./tts/elevenlabs-ws";
 
