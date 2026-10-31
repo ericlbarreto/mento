@@ -107,7 +107,7 @@ describe("determinism (BR-09)", () => {
 describe("insights are upserted, never duplicated (BR-10)", () => {
   it("BR-10 a resumed session reuses its analysis until new learning evidence arrives", async () => {
     const w = await labWorld();
-    let bundle = structuredClone((await w.conversations.getSessionBundle("ses_ana_01"))!);
+    const bundle = structuredClone((await w.conversations.getSessionBundle("ses_ana_01"))!);
     const conversations: ConversationSource = {
       async listAllSessions() { return [bundle.session]; },
       async listSessionsByStudent(studentId) { return bundle.session.student_id === studentId ? [bundle.session] : []; },
