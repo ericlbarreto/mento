@@ -16,6 +16,8 @@ export function DrawRenderer({ element }: RendererProps<"image" | "svg">) {
   const ready = element.status === "ready";
   const { assetBaseUrl, onWarning } = useBoardEnv();
   const [loaded, setLoaded] = useState(false);
+  /** The URL that failed to load (e.g. a fixture image the server does not have): placeholder, never a broken image. */
+  const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
   const wantsImage = ready && element.type === "image" && !!url;
   const src = useMemo(
     () => (wantsImage && url && assetBaseUrl ? resolveImageUrl(url, assetBaseUrl) : null),
@@ -26,9 +28,10 @@ export function DrawRenderer({ element }: RendererProps<"image" | "svg">) {
     if (rejected) onWarning?.(`draw_result for "${element.id}": image URL rejected (not on the asset origin)`);
   }, [rejected, element.id, onWarning]);
   const cleanSvg = useMemo(() => (ready && element.type === "svg" && svg ? sanitizeSvg(svg) : ""), [ready, element.type, svg]);
-  const shown = (src !== null && loaded) || cleanSvg !== "";
-  // A rejected or missing drawing keeps the placeholder card.
-  const failed = rejected || (ready && !wantsImage && cleanSvg === "");
+  const broken = src !== null && brokenSrc === src;
+  const shown = (src !== null && loaded && !broken) || cleanSvg !== "";
+  // A rejected, missing or unloadable drawing keeps the placeholder card, captioned with what it would show.
+  const failed = rejected || broken || (ready && !wantsImage && cleanSvg === "");
 
   return (
     <figure
@@ -40,16 +43,25 @@ export function DrawRenderer({ element }: RendererProps<"image" | "svg">) {
         aria-hidden={shown}
         className={`absolute inset-0 flex items-center justify-center bg-(--paper-2) transition-opacity duration-(--dur-slow) ease-(--ease-out) ${shown ? "opacity-0" : "opacity-100"}`}
       >
-        <span className="font-(family-name:--font-board) text-[26px] text-(--ink-soft) motion-safe:animate-pulse">
-          {failed ? "Não consegui desenhar" : "Desenhando…"}
-        </span>
+        {failed ? (
+          <span className="flex flex-col items-center gap-1 px-4 text-center">
+            <span className="font-(family-name:--font-board) text-[26px] text-(--ink-soft)">Não consegui desenhar</span>
+            <span className="line-clamp-2 text-sm text-(--ink-soft)">{prompt}</span>
+          </span>
+        ) : (
+          <span className="font-(family-name:--font-board) text-[26px] text-(--ink-soft) motion-safe:animate-pulse">Desenhando…</span>
+        )}
       </div>
-      {src && (
+      {src && !broken && (
         <img
           src={src}
           alt={prompt}
           referrerPolicy="no-referrer"
           onLoad={() => setLoaded(true)}
+          onError={() => {
+            setBrokenSrc(src);
+            onWarning?.(`draw_result for "${element.id}": image failed to load`);
+          }}
           className={`absolute inset-0 size-full object-contain transition-opacity duration-(--dur-slow) ease-(--ease-out) ${loaded ? "opacity-100" : "opacity-0"}`}
         />
       )}

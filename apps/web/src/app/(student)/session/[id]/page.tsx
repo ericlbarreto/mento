@@ -1,21 +1,11 @@
 // Owner: Person 2. Whiteboard: board, orb, chat, sources (packages/board + packages/ui).
+// Everything shown (subject, title, events) comes from GET /api/sessions/:id; no query parameters are read.
 import type { Metadata } from "next";
 import { SessionBoard } from "./SessionBoard";
 
-const TOPIC_MAX_CHARS = 120;
+export const metadata: Metadata = { title: "Aula · Mento" };
 
-export const metadata: Metadata = { title: "Quadro · Mento" };
-
-export default async function SessionPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
+export default async function SessionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { topic } = await searchParams;
-  // Display only: the topic reaches the tutor through createSession, never as student chat text.
-  const label = typeof topic === "string" ? topic.trim().slice(0, TOPIC_MAX_CHARS) : "";
-  return <SessionBoard sessionId={id} topic={label || undefined} />;
+  return <SessionBoard sessionId={id} />;
 }
