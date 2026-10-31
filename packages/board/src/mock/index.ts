@@ -6,6 +6,9 @@ import romeIntro from "../../../../fixtures/turns/rome-intro.json";
 import clickAndAsk from "../../../../fixtures/turns/click-and-ask.json";
 import newtonBlocks from "../../../../fixtures/turns/newton-blocks.json";
 import demoBoard from "../../../../fixtures/turns/demo-board.json";
+import demoBoardHistory from "../../../../fixtures/turns/demo-board-history.json";
+import demoBoardBiology from "../../../../fixtures/turns/demo-board-biology.json";
+import demoBoardMath from "../../../../fixtures/turns/demo-board-math.json";
 import diagramExamples from "../../../../fixtures/diagrams/examples.json";
 
 /** Student as the start screen shows it. Local until Person 1's students contract lands (PR #7). */
@@ -41,6 +44,9 @@ export const FIXTURE_TURNS = {
   "click-and-ask": FixtureTurn.parse(clickAndAsk),
   "newton-blocks": FixtureTurn.parse(newtonBlocks),
   "demo-board": FixtureTurn.parse(demoBoard),
+  "demo-board-history": FixtureTurn.parse(demoBoardHistory),
+  "demo-board-biology": FixtureTurn.parse(demoBoardBiology),
+  "demo-board-math": FixtureTurn.parse(demoBoardMath),
 } satisfies Record<string, FixtureTurn>;
 export type FixtureName = keyof typeof FIXTURE_TURNS;
 

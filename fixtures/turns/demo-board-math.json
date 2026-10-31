@@ -1,0 +1,851 @@
+{
+ "description": "Demo board (Matemática): a ride-app fare as an equation and as a line, with an image, a balance diagram, a line chart, circles, highlights and citations of the math material. Scripted, not recorded.",
+ "messages": [
+  {
+   "at_ms": 0,
+   "message": {
+    "type": "action",
+    "order": 0,
+    "action": {
+     "id": "m0",
+     "name": "speak",
+     "args": {
+      "text": "Bora transformar uma corrida de aplicativo em matemática? O livro tem um exemplo ótimo!",
+      "purpose": "explain",
+      "sources": [
+       {
+        "material_id": "6ae58c44e9c705bf12a947e8",
+        "page": 10,
+        "quote": "Imagine um aplicativo fictício que cobra R$ 5,00 de tarifa fixa e R$ 2,00 por quilômetro."
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 120,
+   "message": {
+    "type": "action",
+    "order": 1,
+    "action": {
+     "id": "m1",
+     "name": "write_text",
+     "args": {
+      "id": "corrida_regra",
+      "column": "main",
+      "html": "<h2>A corrida de aplicativo</h2><p>O app cobra <b>R$ 5,00 de tarifa fixa</b> mais <b>R$ 2,00 por quilômetro</b>.</p><ul><li>3 km: 5 + 2 · 3 = R$ 11,00</li><li>10 km: 5 + 2 · 10 = R$ 25,00</li></ul><p>Com x = quilômetros e y = preço: <b>y = 2x + 5</b></p><p><small>📖 Livro, p. 10 e 13</small></p>",
+      "sources": [
+       {
+        "material_id": "6ae58c44e9c705bf12a947e8",
+        "page": 10,
+        "quote": "Uma corrida de 3 km custa 5 + 2 × 3 = R$ 11,00."
+       },
+       {
+        "material_id": "6ae58c44e9c705bf12a947e8",
+        "page": 13,
+        "quote": "a regra de preço é y = 2x + 5"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 240,
+   "message": {
+    "type": "action",
+    "order": 2,
+    "action": {
+     "id": "m2",
+     "name": "draw",
+     "args": {
+      "id": "corrida_app",
+      "column": "visuals",
+      "prompt": "Carro de aplicativo na rua e um celular mostrando a tarifa e o total de R$ 23,00",
+      "is_structured": false,
+      "max_dimensions": {
+       "w": 520,
+       "h": 390
+      }
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 360,
+   "message": {
+    "type": "action",
+    "order": 3,
+    "action": {
+     "id": "m3",
+     "name": "highlight",
+     "args": {
+      "target_id": "corrida_regra",
+      "color": "yellow",
+      "text_to_match": "R$ 5,00 de tarifa fixa"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 480,
+   "message": {
+    "type": "action",
+    "order": 4,
+    "action": {
+     "id": "m4",
+     "name": "highlight",
+     "args": {
+      "target_id": "corrida_regra",
+      "color": "blue",
+      "text_to_match": "R$ 2,00 por quilômetro"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 600,
+   "message": {
+    "type": "action",
+    "order": 5,
+    "action": {
+     "id": "m5",
+     "name": "speak",
+     "args": {
+      "text": "Agora a pergunta ao contrário: a corrida custou 23 reais. Quantos quilômetros foram?",
+      "purpose": "question"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 720,
+   "message": {
+    "type": "action",
+    "order": 6,
+    "action": {
+     "id": "m6",
+     "name": "write_text",
+     "args": {
+      "id": "equacao_passos",
+      "column": "main",
+      "html": "<h3>Corrida de R$ 23,00: quantos km?</h3><p>Incógnita: x = número de quilômetros.</p><ol><li>Equação: 5 + 2x = 23</li><li>Tiro 5 dos dois lados: 2x = 23 − 5, então 2x = 18</li><li>Divido os dois lados por 2: x = 18 ÷ 2, então x = 9</li><li>Verificação: 5 + 2 · 9 = 5 + 18 = 23 ✔</li></ol><p><b>Resposta:</b> a corrida teve 9 km.</p><p><small>📖 Livro, p. 12</small></p>",
+      "sources": [
+       {
+        "material_id": "6ae58c44e9c705bf12a947e8",
+        "page": 12,
+        "quote": "Equação: 5 + 2x = 23. Resolução: 2x = 18, então x = 9."
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 840,
+   "message": {
+    "type": "action",
+    "order": 7,
+    "action": {
+     "id": "m7",
+     "name": "draw_diagram",
+     "args": {
+      "id": "balanca_equacao",
+      "column": "visuals",
+      "title": "A balança: tire 5 dos dois pratos",
+      "frame": "wide",
+      "view": {
+       "w": 160,
+       "h": 100
+      },
+      "shapes": [
+       {
+        "x1": 55,
+        "y1": 92,
+        "x2": 105,
+        "y2": 92,
+        "id": "base",
+        "kind": "line",
+        "dashed": false,
+        "ground": true,
+        "color": "ink"
+       },
+       {
+        "x1": 80,
+        "y1": 92,
+        "x2": 80,
+        "y2": 30,
+        "id": "haste",
+        "kind": "line",
+        "dashed": false,
+        "ground": false,
+        "color": "ink"
+       },
+       {
+        "id": "pe",
+        "kind": "polyline",
+        "points": [
+         [
+          70,
+          92
+         ],
+         [
+          90,
+          92
+         ],
+         [
+          80,
+          82
+         ]
+        ],
+        "closed": true,
+        "smooth": false,
+        "fill": "soft",
+        "color": "ink"
+       },
+       {
+        "x1": 30,
+        "y1": 30,
+        "x2": 130,
+        "y2": 30,
+        "id": "travessa",
+        "kind": "line",
+        "dashed": false,
+        "ground": false,
+        "color": "ink"
+       },
+       {
+        "x1": 35,
+        "y1": 30,
+        "x2": 17,
+        "y2": 58,
+        "id": "fio_e1",
+        "kind": "line",
+        "dashed": false,
+        "ground": false,
+        "color": "ink"
+       },
+       {
+        "x1": 35,
+        "y1": 30,
+        "x2": 53,
+        "y2": 58,
+        "id": "fio_e2",
+        "kind": "line",
+        "dashed": false,
+        "ground": false,
+        "color": "ink"
+       },
+       {
+        "x1": 125,
+        "y1": 30,
+        "x2": 107,
+        "y2": 58,
+        "id": "fio_d1",
+        "kind": "line",
+        "dashed": false,
+        "ground": false,
+        "color": "ink"
+       },
+       {
+        "x1": 125,
+        "y1": 30,
+        "x2": 143,
+        "y2": 58,
+        "id": "fio_d2",
+        "kind": "line",
+        "dashed": false,
+        "ground": false,
+        "color": "ink"
+       },
+       {
+        "id": "prato_e",
+        "kind": "polyline",
+        "points": [
+         [
+          12,
+          58
+         ],
+         [
+          58,
+          58
+         ],
+         [
+          50,
+          66
+         ],
+         [
+          20,
+          66
+         ]
+        ],
+        "closed": true,
+        "smooth": false,
+        "fill": "soft",
+        "color": "blue"
+       },
+       {
+        "id": "prato_d",
+        "kind": "polyline",
+        "points": [
+         [
+          102,
+          58
+         ],
+         [
+          148,
+          58
+         ],
+         [
+          140,
+          66
+         ],
+         [
+          110,
+          66
+         ]
+        ],
+        "closed": true,
+        "smooth": false,
+        "fill": "soft",
+        "color": "red"
+       },
+       {
+        "id": "lado_e",
+        "kind": "text",
+        "x": 35,
+        "y": 52,
+        "text": "2x + 5",
+        "size": "m",
+        "color": "blue"
+       },
+       {
+        "id": "lado_d",
+        "kind": "text",
+        "x": 125,
+        "y": 52,
+        "text": "23",
+        "size": "m",
+        "color": "red"
+       },
+       {
+        "id": "menos_e",
+        "kind": "text",
+        "x": 35,
+        "y": 78,
+        "text": "− 5",
+        "size": "m",
+        "color": "blue"
+       },
+       {
+        "id": "menos_d",
+        "kind": "text",
+        "x": 125,
+        "y": 78,
+        "text": "− 5",
+        "size": "m",
+        "color": "red"
+       },
+       {
+        "id": "result_e",
+        "kind": "text",
+        "x": 35,
+        "y": 90,
+        "text": "2x",
+        "size": "m",
+        "color": "ink"
+       },
+       {
+        "id": "result_d",
+        "kind": "text",
+        "x": 125,
+        "y": 90,
+        "text": "18",
+        "size": "m",
+        "color": "ink"
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 960,
+   "message": {
+    "type": "action",
+    "order": 8,
+    "action": {
+     "id": "m8",
+     "name": "speak",
+     "args": {
+      "text": "É como uma balança: o que eu tiro de um prato, tiro do outro também. Assim ela continua equilibrada.",
+      "purpose": "explain",
+      "sources": [
+       {
+        "material_id": "6ae58c44e9c705bf12a947e8",
+        "page": 10,
+        "quote": "Se tirarmos 5 gramas de um prato, precisamos tirar 5 gramas do outro para manter o equilíbrio."
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1080,
+   "message": {
+    "type": "action",
+    "order": 9,
+    "action": {
+     "id": "m9",
+     "name": "highlight",
+     "args": {
+      "target_id": "equacao_passos",
+      "color": "yellow",
+      "text_to_match": "2x = 18"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1200,
+   "message": {
+    "type": "action",
+    "order": 10,
+    "action": {
+     "id": "m10",
+     "name": "circle_annotate",
+     "args": {
+      "target_id": "balanca_equacao",
+      "text_to_match": "18",
+      "color": "green"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1320,
+   "message": {
+    "type": "action",
+    "order": 11,
+    "action": {
+     "id": "m11",
+     "name": "highlight",
+     "args": {
+      "target_id": "equacao_passos",
+      "color": "green",
+      "text_to_match": "x = 9"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1440,
+   "message": {
+    "type": "action",
+    "order": 12,
+    "action": {
+     "id": "m12",
+     "name": "circle_annotate",
+     "args": {
+      "target_id": "equacao_passos",
+      "text_to_match": "a corrida teve 9 km",
+      "color": "red"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1560,
+   "message": {
+    "type": "action",
+    "order": 13,
+    "action": {
+     "id": "m13",
+     "name": "draw_diagram",
+     "args": {
+      "id": "grafico_corrida",
+      "column": "visuals",
+      "title": "Preço da corrida: y = 2x + 5",
+      "frame": "wide",
+      "view": {
+       "w": 160,
+       "h": 100
+      },
+      "shapes": [
+       {
+        "id": "eixos",
+        "kind": "axes",
+        "x_axis": {
+         "x1": 13.7,
+         "y1": 88,
+         "x2": 151.7,
+         "y2": 88
+        },
+        "y_axis": {
+         "x1": 13.7,
+         "y1": 88,
+         "x2": 13.7,
+         "y2": 8
+        },
+        "ticks": [
+         {
+          "axis": "x",
+          "x": 55.1,
+          "y": 88,
+          "label": {
+           "text": "3",
+           "x": 55.1,
+           "y": 94,
+           "size": "s"
+          }
+         },
+         {
+          "axis": "x",
+          "x": 96.5,
+          "y": 88,
+          "label": {
+           "text": "6",
+           "x": 96.5,
+           "y": 94,
+           "size": "s"
+          }
+         },
+         {
+          "axis": "x",
+          "x": 137.9,
+          "y": 88,
+          "label": {
+           "text": "9",
+           "x": 137.9,
+           "y": 94,
+           "size": "s"
+          }
+         },
+         {
+          "axis": "y",
+          "x": 13.7,
+          "y": 74.7,
+          "label": {
+           "text": "5",
+           "x": 9.7,
+           "y": 74.7,
+           "size": "s"
+          }
+         },
+         {
+          "axis": "y",
+          "x": 13.7,
+          "y": 61.3,
+          "label": {
+           "text": "10",
+           "x": 9.2,
+           "y": 61.3,
+           "size": "s"
+          }
+         },
+         {
+          "axis": "y",
+          "x": 13.7,
+          "y": 48,
+          "label": {
+           "text": "15",
+           "x": 9.2,
+           "y": 48,
+           "size": "s"
+          }
+         },
+         {
+          "axis": "y",
+          "x": 13.7,
+          "y": 34.7,
+          "label": {
+           "text": "20",
+           "x": 9.2,
+           "y": 34.7,
+           "size": "s"
+          }
+         },
+         {
+          "axis": "y",
+          "x": 13.7,
+          "y": 21.3,
+          "label": {
+           "text": "25",
+           "x": 9.2,
+           "y": 21.3,
+           "size": "s"
+          }
+         }
+        ],
+        "x_label": {
+         "text": "distância (km)",
+         "x": 129,
+         "y": 83.5,
+         "size": "m"
+        },
+        "y_label": {
+         "text": "preço (R$)",
+         "x": 32.5,
+         "y": 9,
+         "size": "m"
+        }
+       },
+       {
+        "id": "reta",
+        "kind": "polyline",
+        "points": [
+         [
+          13.7,
+          74.7
+         ],
+         [
+          151.7,
+          21.3
+         ]
+        ],
+        "closed": false,
+        "smooth": false,
+        "fill": "none",
+        "color": "blue",
+        "label": {
+         "text": "y = 2x + 5",
+         "x": 140.8,
+         "y": 10.4,
+         "size": "m"
+        }
+       },
+       {
+        "x1": 13.7,
+        "y1": 26.7,
+        "x2": 137.9,
+        "y2": 26.7,
+        "id": "guia_h",
+        "kind": "line",
+        "dashed": true,
+        "ground": false,
+        "color": "green"
+       },
+       {
+        "x1": 137.9,
+        "y1": 88,
+        "x2": 137.9,
+        "y2": 26.7,
+        "id": "guia_v",
+        "kind": "line",
+        "dashed": true,
+        "ground": false,
+        "color": "green"
+       },
+       {
+        "id": "tarifa",
+        "kind": "point",
+        "x": 13.7,
+        "y": 74.7,
+        "color": "red"
+       },
+       {
+        "id": "tarifa_txt",
+        "kind": "text",
+        "x": 41.3,
+        "y": 80.5,
+        "text": "tarifa fixa",
+        "size": "s",
+        "color": "red"
+       },
+       {
+        "id": "tres_km",
+        "kind": "point",
+        "x": 55.1,
+        "y": 58.7,
+        "color": "ink",
+        "label": {
+         "text": "(3, 11)",
+         "x": 55.9,
+         "y": 49.6,
+         "size": "m"
+        }
+       },
+       {
+        "id": "resposta",
+        "kind": "point",
+        "x": 137.9,
+        "y": 26.7,
+        "color": "green",
+        "label": {
+         "text": "(9, 23)",
+         "x": 129.4,
+         "y": 18.1,
+         "size": "m"
+        }
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1680,
+   "message": {
+    "type": "action",
+    "order": 14,
+    "action": {
+     "id": "m14",
+     "name": "speak",
+     "args": {
+      "text": "Olha que legal: resolver a equação é achar, na reta, o ponto em que o preço vale 23. É o ponto (9, 23).",
+      "purpose": "explain",
+      "sources": [
+       {
+        "material_id": "6ae58c44e9c705bf12a947e8",
+        "page": 14,
+        "quote": "Resolver 5 + 2x = 23 é o mesmo que procurar, na reta y = 2x + 5, o ponto em que y vale 23."
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1800,
+   "message": {
+    "type": "action",
+    "order": 15,
+    "action": {
+     "id": "m16",
+     "name": "circle_annotate",
+     "args": {
+      "target_id": "grafico_corrida",
+      "text_to_match": "(9, 23)",
+      "color": "green"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 1920,
+   "message": {
+    "type": "action",
+    "order": 16,
+    "action": {
+     "id": "m17",
+     "name": "circle_annotate",
+     "args": {
+      "target_id": "grafico_corrida",
+      "text_to_match": "tarifa fixa",
+      "color": "red"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2040,
+   "message": {
+    "type": "action",
+    "order": 17,
+    "action": {
+     "id": "m18",
+     "name": "write_text",
+     "args": {
+      "id": "leitura_reta",
+      "column": "main",
+      "html": "<h3>Lendo a reta y = 2x + 5</h3><ul><li><b>5</b>: onde a reta corta o eixo y, no ponto (0, 5). É a tarifa fixa.</li><li><b>2</b>: a inclinação. A cada 1 km para a direita, o preço sobe R$ 2,00.</li></ul><p><small>📖 Livro, p. 14</small></p>",
+      "sources": [
+       {
+        "material_id": "6ae58c44e9c705bf12a947e8",
+        "page": 14,
+        "quote": "a reta corta o eixo y no ponto (0, 5), que é a tarifa fixa, paga mesmo antes de andar."
+       },
+       {
+        "material_id": "6ae58c44e9c705bf12a947e8",
+        "page": 14,
+        "quote": "a cada 1 km para a direita, a reta sobe 2 reais."
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2160,
+   "message": {
+    "type": "action",
+    "order": 18,
+    "action": {
+     "id": "m19",
+     "name": "highlight",
+     "args": {
+      "target_id": "leitura_reta",
+      "color": "pink",
+      "text_to_match": "a inclinação"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2280,
+   "message": {
+    "type": "action",
+    "order": 19,
+    "action": {
+     "id": "m20",
+     "name": "draw_result",
+     "args": {
+      "element_id": "corrida_app",
+      "url": "/demo/math-corrida-app.svg"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2400,
+   "message": {
+    "type": "action",
+    "order": 20,
+    "action": {
+     "id": "m21",
+     "name": "ask_verification",
+     "args": {
+      "id": "q_corrida",
+      "column": "main",
+      "concept": "Equação do 1º grau",
+      "question": "Outro app cobra R$ 4,00 de tarifa fixa e R$ 2,50 por km. A corrida custou R$ 29,00. Monte a equação: quantos km foram?",
+      "kind": "transfer",
+      "verification_id": "ver_demo_math",
+      "concept_key": "equacao do 1 grau"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2520,
+   "message": {
+    "type": "action",
+    "order": 21,
+    "action": {
+     "id": "m22",
+     "name": "speak",
+     "args": {
+      "text": "Agora é com você: monta a equação e me conta quantos quilômetros deu!",
+      "purpose": "question"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 2640,
+   "message": {
+    "type": "script_done",
+    "turn_id": "demo_turn_math"
+   }
+  },
+  {
+   "at_ms": 2660,
+   "message": {
+    "type": "turn_done",
+    "turn_id": "demo_turn_math"
+   }
+  }
+ ]
+}
