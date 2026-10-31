@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Chunk, SearchQuery } from "./retrieval";
-import { CreateSessionRequest, CreateSessionResponse, EndSessionRequest, ListSessionsQuery, ListSessionsResponse, SessionDetailResponse, SessionSummary } from "./sessions";
+import { CreateSessionRequest, CreateSessionResponse, EndSessionRequest, FinishSessionResponse, ListSessionsQuery, ListSessionsResponse, ResumeSessionResponse, SessionDetailResponse, SessionSummary } from "./sessions";
 
 describe("sessions", () => {
   it("creates a session from a student only (no material_id)", () => {
@@ -22,6 +22,15 @@ describe("sessions", () => {
       expect(EndSessionRequest.safeParse({ reason }).success).toBe(true);
     }
     expect(EndSessionRequest.safeParse({ reason: "bored" }).success).toBe(false);
+  });
+
+  it("describes the idempotent finish and resume transitions", () => {
+    expect(FinishSessionResponse.parse({ ok: true, transition: "finished" })).toEqual({ ok: true, transition: "finished" });
+    expect(FinishSessionResponse.parse({ ok: true, transition: "already_finished" })).toEqual({ ok: true, transition: "already_finished" });
+    expect(FinishSessionResponse.safeParse({ ok: true, transition: "resumed" }).success).toBe(false);
+    expect(ResumeSessionResponse.parse({ ok: true, transition: "resumed" })).toEqual({ ok: true, transition: "resumed" });
+    expect(ResumeSessionResponse.parse({ ok: true, transition: "already_active" })).toEqual({ ok: true, transition: "already_active" });
+    expect(ResumeSessionResponse.safeParse({ ok: true, transition: "finished" }).success).toBe(false);
   });
 });
 

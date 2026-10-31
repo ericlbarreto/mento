@@ -93,6 +93,10 @@ export class MongoChunkStore implements ChunkStore {
     }
   }
 
+  async deletePassages(material_id: string): Promise<void> {
+    await ChunkModel.deleteMany({ material_id });
+  }
+
   async createMaterial(material: MaterialRecord): Promise<{ id: string }> {
     const doc = await MaterialModel.create(material);
     return { id: String(doc._id) };
@@ -103,7 +107,7 @@ export class MongoChunkStore implements ChunkStore {
   }
 
   async listCatalog(subject_id?: string): Promise<CatalogRecord[]> {
-    const docs = await MaterialModel.find({ status: "ready", ...(subject_id ? { subject_id } : {}) })
+    const docs = await MaterialModel.find({ status: "ready", is_fixture: { $ne: true }, ...(subject_id ? { subject_id } : {}) })
       .sort({ createdAt: 1 })
       .lean<{ _id: unknown; title: string; subject: string; subject_id?: string | null; chapters?: { title: string }[] }[]>();
     return docs.map((d) => ({

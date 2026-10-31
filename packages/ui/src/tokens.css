@@ -1,13 +1,87 @@
-/* Mento design tokens (docs/18-ui-references.md §6). Shared by the whiteboard and the teacher UI. */
+/* Mento design tokens (docs/18-ui-references.md §6.1, docs/19-brand-assets.md §2).
+   Shared by the whiteboard and the teacher UI. Light beige paper + Mento blue. */
+
+/* Fonts: Nunito for the UI; Caveat (primary) and Kalam (fallback) for the board's handwriting.
+   Must stay the first rule of this file (CSS requires @import before other rules). */
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Kalam:wght@400;700&family=Nunito:wght@400;600;700;800&display=swap");
+
 :root {
+  /* Surfaces: app/board background, panels and drawers, raised cards, borders. */
   --paper: #fbf7ee;
-  --paper-2: #f4eddc;
+  --paper-2: #f5eedf;
+  --card: #fffdf8;
+  --line: #e7decb;
+
+  /* Text: ink is the logo navy; ink-soft is secondary text (AA: 5.2:1 on --paper-2, higher on --paper). */
   --ink: #162250;
+  --ink-soft: #5a6283;
+  --mento-navy: #162250;
+
+  /* Brand blue: primary actions, links, selection, the orb ring (white text on it: 5.7:1).
+     -strong is the hover/pressed shade; -soft tints chips and selected elements. */
   --mento-blue: #1e59ed;
-  --mento-blue-soft: #dce6fd;
+  --mento-blue-strong: #1747c4;
+  --mento-blue-soft: #e6edfd;
+
+  /* Mascot palette: body blue, and the light belly blue for sparkles and soft accents. */
+  --mascot-blue: #126cfc;
+  --mascot-light: #b1d8fa;
+
+  /* Accent orange: small highlights and gentle alerts only, never a large surface.
+     -soft is its tint for chips/badges; -ink is the AA-safe text color on that tint (5.9:1). */
   --accent: #fc724a;
-  --line: #e4dcc8;
+  --accent-soft: #fde7dd;
+  --accent-ink: #9a3a1c;
+
+  /* Board markers (highlight action). */
+  --marker-yellow: #ffe58a;
+  --marker-blue: #cfe0ff;
+
+  /* Radius: --radius is the legacy default; cards use md/lg (16–20px); pill for chips and round buttons. */
   --radius: 14px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  /* Shadows: navy-tinted, soft, always offset. card = resting surfaces; pop = hover, popovers, the orb. */
+  --shadow-card: 0 1px 2px rgb(22 34 80 / 0.06), 0 4px 14px rgb(22 34 80 / 0.06);
+  --shadow-pop: 0 2px 4px rgb(22 34 80 / 0.08), 0 12px 32px rgb(22 34 80 / 0.12);
+
+  /* Focus ring: a paper gap then a blue ring, readable on paper, cards and blue buttons. */
+  --focus-ring: 0 0 0 2px var(--paper), 0 0 0 4px var(--mento-blue);
+
+  /* Motion: exponential ease-out; fast = hover/press, base = entrances (40ms stagger), slow = board reveals. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 150ms;
+  --dur-base: 240ms;
+  --dur-slow: 400ms;
+  --stagger: 40ms;
+
+  /* Typography. */
   --font-ui: "Nunito", system-ui, sans-serif;
   --font-board: "Caveat", "Kalam", cursive;
+}
+
+/* Reduced motion: zero every duration so components snap to their end state. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+    --stagger: 0ms;
+  }
+}
+
+/* Spinner rotation used by <Spinner>. It uses a fixed duration on purpose: it signals progress. */
+@keyframes mento-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Browser surfaces in the palette. */
+::selection {
+  background: var(--marker-blue);
+  color: var(--ink);
 }

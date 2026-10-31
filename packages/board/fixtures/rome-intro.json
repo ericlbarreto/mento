@@ -1,0 +1,233 @@
+{
+  "description": "Opening lesson on the end of the Roman Republic: title, highlight, speech, illustration placeholder, timeline, cited remark, circle on a date, long paragraph, question and verification, late image result.",
+  "messages": [
+    {
+      "at_ms": 1200,
+      "message": {
+        "type": "action",
+        "order": 0,
+        "action": {
+          "id": "act_intro_1",
+          "name": "write_text",
+          "args": {
+            "id": "title",
+            "column": "main",
+            "html": "<h1>Da República ao Império</h1>"
+          }
+        }
+      }
+    },
+    {
+      "at_ms": 1450,
+      "message": {
+        "type": "action",
+        "order": 1,
+        "action": {
+          "id": "act_intro_2",
+          "name": "highlight",
+          "args": {
+            "target_id": "title",
+            "color": "yellow"
+          }
+        }
+      }
+    },
+    {
+      "at_ms": 1770,
+      "message": {
+        "type": "action",
+        "order": 2,
+        "action": {
+          "id": "act_intro_3",
+          "name": "speak",
+          "args": {
+            "text": "Oi! Hoje vamos descobrir como Roma deixou de ser uma República e virou um Império.",
+            "style": "warm",
+            "purpose": "explain"
+          }
+        }
+      }
+    },
+    {
+      "at_ms": 1950,
+      "message": {
+        "type": "action",
+        "order": 3,
+        "action": {
+          "id": "act_intro_4",
+          "name": "draw",
+          "args": {
+            "id": "colosseum",
+            "column": "visuals",
+            "is_structured": false,
+            "prompt": "Esboço artístico do Coliseu romano, lápis de cor, fundo branco, sem texto",
+            "max_dimensions": {
+              "w": 500,
+              "h": 400
+            }
+          }
+        }
+      }
+    },
+    {
+      "at_ms": 2350,
+      "message": {
+        "type": "action",
+        "order": 4,
+        "action": {
+          "id": "act_intro_5",
+          "name": "write_timeline",
+          "args": {
+            "id": "timeline_rome",
+            "column": "main",
+            "events": [
+              {
+                "date": "509 a.C.",
+                "label": "Início da República"
+              },
+              {
+                "date": "44 a.C.",
+                "label": "Morte de Júlio César"
+              },
+              {
+                "date": "27 a.C.",
+                "label": "Otávio vira Augusto"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "at_ms": 2570,
+      "message": {
+        "type": "action",
+        "order": 5,
+        "action": {
+          "id": "act_intro_6",
+          "name": "speak",
+          "args": {
+            "text": "Repare nessa data: em 27 a.C., o Senado deu a Otávio o título de Augusto.",
+            "purpose": "explain",
+            "sources": [
+              {
+                "material_id": "665f1a2b3c4d5e6f7a8b9c01",
+                "page": 12,
+                "quote": "Em 27 a.C., o Senado concedeu a Otávio o título de Augusto"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "at_ms": 2920,
+      "message": {
+        "type": "action",
+        "order": 6,
+        "action": {
+          "id": "act_intro_7",
+          "name": "circle_annotate",
+          "args": {
+            "target_id": "timeline_rome",
+            "text_to_match": "27 a.C.",
+            "color": "red"
+          }
+        }
+      }
+    },
+    {
+      "at_ms": 3080,
+      "message": {
+        "type": "action",
+        "order": 7,
+        "action": {
+          "id": "act_intro_8",
+          "name": "write_text",
+          "args": {
+            "id": "republic_end",
+            "column": "main",
+            "html": "<p>Durante a República, Roma era governada por <b>cônsules</b> eleitos e pelo <b>Senado</b>. Depois de muitas guerras civis e da morte de Júlio César, Otávio concentrou o poder em suas mãos e, mesmo mantendo o Senado funcionando, passou a governar sozinho como <i>imperador</i>.</p>",
+            "purpose": "explain",
+            "sources": [
+              {
+                "material_id": "665f1a2b3c4d5e6f7a8b9c01",
+                "page": 12,
+                "quote": "Em 27 a.C., o Senado concedeu a Otávio o título de Augusto"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "at_ms": 3380,
+      "message": {
+        "type": "action",
+        "order": 8,
+        "action": {
+          "id": "act_intro_9",
+          "name": "speak",
+          "args": {
+            "text": "Agora me conta com suas palavras: por que dizemos que a República acabou, se o Senado continuou existindo?",
+            "purpose": "question"
+          }
+        }
+      }
+    },
+    {
+      "at_ms": 3630,
+      "message": {
+        "type": "action",
+        "order": 9,
+        "action": {
+          "id": "act_intro_10",
+          "name": "ask_verification",
+          "args": {
+            "id": "q_republic_end",
+            "column": "main",
+            "verification_id": "ver_1",
+            "concept": "Fim da República",
+            "concept_key": "fim da republica",
+            "question": "Por que dizemos que a República romana acabou, mesmo com o Senado ainda funcionando?",
+            "kind": "explain"
+          }
+        }
+      }
+    },
+    {
+      "at_ms": 3730,
+      "message": {
+        "type": "script_done",
+        "turn_id": "turn_intro"
+      }
+    },
+    {
+      "at_ms": 6230,
+      "message": {
+        "type": "action",
+        "order": 10,
+        "action": {
+          "id": "act_intro_11",
+          "name": "draw_result",
+          "args": {
+            "element_id": "colosseum",
+            "url": "/brand/mascot.png"
+          }
+        }
+      }
+    },
+    {
+      "at_ms": 6270,
+      "message": {
+        "type": "turn_done",
+        "turn_id": "turn_intro",
+        "timing": {
+          "first_action_ms": 1200,
+          "script_done_ms": 3730,
+          "image_ready_ms": 6230
+        }
+      }
+    }
+  ]
+}

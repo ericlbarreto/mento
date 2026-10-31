@@ -28,7 +28,7 @@ const toSubject = (d: SubjectLean): Subject => ({ id: String(d._id), name: d.nam
 export class MongoSubjectStore implements SubjectStore {
   private async summaries(subjects: SubjectLean[]): Promise<SubjectSummary[]> {
     const ids = subjects.map((s) => String(s._id));
-    const materials = await MaterialModel.find({ subject_id: { $in: ids }, status: "ready" })
+    const materials = await MaterialModel.find({ subject_id: { $in: ids }, status: "ready", is_fixture: { $ne: true } })
       .sort({ createdAt: 1 })
       .lean<MaterialLean[]>();
     return subjects.map((s) => {

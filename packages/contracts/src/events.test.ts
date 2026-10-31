@@ -1,13 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { Event, EventType, TurnRequest } from "./events";
 import { FixtureTurn } from "./fixtures";
+import { SessionEvent } from "./session-events";
 
 describe("EventType", () => {
   it("is the closed list of contracts-spec section 3", () => {
     expect(EventType.options).toEqual([
       "session_started", "user_message", "tutor_action", "verification_asked", "verification_answered",
-      "hint_given", "evidence_recorded", "interrupted", "mic_state", "turn_timing", "session_ended",
+      "hint_given", "evidence_recorded", "interrupted", "mic_state", "turn_timing", "session_ended", "session_resumed",
     ]);
+  });
+
+  it("accepts a resumed-session audit event", () => {
+    const ts = "2026-10-30T21:00:00.000Z";
+    expect(EventType.parse("session_resumed")).toBe("session_resumed");
+    expect(SessionEvent.parse({
+      id: "e1",
+      session_id: "s1",
+      seq: 1,
+      ts,
+      type: "session_resumed",
+      payload: { previous_ended_at: ts },
+    }).type).toBe("session_resumed");
   });
 });
 
