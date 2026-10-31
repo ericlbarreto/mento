@@ -2,8 +2,8 @@
 // element or one column (useSyncExternalStore) and adding an element never re-renders the others.
 import type { Action, Column } from "@mento/contracts";
 import { type AnimationBus, createAnimationBus } from "./animation";
-import { applyAction, applySvg } from "./reducer";
-import { type BoardState, COLUMNS, type ElementState, emptyBoard } from "./types";
+import { applyAction, applyEdit, applySvg, restoreRemoved } from "./reducer";
+import { type BoardEdit, type BoardState, COLUMNS, type ElementState, type RemovedElement, emptyBoard } from "./types";
 
 type Listener = () => void;
 
@@ -14,6 +14,10 @@ export interface BoardStore {
   dispatch(action: Action): void;
   /** Completes a streamed (svg_chunk) drawing. */
   applySvg(element_id: string, svg: string): void;
+  /** A student delete or move (plan F). Applied instantly: nothing is re-written by the pen. */
+  applyEdit(edit: BoardEdit): void;
+  /** Undo of the last student delete. */
+  restoreRemoved(removed: RemovedElement): void;
   reset(): void;
   /**
    * Runs `fn` with animations off: what it dispatches appears at once (session restore). Listeners read
@@ -78,6 +82,22 @@ export function createBoardStore(opts: BoardStoreOptions = {}): BoardStore {
     getColumn: (column) => state.columns[column],
     dispatch: (action) => commit(applyAction(state, action, { onWarning: opts.onWarning })),
     applySvg: (element_id, svg) => commit(applySvg(state, element_id, svg, { onWarning: opts.onWarning })),
+    applyEdit(edit) {
+      instantDepth++;
+      try {
+        commit(applyEdit(state, edit, { onWarning: opts.onWarning }));
+      } finally {
+        instantDepth--;
+      }
+    },
+    restoreRemoved(removed) {
+      instantDepth++;
+      try {
+        commit(restoreRemoved(state, removed));
+      } finally {
+        instantDepth--;
+      }
+    },
     reset: () => commit(emptyBoard()),
     instant(fn) {
       instantDepth++;

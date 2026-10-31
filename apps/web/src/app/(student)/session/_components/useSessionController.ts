@@ -263,7 +263,7 @@ export function useSessionController({
     if (!mounted.current) return;
     // Reopen: redraw without animation or audio, rebuild the chat, reopen the pending question.
     const replay = replayEvents(detail.events);
-    restore(replay.actions, replay.lastTurnId);
+    restore(replay.steps, replay.lastTurnId);
     setSession(detail.session);
     modalityRef.current = detail.session.modality;
     setLines(replay.transcript.map((line, i) => ({ ...line, id: `replay_${i}` })));

@@ -62,8 +62,22 @@ export type ElementOf<T extends ElementType> = ElementBase<T>;
 
 export interface BoardState {
   elements: ReadonlyMap<string, ElementState>;
-  /** Element ids per column, in insertion order. Arrays are replaced (never mutated) on change. */
+  /** Element ids per column, top to bottom (the tutor appends; the student may reorder). Arrays are replaced (never mutated) on change. */
   columns: Readonly<Record<Column, readonly string[]>>;
+  /** Ids the student deleted (plan F): tutor actions on them are dropped, a late draw_result included. */
+  removed: ReadonlySet<string>;
+}
+
+/** A student board edit (BoardEditRequest without its edit_id). A move is absolute: into `column`, right after `after_id` (null = top). */
+export type BoardEdit =
+  | { op: "remove"; element_id: string }
+  | { op: "move"; element_id: string; column: Column; after_id: string | null };
+
+/** What undo needs to put a deleted element back where it was. */
+export interface RemovedElement {
+  element: ElementState;
+  /** The element right above it in its column when it was deleted (null = it was the first). */
+  after_id: string | null;
 }
 
 export const COLUMNS: readonly Column[] = ["main", "visuals", "side"];
@@ -71,4 +85,5 @@ export const COLUMNS: readonly Column[] = ["main", "visuals", "side"];
 export const emptyBoard = (): BoardState => ({
   elements: new Map(),
   columns: { main: [], visuals: [], side: [] },
+  removed: new Set(),
 });

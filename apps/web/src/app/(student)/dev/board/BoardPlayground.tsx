@@ -100,7 +100,7 @@ export function BoardPlayground() {
             const actions = [...played.current];
             player.clear();
             played.current = actions;
-            player.restore(actions, null);
+            player.restore(actions.map((action) => ({ kind: "action" as const, action })), null);
           }}
         >
           Reabrir

@@ -1,7 +1,7 @@
 // Pure board reducer: one Action in, next BoardState out. Never throws on bad targets:
 // unknown ids are ignored and reported through `onWarning` (the model can reference stale ids).
-import type { Action } from "@mento/contracts";
-import type { Annotation, BoardState, ElementState } from "./types";
+import type { Action, Column } from "@mento/contracts";
+import type { Annotation, BoardEdit, BoardState, ElementState, RemovedElement } from "./types";
 
 export interface ApplyContext {
   /** Timestamp for `created_at`; defaults to Date.now(). */
@@ -12,6 +12,10 @@ export interface ApplyContext {
 export function applyAction(state: BoardState, action: Action, ctx: ApplyContext = {}): BoardState {
   const now = ctx.now ?? Date.now();
   const warn = (message: string) => ctx.onWarning?.(`${action.name} (${action.id}): ${message}`);
+  // The student deleted this element: the tutor can neither change nor re-create it (late drawings included).
+  const args = action.args as { id?: string; target_id?: string; element_id?: string };
+  const target = args.target_id ?? args.element_id ?? args.id;
+  if (target !== undefined && state.removed.has(target)) return (warn(`"${target}" was deleted by the student; dropped`), state);
 
   switch (action.name) {
     case "speak":
@@ -62,9 +66,7 @@ export function applyAction(state: BoardState, action: Action, ctx: ApplyContext
       const { id } = action.args;
       const el = state.elements.get(id);
       if (!el) return (warn(`unknown element "${id}"`), state);
-      const elements = new Map(state.elements);
-      elements.delete(id);
-      return { elements, columns: { ...state.columns, [el.column]: state.columns[el.column].filter((x) => x !== id) } };
+      return drop(state, el);
     }
 
     case "highlight":
@@ -113,10 +115,68 @@ function finishDrawing(state: BoardState, element_id: string, result: { url?: st
   return replace(state, { ...el, type: result.svg !== undefined ? "svg" : "image", status: "ready", data });
 }
 
+/**
+ * A student edit (plan F): remove drops the element and its annotations and remembers the id; move takes it out
+ * of its column and puts it in `column` right after `after_id` (null = top; an anchor no longer there = the end).
+ */
+export function applyEdit(state: BoardState, edit: BoardEdit, ctx: ApplyContext = {}): BoardState {
+  const warn = (message: string) => ctx.onWarning?.(`board ${edit.op} (${edit.element_id}): ${message}`);
+  const el = state.elements.get(edit.element_id);
+  if (!el) {
+    if (!state.removed.has(edit.element_id)) warn("unknown element");
+    return state;
+  }
+  if (edit.op === "remove") {
+    const next = drop(state, el);
+    return { ...next, removed: new Set(state.removed).add(el.id) };
+  }
+  if (edit.after_id === el.id) return (warn("anchored to itself"), state);
+  const columns = { ...state.columns, [el.column]: state.columns[el.column].filter((x) => x !== el.id) };
+  const target = insertAfter(columns[edit.column], el.id, edit.after_id);
+  const same = el.column === edit.column && target.every((x, i) => x === state.columns[el.column][i]);
+  if (same) return state;
+  const elements = new Map(state.elements);
+  if (el.column !== edit.column) elements.set(el.id, { ...el, column: edit.column });
+  return { ...state, elements, columns: { ...columns, [edit.column]: target } };
+}
+
+/** Undo of a student delete: the element comes back right after its old neighbour (or on top). */
+export function restoreRemoved(state: BoardState, { element, after_id }: RemovedElement): BoardState {
+  if (state.elements.has(element.id)) return state;
+  const removed = new Set(state.removed);
+  removed.delete(element.id);
+  const elements = new Map(state.elements);
+  elements.set(element.id, element);
+  const anchor = after_id !== null && state.columns[element.column].includes(after_id) ? after_id : null;
+  return { elements, removed, columns: { ...state.columns, [element.column]: insertAfter(state.columns[element.column], element.id, anchor) } };
+}
+
+/** The id right above `id` in its column (null = first, or not on the board). */
+export function anchorOf(state: BoardState, id: string): string | null {
+  const el = state.elements.get(id);
+  if (!el) return null;
+  const ids = state.columns[el.column];
+  return ids[ids.indexOf(id) - 1] ?? null;
+}
+
+function insertAfter(ids: readonly string[], id: string, after_id: string | null): string[] {
+  if (after_id === null) return [id, ...ids];
+  const at = ids.indexOf(after_id);
+  if (at < 0) return [...ids, id];
+  return [...ids.slice(0, at + 1), id, ...ids.slice(at + 1)];
+}
+
+function drop(state: BoardState, el: ElementState): BoardState {
+  const elements = new Map(state.elements);
+  elements.delete(el.id);
+  const column: Column = el.column;
+  return { ...state, elements, columns: { ...state.columns, [column]: state.columns[column].filter((x) => x !== el.id) } };
+}
+
 function replace(state: BoardState, el: ElementState): BoardState {
   const elements = new Map(state.elements);
   elements.set(el.id, el);
-  return { elements, columns: state.columns };
+  return { ...state, elements };
 }
 
 /** Insert a new element at the end of its column; an existing id is replaced in place (kept in its column). */
@@ -128,5 +188,5 @@ function upsert(state: BoardState, el: ElementState, warn: (m: string) => void):
   }
   const elements = new Map(state.elements);
   elements.set(el.id, el);
-  return { elements, columns: { ...state.columns, [el.column]: [...state.columns[el.column], el.id] } };
+  return { ...state, elements, columns: { ...state.columns, [el.column]: [...state.columns[el.column], el.id] } };
 }
