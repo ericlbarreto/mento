@@ -8,8 +8,8 @@ export interface WsLike {
   readyState: number;
   send(data: string): void;
   close(): void;
-  on(event: "open" | "close" | "error" | "message", listener: (...args: any[]) => void): unknown;
-  once(event: "open" | "close" | "error", listener: (...args: any[]) => void): unknown;
+  on(event: "open" | "close" | "error" | "message", listener: (...args: never[]) => void): unknown;
+  once(event: "open" | "close" | "error", listener: (...args: never[]) => void): unknown;
 }
 export type WsFactory = (url: string, headers: Record<string, string>) => WsLike;
 
