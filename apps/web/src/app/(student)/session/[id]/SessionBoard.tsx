@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { Board, type BoardEditingEnv, MOCK_STUDENTS, type StudentSummary, createEditOutbox } from "@mento/board";
 import { Footer, Orb, TopBar, type TopBarNavItem } from "@mento/ui";
-import { API_URL, MOCK_API, apiUrl, getSession, getVoiceToken, listSessions, listStudents, streamTurn } from "@/lib/api";
+import { API_URL, MOCK_API, apiUrl, getSession, getVoiceToken, listSessions, listStudents, streamTurn, editBoard } from "@/lib/api";
 import { CaptionBar } from "../_components/caption/CaptionBar";
 import { ChatPanel } from "../_components/chat/ChatPanel";
 import { isPauseShortcut } from "../_components/controls/pauseShortcut";
@@ -15,7 +15,6 @@ import { HistoryDrawer } from "../_components/history/HistoryDrawer";
 import { SessionErrorCard, SessionLoading } from "../_components/loading/SessionLoading";
 import { SessionPauseModal } from "../_components/pause/SessionPauseModal";
 import { type SessionStats, sessionStats } from "../_components/pause/sessionStats";
-import { editBoard } from "../_components/editBoardShim";
 import { createSessionAudio } from "../_components/sessionAudio";
 import { makeSelection, readStudentId } from "../_components/sessionModel";
 import { useEndSession } from "../_components/useEndSession";
