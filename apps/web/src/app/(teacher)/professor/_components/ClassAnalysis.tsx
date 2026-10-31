@@ -7,6 +7,7 @@ import { ORIGIN_LABEL, evidenceLine } from "../_lib/status";
 import { useTeacher } from "../_lib/store";
 import type { Gap, Intervention } from "../_lib/types";
 import { IconBook, IconCalendar, IconCheck, IconFlag, IconLightbulb, IconMessage, IconShield, IconSparkle } from "./icons";
+import { ExerciseList } from "./ExerciseList";
 import { Avatar, Button, Card, Chip, SimulatedBadge, cx } from "./ui";
 
 /** The simulated-data badge, shown only while the class has simulated students. */
@@ -154,7 +155,7 @@ function InterventionCard({ intervention }: { intervention: Intervention }) {
   const decided = intervention.status !== "suggested";
 
   return (
-    <Card className={cx("p-6 md:p-7", intervention.status === "adopted" && "border-[var(--ok)]/40", intervention.status === "dismissed" && "opacity-70")}>
+    <Card className={cx("min-w-0 p-6 md:p-7", intervention.status === "adopted" && "border-[var(--ok)]/40", intervention.status === "dismissed" && "opacity-70")}>
       <div className="flex flex-wrap items-center gap-2">
         <Chip tone="blue">
           <IconCalendar size={14} /> {intervention.duration_min} min em sala
@@ -174,7 +175,7 @@ function InterventionCard({ intervention }: { intervention: Intervention }) {
       <div className="mt-5 flex flex-wrap items-center gap-2 text-[13px] text-[var(--ink-soft)]">
         <span className="font-semibold">Por quê:</span>
         {from.map((i) => (
-          <Chip key={i.id} tone="warn" className="text-[12px]">
+          <Chip key={i.id} tone="warn" className="whitespace-normal! text-[12px]">
             <IconLightbulb size={13} /> {i.title}
           </Chip>
         ))}
@@ -186,6 +187,7 @@ function InterventionCard({ intervention }: { intervention: Intervention }) {
           </Link>
         )}
       </div>
+      <ExerciseList interventionId={intervention.id} />
       <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[var(--line)] pt-5" aria-live="polite">
         {decided ? (
           <>

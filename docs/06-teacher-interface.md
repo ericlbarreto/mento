@@ -53,6 +53,10 @@ Table: name, conversations (n), last activity, open gaps (n), latest insight, a 
 
 Form: **name**. The student then appears in the student picker of the whiteboard start screen. (Alternative: create rows directly in the database/seed.) No password: students pick their own name in the prototype.
 
+### 1.6 Exercise lists (D68, mock)
+
+Each class intervention has a **Gerar lista de exercícios** button. It generates questions on the gaps behind the intervention and offers two PDFs: **with answers** (teacher) and **without answers** (students). The questions are marked as AI-generated and to be reviewed before use; nothing is sent to students automatically.
+
 ## Tab 2 — Materials ("Materiais")
 
 - **Upload a PDF** (e.g., a book): only the **title** (defaults to the file name). In the prototype a teacher has **one subject** (D67), so the UI sends that subject's `subject_id` (D64) without asking; the subject selects the tutor's **subject profile** (`03-tutor-and-prompts.md`).
@@ -101,7 +105,7 @@ The teacher backend exists and is tested (`pnpm test:rules`, `pnpm e2e:teacher`)
 
 ## Out of scope for the teacher UI
 
-Authentication, multiple teachers, multiple classes, per-class or per-student configuration, gradebook, editing the tutor prompt, exam generation, family access.
+Authentication, multiple teachers, multiple classes, per-class or per-student configuration, gradebook, editing the tutor prompt, full exam generation (only the per-intervention exercise lists of D68), family access.
 
 ## Open questions
 
