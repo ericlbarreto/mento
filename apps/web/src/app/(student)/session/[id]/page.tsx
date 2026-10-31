@@ -7,5 +7,6 @@ export const metadata: Metadata = { title: "Aula · Mento" };
 
 export default async function SessionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return <SessionBoard sessionId={id} />;
+  // key: another session opened from the history drawer remounts the board, so it loads and replays fresh.
+  return <SessionBoard key={id} sessionId={id} />;
 }
