@@ -70,7 +70,7 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
   const focusChat = useCallback(() => {
     setChatOpen(true);
     // The panel may mount in this render; focus after it.
-    requestAnimationFrame(() => inputRef.current?.focus());
+    requestAnimationFrame(() => inputRef.current?.focus({ preventScroll: true }));
   }, []);
 
   // Click-and-ask: a click (or a text selection) on a board element sets the "Sobre: …" chip.
@@ -81,7 +81,7 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
     if (!el || !id) return false;
     const sel = window.getSelection();
     const selected = sel && !sel.isCollapsed && sel.anchorNode && el.contains(sel.anchorNode) ? sel.toString() : "";
-    setSelection(makeSelection(id, el.textContent ?? "", selected));
+    setSelection(makeSelection(id, el.innerText || el.textContent || "", selected));
     focusChat();
     return true;
   };
@@ -130,7 +130,7 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
               assetBaseUrl={assetBaseUrl}
               onWarning={player.warn}
               verification={verification}
-              className={`min-h-0 [&_[data-element-id]]:cursor-pointer ${dotted}`}
+              className={`min-h-0 [&_[data-element-id]]:cursor-pointer [&>section]:pb-72 [&>section]:scroll-pb-72 ${dotted}`}
             />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 px-6 pb-5">
               {captionsOn && caption && (

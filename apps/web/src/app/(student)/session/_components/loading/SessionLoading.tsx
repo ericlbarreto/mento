@@ -18,22 +18,35 @@ export function SessionLoading({ stage }: { stage: "opening" | "preparing" }) {
   }, []);
   const stages: LoadingStage[] = [
     { id: "board", label: "Abrindo a lousa", state: stage === "opening" ? "active" : "done" },
-    { id: "tutor", label: "O tutor está preparando a aula", state: stage === "opening" ? "pending" : "active" },
+    {
+      id: "tutor",
+      label: "O tutor está preparando a aula",
+      state: stage === "opening" ? "pending" : "active",
+    },
   ];
+  // LoadingOverlay is `relative`, so the covering layer is this wrapper.
   return (
-    <LoadingOverlay
-      className="absolute inset-0 z-30 min-h-full overflow-y-auto"
-      title="Preparando sua aula…"
-      subtitle="Já já a lousa abre e o Mento começa a explicar."
-      bubble="Tô quase!"
-      quote="Respira fundo, o aprendizado começa agora!"
-      stages={stages}
-      slowNotice={slow ? "Está demorando mais que o normal…" : undefined}
-    />
+    <div className="absolute inset-0 z-30 overflow-y-auto bg-(--paper)">
+      <LoadingOverlay
+        className="min-h-full"
+        title="Preparando sua aula…"
+        subtitle="Já já a lousa abre e o Mento começa a explicar."
+        bubble="Tô quase!"
+        quote="Respira fundo, o aprendizado começa agora!"
+        stages={stages}
+        slowNotice={slow ? "Está demorando mais que o normal…" : undefined}
+      />
+    </div>
   );
 }
 
-export function SessionErrorCard({ error, onRetry }: { error: SessionErrorView; onRetry: () => void }) {
+export function SessionErrorCard({
+  error,
+  onRetry,
+}: {
+  error: SessionErrorView;
+  onRetry: () => void;
+}) {
   return (
     <div className="absolute inset-0 z-30 flex items-center justify-center bg-(--paper) px-4 py-10">
       <div role="alert" className="flex max-w-md flex-col items-center gap-4 text-center">
