@@ -15,6 +15,8 @@ export interface SessionAudio extends SpeechPlayer {
   setMuted(muted: boolean): void;
   /** Starts the audio output. Call it inside a user gesture; resolves false when the browser still blocks it. */
   unlock(): Promise<boolean>;
+  /** Downloads a speak's audio ahead of time (called when the action arrives, while earlier lines still play). */
+  prefetch(audio_url: string): void;
   readonly unlocked: boolean;
 }
 
@@ -42,7 +44,21 @@ export function createSessionAudio(
       outputConnected = true;
     }
   };
+  // Lines queued behind the one playing are downloaded while it plays, so the next line starts with no gap.
+  // A finished download plays from a blob URL; one still in flight is skipped and the line streams as usual.
+  const ready = new Map<string, string>();
+  const inFlight = new Set<string>();
+  const MAX_PREFETCH = 12;
   return {
+    prefetch(audio_url) {
+      if (ready.has(audio_url) || inFlight.has(audio_url) || ready.size + inFlight.size >= MAX_PREFETCH) return;
+      inFlight.add(audio_url);
+      fetch(resolveUrl(audio_url))
+        .then((res) => (res.ok ? res.blob() : Promise.reject(new Error(`HTTP ${res.status}`))))
+        .then((blob) => ready.set(audio_url, URL.createObjectURL(blob)))
+        .catch(() => undefined)
+        .finally(() => inFlight.delete(audio_url));
+    },
     get unlocked() {
       return unlocked;
     },
@@ -59,6 +75,16 @@ export function createSessionAudio(
     async play(audio_url: string, signal?: AbortSignal) {
       if (!unlocked) throw new Error("audio locked (no user gesture yet)");
       applyMute();
+      const local = ready.get(audio_url);
+      if (local) {
+        ready.delete(audio_url);
+        try {
+          await player().play(local, signal);
+        } finally {
+          URL.revokeObjectURL(local);
+        }
+        return;
+      }
       await player().play(resolveUrl(audio_url), signal);
     },
     stop: () => pcm?.stop(),

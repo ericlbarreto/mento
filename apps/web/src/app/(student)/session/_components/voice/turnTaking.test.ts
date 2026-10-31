@@ -68,6 +68,27 @@ describe("session audio", () => {
     expect(audio.unlocked).toBe(false);
   });
 
+  it("plays a prefetched line from its downloaded copy", async () => {
+    const played: string[] = [];
+    const player = fakePlayer(async (url: string) => void played.push(url));
+    const fetchMock = vi.fn(async () => new Response(new Blob([new Uint8Array(4)])));
+    vi.stubGlobal("fetch", fetchMock);
+    const create = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:a2");
+    const revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    const audio = createSessionAudio((p) => `http://api${p}`, { createPlayer: () => player });
+    await audio.unlock();
+    audio.prefetch("/api/tts/a2");
+    await vi.waitFor(() => expect(create).toHaveBeenCalled());
+    await audio.play("/api/tts/a2");
+    await audio.play("/api/tts/a3");
+    expect(fetchMock).toHaveBeenCalledWith("http://api/api/tts/a2");
+    expect(played.slice(-2)).toEqual(["blob:a2", "http://api/api/tts/a3"]);
+    expect(revoke).toHaveBeenCalledWith("blob:a2");
+    vi.unstubAllGlobals();
+    create.mockRestore();
+    revoke.mockRestore();
+  });
+
   it("keeps playing while muted, so un-muting brings the voice back", async () => {
     const player = fakePlayer(async () => undefined);
     const audio = createSessionAudio((p) => p, { createPlayer: () => player });

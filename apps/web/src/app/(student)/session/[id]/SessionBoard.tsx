@@ -29,8 +29,6 @@ const NAV: TopBarNavItem[] = [
   { label: "Biblioteca", inert: true },
 ];
 
-const API = { getSession, streamTurn };
-
 const EMPTY_STATS: SessionStats = { elapsed: null, items: null, reference: null };
 
 /** Stitch's dotted notebook paper. */
@@ -40,7 +38,21 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
   // Tutor voice when the API serves `speak.audio_url` (none in mock mode).
   const [audio] = useState(() => (MOCK_API ? undefined : createSessionAudio(apiUrl)));
   // Voice sessions hold the opening turn until the audio is unlocked (or the student picks text only).
-  const c = useSessionController({ sessionId, api: API, audio, holdVoiceOpening: !MOCK_API });
+  // Every speak's audio starts downloading as soon as the action arrives (see sessionAudio.prefetch).
+  const [api] = useState(() => ({
+    getSession,
+    streamTurn: ((id, req, onMessage, opts) =>
+      streamTurn(
+        id,
+        req,
+        (msg) => {
+          if (msg.type === "action" && msg.action.name === "speak" && msg.action.args.audio_url) audio?.prefetch(msg.action.args.audio_url);
+          onMessage(msg);
+        },
+        opts,
+      )) as typeof streamTurn,
+  }));
+  const c = useSessionController({ sessionId, api, audio, holdVoiceOpening: !MOCK_API });
   const { player, session, setSelection, releaseOpening } = c;
 
   // The spoken conversation: mic + STT, turn-taking, barge-in. Final captions go out like typed messages, so a
