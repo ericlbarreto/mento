@@ -58,3 +58,13 @@ Fixes 1–10 and 12 are in `spoken-text.ts`, with a test per case. 15 is also ap
 Guards: "1° lugar" stays an ordinal (only "°C" glued to a number is read as degrees), "24/7" and "15/11" stay, and "by" (English) is not "bê ípsilon". Across 1,669 real `speak` lines from the production DB, the only differences from the old normalizer are the intended ones.
 
 Second ear run (`teste-voz/formulas-3/`): 100 °C, √16, π, 1/2, Δs/Δt, −1, f(x), (x + 1)(x − 1), 3 × 10⁸ m/s, kWh, "1 km" and "7 × 7" are now heard correctly. Still open: 11 (CO₂ is heard as "CO dois"), 13 (`E` in `P = E / t`) and 14 (`Ec`). The TTS also varies from take to take: f01 came out garbled once with exactly the same text that was clean before.
+
+## Royal titles (História do Brasil)
+
+Ear test: "D. João VI" → "deus João sexto", "D. Maria I" → "de Maria pinheiro", "Pedro I abdicou" → "Pedro i abdicou". "D." appears 80 times in the real speak lines.
+
+Applied:
+- `D.` before a name → "Dom", or "Dona" for female names (ending in "a", plus Isabel, Inês, Beatriz). Not before a sentence opener ("a letra D. Depois…").
+- A roman numeral after a monarch's name (a fixed list, or any name after D./Dom/Dona/rei/rainha/imperador/papa) is read as an ordinal up to X and as a cardinal after ("Maria primeira", "Luís quatorze"). "capítulo II" and "século VI" are unchanged.
+
+Second ear run: "Dom João sexto", "Dom Pedro primeiro", "Dona Maria primeira", "Dona Leopoldina", "Pedro segundo". All are heard correctly.

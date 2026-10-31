@@ -65,6 +65,21 @@ const SENTENCE_OPENERS = new Set(
 );
 const startsSentence = (w: string | undefined) => !!w && SENTENCE_OPENERS.has(w.replace(/^[("“]+/, "").replace(/[,;:!?.)"”]+$/, "").toLowerCase()) && /^[("“]?[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/.test(w);
 
+// Royals: the TTS reads "D. João" as "deus João" and "Maria I" as "Maria pinheiro" (plan F ear test).
+const NAME_RE = /^[A-ZÁÉÍÓÚÂÊÔÃÕ][a-záéíóúâêôãõç]+$/;
+const FEMALE_NAMES = new Set(["Isabel", "Inês", "Beatriz", "Elizabeth"]);
+const isFemaleName = (name: string) => /a$/.test(name) || FEMALE_NAMES.has(name);
+const REGNAL_NAMES = new Set(
+  "Pedro João Maria José Luís Luiz Carlos Filipe Manuel Afonso Sebastião Henrique Isabel Napoleão Fernando Leopoldo Jorge Guilherme Elizabeth Francisco Bento Pio Leão Gregório".split(" "),
+);
+const ROYAL_TITLES = new Set(["d.", "dom", "dona", "rei", "rainha", "imperador", "imperatriz", "papa", "príncipe", "princesa"]);
+const stripTail = (w: string) => w.replace(/[,;:!?.)"”]+$/, "");
+/** "Pedro II", "D. Leopoldo I", "rei Luís XIV": the word before a roman numeral is a monarch's name. */
+const isRegnalName = (name: string, before: string | undefined) =>
+  NAME_RE.test(name) && (REGNAL_NAMES.has(name) || (before !== undefined && ROYAL_TITLES.has(before.toLowerCase())));
+/** "primeiro"/"primeira" up to X, then the cardinal ("Luís quatorze"). */
+const regnalWords = (n: number, female: boolean) => (n <= 10 && female ? centuryWords(n).replace(/o$/, "a") : centuryWords(n));
+
 /**
  * Split `text` into whitespace-separated written words and give each its spoken form.
  * Words without a target keep spoken === written.
@@ -121,6 +136,21 @@ export function toSpokenWords(text: string): SpokenWord[] {
         out.push({ written: w, spoken: what });
         out.push({ written: next!, spoken: "Cristo" + tail + end });
         i += 1;
+        continue;
+      }
+    }
+
+    // "D. João VI" → "Dom João sexto", "D. Maria I" → "Dona Maria primeira", "Pedro II" → "Pedro segundo".
+    if (w === "D." && next && NAME_RE.test(stripTail(next)) && !startsSentence(next)) {
+      out.push({ written: w, spoken: isFemaleName(stripTail(next)) ? "Dona" : "Dom" });
+      continue;
+    }
+    if (prev) {
+      const [, core = w, tail = ""] = /^(.*?)([,;:!?.)"”]*)$/.exec(w) ?? [];
+      const n = romanValue(core);
+      const name = stripTail(prev.written);
+      if (n !== null && prev.written === name && isRegnalName(name, out[out.length - 2]?.written)) {
+        out.push({ written: w, spoken: regnalWords(n, isFemaleName(name)) + tail });
         continue;
       }
     }

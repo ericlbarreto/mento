@@ -54,6 +54,17 @@ describe("toSpokenText", () => {
     expect(say("um chuveiro de 5500 W gasta 41,25 kWh.")).toBe("um chuveiro de 5500 watts gasta 41 vírgula 25 quilowatts-hora.");
   });
 
+  it("reads royal titles and regnal numbers", () => {
+    expect(say("Em 1808, D. João VI chegou ao Brasil.")).toBe("Em 1808, Dom João sexto chegou ao Brasil.");
+    expect(say("D. Pedro I declarou a Independência e D. Pedro II foi coroado.")).toBe(
+      "Dom Pedro primeiro declarou a Independência e Dom Pedro segundo foi coroado.",
+    );
+    expect(say("A rainha D. Maria I e a imperatriz D. Leopoldina.")).toBe("A rainha Dona Maria primeira e a imperatriz Dona Leopoldina.");
+    expect(say("Pedro I abdicou em 1831, e quem governou foi Pedro II.")).toBe("Pedro primeiro abdicou em 1831, e quem governou foi Pedro segundo.");
+    expect(say("o rei Luís XIV e a princesa Isabel")).toBe("o rei Luís quatorze e a princesa Isabel");
+    for (const l of ["A letra D. Depois vem a E.", "No capítulo II e na fase I, Roma cresceu.", "o século VI a.C."]) expect(say(l)).not.toMatch(/Dom|Dona|primeiro|segundo/);
+  });
+
   it("reads the cases the TTS got wrong in the ear test (plan F)", () => {
     expect(say("Assim 150.000.000 vira 1,5 × 10⁸.")).toBe("Assim cento e cinquenta milhões vira 1 vírgula 5 vezes 10 elevado à oitava.");
     expect(say("eram 2.200 pessoas e 1.000.000 de votos")).toBe("eram dois mil e duzentos pessoas e um milhão de votos");
