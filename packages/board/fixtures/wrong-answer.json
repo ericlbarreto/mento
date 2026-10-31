@@ -1,0 +1,87 @@
+{
+  "description": "Reply to a wrong answer on ver_1: level-1 hint, re-explanation, highlight, and the question again.",
+  "messages": [
+    {
+      "at_ms": 1200,
+      "message": {
+        "type": "action",
+        "order": 0,
+        "action": {
+          "id": "act_wrong_1",
+          "name": "speak",
+          "args": {
+            "text": "Quase! Pense em quem tomava as decisões importantes depois de Augusto.",
+            "purpose": "hint",
+            "hint_level": 1
+          }
+        }
+      }
+    },
+    {
+      "at_ms": 1450,
+      "message": {
+        "type": "action",
+        "order": 1,
+        "action": {
+          "id": "act_wrong_2",
+          "name": "write_text",
+          "args": {
+            "id": "reexplain",
+            "column": "main",
+            "html": "<p>Na República, o poder era dividido entre vários magistrados. No Império, as decisões importantes passaram a depender de <b>uma só pessoa</b>: o imperador.</p>",
+            "purpose": "hint",
+            "hint_level": 1
+          }
+        }
+      }
+    },
+    {
+      "at_ms": 1770,
+      "message": {
+        "type": "action",
+        "order": 2,
+        "action": {
+          "id": "act_wrong_3",
+          "name": "highlight",
+          "args": {
+            "target_id": "reexplain",
+            "color": "blue"
+          }
+        }
+      }
+    },
+    {
+      "at_ms": 1950,
+      "message": {
+        "type": "action",
+        "order": 3,
+        "action": {
+          "id": "act_wrong_4",
+          "name": "speak",
+          "args": {
+            "text": "Então, tentando de novo: o que mudou no jeito de governar Roma?",
+            "purpose": "question"
+          }
+        }
+      }
+    },
+    {
+      "at_ms": 2050,
+      "message": {
+        "type": "script_done",
+        "turn_id": "turn_wrong"
+      }
+    },
+    {
+      "at_ms": 2090,
+      "message": {
+        "type": "turn_done",
+        "turn_id": "turn_wrong",
+        "timing": {
+          "first_action_ms": 1200,
+          "script_done_ms": 2050
+        }
+      }
+    }
+  ]
+}
