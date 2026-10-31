@@ -1,6 +1,7 @@
 import type { WordTiming } from "@mento/contracts";
 import { charsToWords, type CharTiming } from "../alignment";
 import type { TtsCache } from "./cache";
+import { remapWordTimings, toSpokenText, toSpokenWords } from "./spoken-text";
 import type { TtsProvider } from "./types";
 
 export interface SpeakResult {
@@ -62,15 +63,20 @@ export class TtsService {
     };
     const t0 = performance.now();
 
+    // The voice says what a teacher would ("753 antes de Cristo", "x ao quadrado"); the timings are mapped
+    // back onto the written words the caption shows. The cache is keyed (and stores timings) by spoken text.
+    const spokenWords = toSpokenWords(req.text);
+    const spoken = toSpokenText(req.text, spokenWords);
+
     const run = async (): Promise<SpeakResult> => {
       const { provider, cache, voiceId, modelId } = this.opts;
-      const key = cache.key({ text: req.text, voiceId, modelId });
+      const key = cache.key({ text: spoken, voiceId, modelId });
       const hit = await cache.get(key);
       if (hit) {
         job.chunks.push(hit.audio);
         job.done = true;
         wake();
-        return { words: hit.words, first_byte_ms: 0, audio_bytes: hit.audio.length, cached: true };
+        return { words: remapWordTimings(spokenWords, hit.words), first_byte_ms: 0, audio_bytes: hit.audio.length, cached: true };
       }
       if (job.abort.signal.aborted) {
         job.done = true;
@@ -82,7 +88,7 @@ export class TtsService {
       let bytes = 0;
       try {
         for await (const chunk of provider.synthesize({
-          text: req.text,
+          text: spoken,
           previous_text: req.previous_text,
           next_text: req.next_text,
           signal: job.abort.signal,
@@ -95,7 +101,7 @@ export class TtsService {
         }
         const words = charsToWords(chars);
         if (!job.abort.signal.aborted && bytes > 0) await cache.put(key, Buffer.concat(job.chunks), words);
-        return { words, first_byte_ms: first, audio_bytes: bytes, cached: false };
+        return { words: remapWordTimings(spokenWords, words), first_byte_ms: first, audio_bytes: bytes, cached: false };
       } catch (err) {
         job.error = err instanceof Error ? err : new Error(String(err));
         throw job.error;
