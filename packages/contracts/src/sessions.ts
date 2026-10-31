@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { Column, ElementId } from "./actions";
 import { Event } from "./events";
 
 export const CreateSessionRequest = z.object({
@@ -65,3 +66,17 @@ export interface SessionHistory {
   listSessions(query: ListSessionsQuery): Promise<SessionSummary[]>;
   getSessionSummary(session_id: string): Promise<SessionSummary | null>;
 }
+
+/**
+ * POST /api/sessions/:id/board — the student deletes or moves a board element (plan F, D79).
+ * `edit_id` is a client uuid (dedupe). A move is absolute: the element goes to `column`, right after
+ * `after_id` (null = top of the column), so a retry gives the same board.
+ */
+export const BoardEditRequest = z.discriminatedUnion("op", [
+  z.object({ op: z.literal("remove"), edit_id: z.string().min(1).max(64), element_id: ElementId }),
+  z.object({ op: z.literal("move"), edit_id: z.string().min(1).max(64), element_id: ElementId, column: Column, after_id: ElementId.nullable() }),
+]);
+export type BoardEditRequest = z.infer<typeof BoardEditRequest>;
+
+export const BoardEditResponse = z.object({ ok: z.literal(true), result: z.enum(["applied", "already_applied", "already_removed"]) });
+export type BoardEditResponse = z.infer<typeof BoardEditResponse>;
