@@ -3,10 +3,11 @@
 // Owner: Person 2. Start screen (docs/18 §3.1): "Quem é você?" → "O que vamos estudar?" → optional topic → Começar.
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import type { MaterialSummary, StudentSummary } from "@mento/board";
+import type { SubjectSummary } from "@mento/contracts";
+import type { StudentSummary } from "@mento/board";
 import { Button, SimulatedDataBadge, cx } from "@mento/ui";
 import { MOCK_API, createSession } from "@/lib/api";
-import { MaterialGrid, SkeletonGrid, StudentGrid } from "./pickers";
+import { SkeletonGrid, StudentGrid, SubjectGrid } from "./pickers";
 import { useStartData } from "./useStartData";
 import styles from "./start.module.css";
 
@@ -63,7 +64,7 @@ export function StartScreen({ endedByIdle = false }: { endedByIdle?: boolean }) 
   const [showIdleNotice, setShowIdleNotice] = useState(endedByIdle);
   const { data, retry } = useStartData();
   const [student, setStudent] = useState<StudentSummary | null>(null);
-  const [materialId, setMaterialId] = useState<string | null>(null);
+  const [subjectId, setSubjectId] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState(false);
@@ -83,13 +84,14 @@ export function StartScreen({ endedByIdle = false }: { endedByIdle?: boolean }) 
     router.replace("/", { scroll: false });
   };
 
-  const materials = data.status === "ready" ? data.materials : [];
+  const subjects = data.status === "ready" ? data.subjects : [];
+  const simulated = MOCK_API || (data.status === "ready" && data.simulatedStudents);
 
-  // One ready material (the demo case): preselect it so the student only has to press Começar.
+  // One subject (the demo case): preselect it so the student only has to press Começar.
   useEffect(() => {
-    const only = materials.length === 1 ? materials[0] : undefined;
-    if (student && !materialId && only) setMaterialId(only.id);
-  }, [student, materialId, materials]);
+    const only = subjects.length === 1 ? subjects[0] : undefined;
+    if (student && !subjectId && only) setSubjectId(only.id);
+  }, [student, subjectId, subjects]);
 
   // Move focus with the step change so keyboard and screen-reader users land on the new heading.
   useEffect(() => {
@@ -108,21 +110,21 @@ export function StartScreen({ endedByIdle = false }: { endedByIdle?: boolean }) 
     setStartError(false);
   };
 
-  const pickMaterial = (m: MaterialSummary) => {
-    setMaterialId(m.id);
+  const pickSubject = (m: SubjectSummary) => {
+    setSubjectId(m.id);
     setStartError(false);
   };
 
   const start = async (e: FormEvent) => {
     e.preventDefault();
-    if (!student || !materialId || starting) return;
+    if (!student || !subjectId || starting) return;
     const cleanTopic = topic.trim();
     setStarting(true);
     setStartError(false);
     try {
       const { id } = await createSession({
         student_id: student.id,
-        material_id: materialId,
+        subject_id: subjectId,
         topic: cleanTopic || undefined,
         modality: "text",
       });
@@ -147,7 +149,7 @@ export function StartScreen({ endedByIdle = false }: { endedByIdle?: boolean }) 
               <h1 id="who-heading" ref={whoRef} tabIndex={-1} className="text-[clamp(1.75rem,1.2rem+1.6vw,2.5rem)] leading-tight font-extrabold text-balance outline-none">
                 Quem é você?
               </h1>
-              {MOCK_API && <SimulatedDataBadge />}
+              {simulated && <SimulatedDataBadge />}
             </div>
             <p className="text-lg text-(--ink-soft)">Escolha seu nome para começar.</p>
           </div>
@@ -194,7 +196,7 @@ export function StartScreen({ endedByIdle = false }: { endedByIdle?: boolean }) 
               >
                 Oi, {firstName}!
               </h1>
-              <p className="text-lg text-(--ink-soft)">Vamos estudar juntos. Escolha o material e, se quiser, um tema.</p>
+              <p className="text-lg text-(--ink-soft)">Vamos estudar juntos. Escolha a matéria e, se quiser, um tema.</p>
               <button
                 type="button"
                 onClick={changeStudent}
@@ -208,15 +210,15 @@ export function StartScreen({ endedByIdle = false }: { endedByIdle?: boolean }) 
 
           <section aria-labelledby="what-heading" className="flex flex-col gap-5">
             <h2 id="what-heading" className="text-2xl font-extrabold">O que vamos estudar?</h2>
-            {data.status === "ready" && materials.length === 0 ? (
+            {data.status === "ready" && subjects.length === 0 ? (
               <Notice>Nenhum material pronto ainda. Peça ao professor para enviar um.</Notice>
             ) : (
-              <MaterialGrid materials={materials} selectedId={materialId} onPick={pickMaterial} />
+              <SubjectGrid subjects={subjects} selectedId={subjectId} onPick={pickSubject} />
             )}
           </section>
 
-          {materials.length > 0 && (
-            <div className={cx("flex flex-col gap-6", styles.fadeUp)} style={{ "--i": materials.length + 1 } as CSSProperties}>
+          {subjects.length > 0 && (
+            <div className={cx("flex flex-col gap-6", styles.fadeUp)} style={{ "--i": subjects.length + 1 } as CSSProperties}>
               <div className="flex max-w-xl flex-col gap-2">
                 <label htmlFor="topic" className="text-base font-bold">
                   Tema <span className="font-semibold text-(--ink-soft)">(opcional)</span>
@@ -234,10 +236,10 @@ export function StartScreen({ endedByIdle = false }: { endedByIdle?: boolean }) 
               </div>
 
               <div className="flex flex-col items-start gap-3">
-                <Button type="submit" size="lg" loading={starting} disabled={!materialId} className="min-w-44">
+                <Button type="submit" size="lg" loading={starting} disabled={!subjectId} className="min-w-44">
                   {starting ? "Começando…" : "Começar"}
                 </Button>
-                {!materialId && <p className="text-sm text-(--ink-soft)">Escolha um material para começar.</p>}
+                {!subjectId && <p className="text-sm text-(--ink-soft)">Escolha uma matéria para começar.</p>}
                 {startError && (
                   <p role="alert" className="text-sm font-semibold text-(--accent-ink)">
                     Não foi possível começar a conversa. Tente de novo em instantes.

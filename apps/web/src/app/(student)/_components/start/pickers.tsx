@@ -1,8 +1,9 @@
 "use client";
 
-// Owner: Person 2. Student and material cards for the start screen, plus their loading skeleton.
+// Owner: Person 2. Student and subject cards for the start screen, plus their loading skeleton.
 import type { CSSProperties } from "react";
-import type { MaterialSummary, StudentSummary } from "@mento/board";
+import type { SubjectSummary } from "@mento/contracts";
+import type { StudentSummary } from "@mento/board";
 import { Badge, Card, cx } from "@mento/ui";
 import styles from "./start.module.css";
 
@@ -54,18 +55,18 @@ function CheckIcon() {
   );
 }
 
-export function MaterialGrid({
-  materials,
+export function SubjectGrid({
+  subjects,
   selectedId,
   onPick,
 }: {
-  materials: MaterialSummary[];
+  subjects: SubjectSummary[];
   selectedId: string | null;
-  onPick: (m: MaterialSummary) => void;
+  onPick: (s: SubjectSummary) => void;
 }) {
   return (
-    <ul className="grid gap-4 md:grid-cols-2" aria-label="Materiais">
-      {materials.map((m, i) => {
+    <ul className="grid gap-4 md:grid-cols-2" aria-label="Matérias">
+      {subjects.map((m, i) => {
         const selected = m.id === selectedId;
         return (
           <li key={m.id} className={styles.fadeUp} style={stagger(i + 1)}>
@@ -80,10 +81,10 @@ export function MaterialGrid({
                 {selected ? <CheckIcon /> : <BookIcon />}
               </span>
               <span className="flex min-w-0 flex-col gap-2">
-                <span className="text-lg leading-snug font-bold text-balance">{m.title}</span>
+                <span className="text-lg leading-snug font-bold text-balance">{m.name}</span>
                 <span className="flex flex-wrap items-center gap-2 text-sm text-(--ink-soft)">
-                  <Badge tone="info">{m.subject}</Badge>
-                  <span className="tabular-nums">{m.pages === 1 ? "1 página" : `${m.pages} páginas`}</span>
+                  <Badge tone="info">{m.material_count === 1 ? "1 livro" : `${m.material_count} livros`}</Badge>
+                  {m.materials.length > 0 && <span>{m.materials.map((x) => x.title).join(" · ")}</span>}
                 </span>
               </span>
             </Card>

@@ -1,29 +1,25 @@
 "use client";
 
-// Owner: Person 2. "Terminar conversa" with an inline confirm, plus the idle timeout and tab-close beacon.
+// Owner: Person 2. "Terminar conversa" with an inline confirm, plus the tab-close end (no idle timer, D63).
 // Mounted on the session page by a later track; demo at /dev/session-controls.
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import type { SessionEndReason } from "@mento/board";
+import type { SessionEndReason } from "@mento/contracts";
 import { Button } from "@mento/ui";
 import { useEndSession, type EndSessionFn } from "./useEndSession";
 
 export type EndSessionControlsProps = {
   sessionId: string;
-  /** After a manual or idle end. Default: back to the start screen (with a notice after an idle end). */
+  /** After an explicit end. Default: back to the start screen. */
   onEnded?: (reason: SessionEndReason) => void;
-  /** Inactivity window before the session ends on its own. Default: 5 minutes. */
-  idleMs?: number;
-  /** True while the tutor streams or speaks; the idle timer does not run meanwhile. */
-  paused?: boolean;
   /** Override for the dev demo page; defaults to the API client's endSession. */
   end?: EndSessionFn;
 };
 
-export function EndSessionControls({ sessionId, onEnded, idleMs = 300_000, paused = false, end }: EndSessionControlsProps) {
+export function EndSessionControls({ sessionId, onEnded, end }: EndSessionControlsProps) {
   const router = useRouter();
-  const goHome = (reason: SessionEndReason) => router.push(reason === "idle_timeout" ? "/?encerrada=inatividade" : "/");
-  const { endNow } = useEndSession({ sessionId, idleMs, paused, end, onEnded: onEnded ?? goHome });
+  const goHome = () => router.push("/");
+  const { endNow } = useEndSession({ sessionId, end, onEnded: onEnded ?? goHome });
   const [confirming, setConfirming] = useState(false);
   const [ending, setEnding] = useState(false);
   const [error, setError] = useState(false);

@@ -1,18 +1,35 @@
-// Typed client for the Fastify API (docs/16 §11). Every response is parsed with the protocol schemas.
-// Mock mode: set NEXT_PUBLIC_MOCK_API=1 in the root .env to run the whiteboard without the API;
-// list/create calls then return MOCK_* data and turns replay the fixtures in packages/board/fixtures.
-import { PingResponse } from "@mento/contracts";
+// Typed client for the Fastify API (docs/frontend-integration.md). Every response is parsed with @mento/contracts.
+// Modes (root .env):
+// - default: everything from the API at NEXT_PUBLIC_API_URL (default http://localhost:4000).
+// - NEXT_PUBLIC_MOCK_API=1: no server at all. Subjects and students are the mocks in @mento/board, sessions live in
+//   memory, and turns replay the repo's fixtures/turns locally.
+// - NEXT_PUBLIC_TURN_SOURCE=fixture: real sessions and history, but turns come from GET /api/dev/fixture-turn (no
+//   LLM key needed). Fixture turns are not stored on the server.
 import {
   CreateSessionRequest,
   CreateSessionResponse,
   EndSessionRequest,
-  MOCK_MATERIALS,
-  MOCK_STUDENTS,
-  MaterialSummary,
+  ErrorResponse,
+  type Event,
+  ListSessionsResponse,
+  ListSubjectsResponse,
+  PingResponse,
+  SessionDetailResponse,
   type SessionEndReason,
+  type SessionSummary,
   StreamMessage,
-  StudentSummary,
+  type SubjectSummary,
   TurnRequest,
+  VoiceTokenResponse,
+} from "@mento/contracts";
+import {
+  DEMO_STUDENT_ID,
+  FIXTURE_TURNS,
+  type FixtureName,
+  MOCK_STUDENTS,
+  MOCK_SUBJECTS,
+  StudentSummary,
+  namespaceFixtureMessage,
   pickFixture,
   replayFixture,
 } from "@mento/board";
@@ -20,171 +37,345 @@ import { z } from "zod";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 export const MOCK_API = process.env.NEXT_PUBLIC_MOCK_API === "1";
+export const TURN_SOURCE_FIXTURE = process.env.NEXT_PUBLIC_TURN_SOURCE === "fixture";
 
-export async function apiGet<T>(path: string, parse: (data: unknown) => T): Promise<T> {
-  const res = await fetch(`${API_URL}/api${path}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`API ${res.status} on ${path}`);
+/** An HTTP error from the API: `error` is the stable code (`tutor_unavailable`, `session_not_found`…). */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly error: string,
+    message?: string,
+  ) {
+    super(message ?? `API ${status} ${error}`);
+    this.name = "ApiError";
+  }
+}
+
+/** Absolute URL for a path the API hands out (`/api/gen/…`, `/api/tts/…`); absolute URLs are returned as is. */
+export const apiUrl = (path: string) => new URL(path, API_URL).href;
+
+async function toApiError(res: Response): Promise<ApiError> {
+  let body: unknown = null;
+  try {
+    body = await res.json();
+  } catch {
+    // Not JSON (proxy page, empty body): keep the status only.
+  }
+  const parsed = ErrorResponse.safeParse(body);
+  return parsed.success ? new ApiError(res.status, parsed.data.error, parsed.data.message) : new ApiError(res.status, `http_${res.status}`);
+}
+
+async function request<T>(path: string, init: RequestInit, parse: (data: unknown) => T): Promise<T> {
+  const res = await fetch(`${API_URL}/api${path}`, { cache: "no-store", ...init });
+  if (!res.ok) throw await toApiError(res);
   return parse(await res.json());
 }
 
-async function apiPost<T>(path: string, body: unknown, parse: (data: unknown) => T): Promise<T> {
-  const res = await fetch(`${API_URL}/api${path}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`API ${res.status} on ${path}`);
-  return parse(await res.json());
+const get = <T>(path: string, parse: (data: unknown) => T) => request(path, {}, parse);
+const post = <T>(path: string, body: unknown, parse: (data: unknown) => T) =>
+  request(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body ?? {}) }, parse);
+
+const sessionPath = (id: string) => `/sessions/${encodeURIComponent(id)}`;
+
+export const ping = () => get("/ping", (d) => PingResponse.parse(d));
+
+// ---- Start screen ----
+
+export async function listSubjects(): Promise<SubjectSummary[]> {
+  if (MOCK_API) {
+    await delay(MOCK_LATENCY_MS);
+    return MOCK_SUBJECTS;
+  }
+  return get("/subjects", (d) => ListSubjectsResponse.parse(d).subjects);
 }
 
-export const ping = () => apiGet("/ping", (d) => PingResponse.parse(d));
-
-// ---- Start screen and session lifecycle ----
-
-const MOCK_LATENCY_MS = 300;
-
-export async function listStudents(): Promise<StudentSummary[]> {
+/** Students for the picker, or null when the API has no students route yet (404): the caller falls back to mocks. */
+export async function listStudents(): Promise<StudentSummary[] | null> {
   if (MOCK_API) {
     await delay(MOCK_LATENCY_MS);
     return MOCK_STUDENTS;
   }
-  return apiGet("/students", (d) => z.array(StudentSummary).parse(d));
-}
-
-export async function listMaterials(opts: { ready_only?: boolean } = {}): Promise<MaterialSummary[]> {
-  if (MOCK_API) {
-    await delay(MOCK_LATENCY_MS);
-    return opts.ready_only ? MOCK_MATERIALS.filter((m) => m.status === "ready") : MOCK_MATERIALS;
+  try {
+    return await get("/students", (d) => z.array(StudentSummary).parse(d));
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
   }
-  const query = opts.ready_only ? "?ready_only=true" : "";
-  return apiGet(`/materials${query}`, (d) => z.array(MaterialSummary).parse(d));
 }
 
-/** Mock session id → number of turns already replayed (picks the next fixture). */
-const mockTurnCounts = new Map<string, number>();
+// ---- Sessions ----
 
 export async function createSession(req: CreateSessionRequest): Promise<CreateSessionResponse> {
   const body = CreateSessionRequest.parse(req);
   if (MOCK_API) {
     await delay(MOCK_LATENCY_MS);
-    const id = mockObjectId();
-    mockTurnCounts.set(id, 0);
-    return { id };
+    return mock.create(body);
   }
-  return apiPost("/sessions", body, (d) => CreateSessionResponse.parse(d));
+  return post("/sessions", body, (d) => CreateSessionResponse.parse(d));
 }
 
-/** Ends a conversation. `beacon: true` uses navigator.sendBeacon (tab close; fire-and-forget). */
-export async function endSession(
-  session_id: string,
-  reason: SessionEndReason,
-  opts: { beacon?: boolean } = {},
-): Promise<void> {
-  const body = EndSessionRequest.parse({ reason });
+/** History, newest activity first. `limit` defaults to 100 (the API's maximum) so counts cover the whole list. */
+export async function listSessions(query: { student_id?: string; subject_id?: string; limit?: number } = {}): Promise<SessionSummary[]> {
+  const { student_id, subject_id, limit = 100 } = query;
   if (MOCK_API) {
-    mockTurnCounts.delete(session_id);
+    await delay(MOCK_LATENCY_MS);
+    return mock.list({ student_id, subject_id, limit });
+  }
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (student_id) params.set("student_id", student_id);
+  if (subject_id) params.set("subject_id", subject_id);
+  return get(`/sessions?${params}`, (d) => ListSessionsResponse.parse(d).sessions);
+}
+
+/** A session with every stored event (rebuild it with replayEvents from @mento/board). */
+export async function getSession(id: string): Promise<SessionDetailResponse> {
+  if (MOCK_API) {
+    await delay(MOCK_LATENCY_MS);
+    return mock.detail(id);
+  }
+  return get(sessionPath(id), (d) => SessionDetailResponse.parse(d));
+}
+
+/**
+ * Ends a conversation. `keepalive: true` is for tab close: the request outlives the page and is best effort
+ * (never throws). A cross-origin sendBeacon with a JSON body may be refused, so this uses fetch keepalive.
+ */
+export async function endSession(id: string, reason: SessionEndReason, opts: { keepalive?: boolean } = {}): Promise<void> {
+  const body = JSON.stringify(EndSessionRequest.parse({ reason }));
+  if (MOCK_API) {
+    mock.end(id, reason);
     return;
   }
-  const url = `${API_URL}/api/sessions/${encodeURIComponent(session_id)}/end`;
-  if (opts.beacon) {
-    navigator.sendBeacon(url, new Blob([JSON.stringify(body)], { type: "application/json" }));
+  const url = `${API_URL}/api${sessionPath(id)}/end`;
+  if (opts.keepalive) {
+    await fetch(url, { method: "POST", keepalive: true, headers: { "content-type": "application/json" }, body }).catch(() => undefined);
     return;
   }
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`API ${res.status} on /sessions/${session_id}/end`);
+  const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body });
+  if (!res.ok) throw await toApiError(res);
 }
 
 // ---- Turns ----
 
+type OnMessage = (message: StreamMessage) => void;
+
 /**
- * Streams one tutor turn (`event: <type>` / `data: <StreamMessage>`); every message is validated with StreamMessage.
- * Abort (both modes): when `signal` aborts, the generator stops yielding and returns cleanly; it never
- * throws an AbortError. Other failures (HTTP status, invalid message) throw.
+ * Streams one tutor turn, calling `onMessage` with each validated StreamMessage; resolves when the stream ends.
+ * Errors before the stream (404, 503 `tutor_unavailable`, 400) reject with ApiError. When `signal` aborts it
+ * resolves quietly (never an AbortError). With NEXT_PUBLIC_TURN_SOURCE=fixture the turn is a fixture replay.
  */
-export async function* streamTurn(
-  session_id: string,
-  req: TurnRequest,
-  opts: { signal?: AbortSignal } = {},
-): AsyncGenerator<StreamMessage> {
+export async function streamTurn(id: string, req: TurnRequest, onMessage: OnMessage, opts: { signal?: AbortSignal } = {}): Promise<void> {
   const body = TurnRequest.parse(req);
   const { signal } = opts;
-  if (MOCK_API) {
-    yield* mockTurn(session_id, body, signal);
-    return;
+  if (MOCK_API) return mock.turn(id, body, onMessage, signal);
+  if (TURN_SOURCE_FIXTURE) {
+    const { name, round } = pickFixture(nextFixtureIndex(id));
+    return streamFixtureTurn(name, onMessage, { signal, round });
   }
   try {
-    const res = await fetch(`${API_URL}/api/sessions/${encodeURIComponent(session_id)}/turn`, {
+    const res = await fetch(`${API_URL}/api${sessionPath(id)}/turn`, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "text/event-stream" },
       body: JSON.stringify(body),
       signal,
     });
-    if (!res.ok) throw new Error(`API ${res.status} on /sessions/${session_id}/turn`);
-    for await (const { data } of readSse(res)) {
-      if (signal?.aborted) return;
-      yield StreamMessage.parse(data);
-    }
+    if (!res.ok) throw await toApiError(res);
+    await readSse(res, (data) => onMessage(StreamMessage.parse(data)));
   } catch (err) {
     if (signal?.aborted) return;
     throw err;
   }
 }
 
-/** Replays the fixture `pickFixture` chooses for this session's turn (timing: each message's `at_ms`). */
-async function* mockTurn(session_id: string, req: TurnRequest, signal?: AbortSignal): AsyncGenerator<StreamMessage> {
-  const turnIndex = mockTurnCounts.get(session_id) ?? 0;
-  mockTurnCounts.set(session_id, turnIndex + 1);
-  yield* replayFixture(pickFixture(req, turnIndex), { signal });
+/**
+ * Replays a recorded turn through the API (GET /api/dev/fixture-turn), same SSE format as a real turn.
+ * `speed` multiplies the recorded delays (0 = instant). Fixtures reuse ids, so `round` > 0 renames them
+ * (namespaceFixtureMessage) to keep repeated replays from colliding on the board.
+ */
+export async function streamFixtureTurn(
+  name: FixtureName,
+  onMessage: OnMessage,
+  opts: { signal?: AbortSignal; speed?: number; round?: number } = {},
+): Promise<void> {
+  const { signal, speed = 1, round = 0 } = opts;
+  try {
+    const params = new URLSearchParams({ name, speed: String(speed) });
+    const res = await fetch(`${API_URL}/api/dev/fixture-turn?${params}`, { headers: { accept: "text/event-stream" }, signal });
+    if (!res.ok) throw await toApiError(res);
+    await readSse(res, (data) => onMessage(namespaceFixtureMessage(StreamMessage.parse(data), round)));
+  } catch (err) {
+    if (signal?.aborted) return;
+    throw err;
+  }
 }
 
-/** Resolves true after `ms`, or false as soon as `signal` aborts. */
-function delay(ms: number, signal?: AbortSignal): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (signal?.aborted) return resolve(false);
-    const onAbort = () => {
-      clearTimeout(timer);
-      resolve(false);
-    };
-    const timer = setTimeout(() => {
-      signal?.removeEventListener("abort", onAbort);
-      resolve(true);
-    }, ms);
-    signal?.addEventListener("abort", onAbort, { once: true });
-  });
+/** Session id → turns already sent (picks the next fixture in fixture and mock modes). */
+const fixtureTurnCounts = new Map<string, number>();
+function nextFixtureIndex(id: string): number {
+  const n = fixtureTurnCounts.get(id) ?? 0;
+  fixtureTurnCounts.set(id, n + 1);
+  return n;
 }
 
-function mockObjectId(): string {
-  return Array.from({ length: 24 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+// ---- Voice ----
+
+/** Deepgram token for useStt (@mento/voice/client). 503 `voice_unavailable` without a key: fall back to text. */
+export async function getVoiceToken(): Promise<VoiceTokenResponse> {
+  if (MOCK_API) throw new ApiError(503, "voice_unavailable", "Voz indisponível no modo demonstração");
+  return post("/voice/token", undefined, (d) => VoiceTokenResponse.parse(d));
 }
+
+// ---- SSE ----
 
 /**
- * Minimal SSE reader over fetch (POST-capable, unlike EventSource).
- * TODO (Person 2): reconnect and the action queue.
+ * Minimal SSE reader over fetch (POST-capable, unlike EventSource): calls `onData` with each event's parsed
+ * `data`. Comment lines (": keep-alive") and events without data are ignored; a block left without the final
+ * blank line is still delivered when the stream closes.
  */
-export async function* readSse(res: Response): AsyncGenerator<{ event: string; data: unknown }> {
+export async function readSse(res: Response, onData: (data: unknown) => void): Promise<void> {
   const reader = res.body?.getReader();
   if (!reader) return;
   const decoder = new TextDecoder();
   let buffer = "";
+  const deliver = (block: string) => {
+    const data = block
+      .split("\n")
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice(line.startsWith("data: ") ? 6 : 5))
+      .join("\n");
+    if (data) onData(JSON.parse(data));
+  };
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
-    buffer += decoder.decode(value, { stream: true });
+    buffer += decoder.decode(value, { stream: true }).replace(/\r\n?/g, "\n");
     let idx: number;
     while ((idx = buffer.indexOf("\n\n")) >= 0) {
-      const block = buffer.slice(0, idx);
+      deliver(buffer.slice(0, idx));
       buffer = buffer.slice(idx + 2);
-      let event = "message";
-      let data = "";
-      for (const line of block.split("\n")) {
-        if (line.startsWith("event: ")) event = line.slice(7);
-        else if (line.startsWith("data: ")) data += line.slice(6);
-      }
-      if (data) yield { event, data: JSON.parse(data) };
     }
   }
+  buffer += decoder.decode();
+  if (buffer.trim()) deliver(buffer);
+}
+
+// ---- Mock mode (NEXT_PUBLIC_MOCK_API=1): sessions in memory, turns from local fixtures ----
+
+const MOCK_LATENCY_MS = 300;
+
+interface MockSession {
+  summary: SessionSummary;
+  events: Event[];
+}
+
+const mock = (() => {
+  const sessions = new Map<string, MockSession>();
+  let seq = 0;
+
+  const find = (id: string) => {
+    const s = sessions.get(id);
+    if (!s) throw new ApiError(404, "session_not_found");
+    return s;
+  };
+  const record = (s: MockSession, type: Event["type"], payload: unknown) => {
+    const ts = new Date().toISOString();
+    s.events.push({ id: `mock_ev_${++seq}`, session_id: s.summary.id, ts, type, payload });
+    s.summary.last_activity_at = ts;
+  };
+  /** The turn id the fixture announces (script_done), renamed for its round. */
+  const fixtureTurnId = (name: FixtureName, round: number) => {
+    const done = FIXTURE_TURNS[name].messages.find((m) => m.message.type === "script_done")?.message;
+    const renamed = done && namespaceFixtureMessage(done, round);
+    return renamed?.type === "script_done" ? renamed.turn_id : `mock_turn_${round}`;
+  };
+
+  const api = {
+    create(req: CreateSessionRequest, id = mockObjectId()): CreateSessionResponse {
+      const subject = MOCK_SUBJECTS.find((x) => x.id === req.subject_id) ?? null;
+      if (req.subject_id && !subject) throw new ApiError(404, "subject_not_found");
+      const now = new Date().toISOString();
+      const s: MockSession = {
+        summary: {
+          id,
+          student_id: req.student_id,
+          modality: req.modality,
+          subject: subject && { id: subject.id, name: subject.name, key: subject.key },
+          title: req.topic ? req.topic.slice(0, 80) : null,
+          started_at: now,
+          last_activity_at: now,
+          ended_at: null,
+          end_reason: null,
+          turn_count: 0,
+        },
+        events: [],
+      };
+      sessions.set(id, s);
+      record(s, "session_started", { student_id: req.student_id, modality: req.modality, subject_id: subject?.id ?? null, topic: req.topic });
+      return { id, subject_id: subject?.id ?? null };
+    },
+
+    list(q: { student_id?: string; subject_id?: string; limit: number }): SessionSummary[] {
+      return [...sessions.values()]
+        .map((s) => s.summary)
+        .filter((s) => (!q.student_id || s.student_id === q.student_id) && (!q.subject_id || s.subject?.id === q.subject_id))
+        .sort((a, b) => b.last_activity_at.localeCompare(a.last_activity_at))
+        .slice(0, q.limit)
+        .map((s) => ({ ...s }));
+    },
+
+    detail(id: string): SessionDetailResponse {
+      const s = find(id);
+      return { session: { ...s.summary }, events: [...s.events] };
+    },
+
+    end(id: string, reason: SessionEndReason) {
+      const s = sessions.get(id);
+      if (!s || s.summary.ended_at) return;
+      record(s, "session_ended", { reason });
+      s.summary.ended_at = s.summary.last_activity_at;
+      s.summary.end_reason = reason;
+    },
+
+    /** Replays the next fixture and stores the turn's events like the server does (for history and reopen). */
+    async turn(id: string, req: TurnRequest, onMessage: OnMessage, signal?: AbortSignal): Promise<void> {
+      // Memory is lost on a page reload: recreate the session so a reloaded mock lesson still plays.
+      if (!sessions.has(id)) api.create({ student_id: DEMO_STUDENT_ID, modality: req.modality }, id);
+      const s = find(id);
+      for (const a of req.appended) {
+        if (a.name === "user_message") {
+          record(s, "user_message", { kind: a.kind, text: a.text, selected: a.selected });
+          s.summary.title ??= a.text.slice(0, 80);
+        } else record(s, "verification_answered", { verification_id: a.verification_id, element_id: a.element_id, answer: a.answer });
+      }
+      const { name, round } = pickFixture(nextFixtureIndex(id));
+      const turn_id = fixtureTurnId(name, round);
+      for await (const m of replayFixture(name, { signal, round })) {
+        if (m.type === "action") {
+          const { action } = m;
+          record(s, "tutor_action", { turn_id, action_id: action.id, order: m.order, name: action.name, args: action.args });
+          if (action.name === "ask_verification") {
+            const v = action.args;
+            record(s, "verification_asked", {
+              verification_id: v.verification_id,
+              element_id: v.id,
+              concept: v.concept,
+              concept_key: v.concept_key,
+              question: v.question,
+              kind: v.kind,
+            });
+          }
+        } else if (m.type === "turn_done") s.summary.turn_count++;
+        onMessage(m);
+      }
+    },
+  };
+  return api;
+})();
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function mockObjectId(): string {
+  return Array.from({ length: 24 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
 }

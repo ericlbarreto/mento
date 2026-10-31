@@ -28,7 +28,9 @@ export function BoardPlayground() {
   const fixture = useRef<FixtureName>("rome-intro");
   // Stable: reads the fixture chosen by the last click.
   const [replayStream] = useState(() => {
-    const stream: StreamTurn = (_sessionId, _req, opts) => replayFixture(fixture.current, { signal: opts?.signal });
+    const stream: StreamTurn = async (_sessionId, _req, onMessage, opts) => {
+      for await (const m of replayFixture(fixture.current, { signal: opts?.signal })) onMessage(m);
+    };
     return stream;
   });
   const player = useTurnPlayer({ sessionId: "dev", streamTurn: replayStream });

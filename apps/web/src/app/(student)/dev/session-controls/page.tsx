@@ -1,16 +1,15 @@
 "use client";
 
-// Owner: Person 2. Dev-only demo of EndSessionControls: a fake session, a 10 s idle window and a log of
-// every endSession call. The tab-close beacon is kept in sessionStorage so it shows up after a reload.
+// Owner: Person 2. Dev-only demo of EndSessionControls: a fake session and a log of every endSession call.
+// The tab-close request (hidden tab) is kept in sessionStorage so it shows up after coming back or reloading.
 import { useEffect, useState } from "react";
-import type { SessionEndReason } from "@mento/board";
+import type { SessionEndReason } from "@mento/contracts";
 import { Badge, Button, Card } from "@mento/ui";
 import { MOCK_API, endSession } from "@/lib/api";
 import { EndSessionControls } from "../../session/_components/EndSessionControls";
 import type { EndSessionFn } from "../../session/_components/useEndSession";
 
 const FAKE_SESSION_ID = "665f1a2b3c4d5e6f7a8b9e99";
-const IDLE_MS = 10_000;
 const BEACON_KEY = "mento-dev-last-beacon";
 
 type LogEntry = { at: string; text: string };
@@ -20,13 +19,12 @@ const now = () => new Date().toLocaleTimeString("pt-BR");
 export default function SessionControlsDemo() {
   const [log, setLog] = useState<LogEntry[]>([]);
   const [mountKey, setMountKey] = useState(0);
-  const [paused, setPaused] = useState(false);
   const add = (text: string) => setLog((l) => [{ at: now(), text }, ...l]);
 
   useEffect(() => {
     try {
       const last = sessionStorage.getItem(BEACON_KEY);
-      if (last) setLog([{ at: last, text: "Antes de recarregar: endSession(…, \"beacon\", { beacon: true })" }]);
+      if (last) setLog([{ at: last, text: "Aba escondida: endSession(…, \"beacon\", { keepalive: true })" }]);
       sessionStorage.removeItem(BEACON_KEY);
     } catch {
       // Storage blocked: the beacon log is a convenience only.
@@ -35,14 +33,14 @@ export default function SessionControlsDemo() {
 
   // Logs each call; only reaches the real client in mock mode (the fake id does not exist on a real API).
   const end: EndSessionFn = async (id, reason, opts) => {
-    if (opts?.beacon) {
+    if (opts?.keepalive) {
       try {
         sessionStorage.setItem(BEACON_KEY, now());
       } catch {
         // ignore
       }
     }
-    add(`endSession("${id.slice(-4)}", "${reason}"${opts?.beacon ? ", { beacon: true }" : ""})`);
+    add(`endSession("${id.slice(-4)}", "${reason}"${opts?.keepalive ? ", { keepalive: true }" : ""})`);
     if (MOCK_API) await endSession(id, reason, opts);
   };
 
@@ -57,20 +55,16 @@ export default function SessionControlsDemo() {
 
       <Card className="flex flex-col gap-4">
         <p className="text-sm text-(--ink-soft)">
-          Sessão fictícia <code className="font-bold text-(--ink)">{FAKE_SESSION_ID}</code>. Sem mexer o mouse ou o teclado por{" "}
-          {IDLE_MS / 1000} s, a conversa termina sozinha (<code>idle_timeout</code>). Fechar ou recarregar a aba envia o{" "}
-          <code>beacon</code>, que aparece no registro depois do recarregamento.
+          Sessão fictícia <code className="font-bold text-(--ink)">{FAKE_SESSION_ID}</code>. Não há encerramento por
+          inatividade no navegador (o servidor encerra após 60 min). Esconder ou fechar a aba envia o <code>beacon</code>{" "}
+          com <code>keepalive</code>, que aparece no registro ao voltar.
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <EndSessionControls key={mountKey} sessionId={FAKE_SESSION_ID} idleMs={IDLE_MS} paused={paused} onEnded={onEnded} end={end} />
+          <EndSessionControls key={mountKey} sessionId={FAKE_SESSION_ID} onEnded={onEnded} end={end} />
           <Button variant="ghost" size="sm" onClick={() => setMountKey((k) => k + 1)}>
             Reiniciar sessão fictícia
           </Button>
         </div>
-        <label className="flex items-center gap-2 text-sm font-semibold">
-          <input type="checkbox" checked={paused} onChange={(e) => setPaused(e.target.checked)} className="size-4 accent-(--mento-blue)" />
-          Tutor falando (pausa a contagem de inatividade)
-        </label>
       </Card>
 
       <section aria-labelledby="log-heading" className="flex flex-col gap-3">
