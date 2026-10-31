@@ -42,13 +42,14 @@ One set of tokens and components used by both interfaces. Frozen at kickoff, add
 
 ## 3. Student interface
 
-### 3.1 Start screen (simple: name → material → topic)
+### 3.1 Start screen (D47: pre-set student → subject card or Mento button)
 
-1. **"Quem é você?"**: the student picks their name from the teacher's list (no password in the prototype).
-2. **"O que vamos estudar?"**: a card per **material** (title, subject, pages; only `ready` materials) and an optional **topic** field ("Ex.: República e Império").
-3. **Começar**.
+1. The student is **pre-set** (one demo student); the header greets them ("Oi, Maya!").
+2. **"O que vamos estudar?"**: one card per **subject** (História, Matemática, …) with the **count of `ready` materials** ("3 materiais"). Clicking opens the whiteboard grounded in that subject's materials.
+3. Below the cards, the **Mento button** (mascot/symbol): opens a **free session with no material**.
+4. No topic field: the whiteboard opens **in voice** and the tutor asks what to study.
 
-No subjects or lessons: the teacher's materials are the knowledge base. Persona choice is optional (one default for the demo).
+No lessons: the teacher's materials, grouped by subject, are the knowledge base. Persona choice is optional (one default for the demo).
 
 ### 3.2 Tutor session layout
 
@@ -71,7 +72,7 @@ No subjects or lessons: the teacher's materials are the knowledge base. Persona 
 - Left: pause, volume, captions toggle. Right: keyboard toggle (opens a text input above the orb) and mic button.
 - Captions sit above the orb, **word-highlighted** when the TTS provides word timestamps (Studdy does this).
 - Source chips appear under the captions and on board elements; **click opens the PDF drawer** at the page.
-- "Material" button (top right) opens the drawer with the chosen material (PDF viewer).
+- "Material" button (top right) opens the drawer with the subject's materials (list, then PDF viewer); hidden in a free session.
 
 ### 3.3 Orb states
 

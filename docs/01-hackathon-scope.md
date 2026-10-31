@@ -24,12 +24,12 @@
 
 1. **AI whiteboard that writes and draws live:** text, labels, arrows, highlights, timeline and illustrations (e.g., the Colosseum), revealed step by step.
 2. **Two-way conversation, in text**, with **click-and-ask**: the student selects a board object and asks about it.
-3. **Layered prompt:** base + **subject profile** (from the material's subject) + **course context** = **class context** (grade level and characteristics) + excerpts from the chosen material + the student's learner summary + topic. Language register adapted to Ensino Fundamental II (7º–9º ano).
+3. **Layered prompt:** base + **subject profile** (from the material's subject) + **course context** = **class context** (grade level and characteristics) + excerpts from the materials of the chosen subject + the student's learner summary + topic. Language register adapted to Ensino Fundamental II (7º–9º ano).
 4. **Material ingestion** (PDF/book → pages, chunks, search index, outline) **by script at minimum**, with **retrieval scoped to the material the student chose**, citation (`material`, `page`, `quote`) and a warning when an answer is **outside the material**.
 5. **Sources visible to the student:** chips on each tutor message (`Livro, p.12`) that open the PDF at the cited excerpt.
 6. **Recorded evidence:** verification questions judged as correct/incorrect with concept, source and rationale.
 7. **Persisted conversations:** every session and its event log stored **per student** (the data foundation for insights).
-8. **Students and class context exist:** created by seed/database at minimum (UI forms are Should); the student start screen is **pick your name → pick a material (+ optional topic)**.
+8. **Students and class context exist:** created by seed/database at minimum (UI forms are Should); the student start screen (D47) has a **pre-set demo student**, **one card per subject with its count of materials**, and a **Mento button for a free session with no material**; the session opens with the tutor asking (by voice) what to study.
 
 ## Should-have (in priority order; starts only when Must is stable)
 
@@ -67,12 +67,12 @@ Authentication and multi-teacher support, multiple classes (turmas) and per-clas
 
 ### Cut order if time runs short (first to cut → last)
 
-1. Voice. 2. Materials upload UI (use the ingestion script). 3. Class context form (use the seeded value). 4. Create-student form (use seed/DB). 5. Evolution chart in the student detail (keep the list of gaps and suggestions). **Never cut:** persisted conversations, evidence, the analysis → insights path and the student detail with gaps.
+1. Voice (the session then opens in text: the tutor's greeting appears in the chat and the student types the topic). 2. Materials upload UI (use the ingestion script). 3. Class context form (use the seeded value). 4. Create-student form (use seed/DB). 5. Evolution chart in the student detail (keep the list of gaps and suggestions). **Never cut:** persisted conversations, evidence, the analysis → insights path and the student detail with gaps.
 
 ## Demo script (3 to 4 min) = definition of done
 
 0. *Setup (pre-done, shown briefly):* the teacher's **Materials** tab has the history book; the **class context** says "8º ano"; students exist.
-1. Student picks their name and the book; types a topic ("República e Império").
+1. The demo student is already set; they click the **História** card ("1 material"); the tutor greets them by voice and asks what to study; the student says "República e Império".
 2. Tutor starts writing within ~3 s, in a register suited to an 8º ano class.
 3. Tutor draws the timeline and the Colosseum while explaining, with source chips.
 4. Student clicks a date and asks "why that date?"; the tutor answers about that element.

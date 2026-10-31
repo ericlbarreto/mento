@@ -77,7 +77,7 @@ After kickoff the contracts are **frozen**. Changes are additive only and need a
 | Must 2 | Chat panel, text input, captions (default text-only `SpeechPlayer`) | 2 h |
 | Must 2 | **Click-and-ask** UI (select element/text → `board_select` event) | 2 h |
 | Must 5 | Source chips + **pdf.js viewer** at page with quote highlight in the text layer | 4 h |
-| Must 8 | Start screen: **pick your name → pick a material (+ optional topic)** → start; session create call | 1.5 h |
+| Must 8 | Start screen (D47): pre-set student, **subject cards with material counts** + **Mento button** (free session) → session create call | 1.5 h |
 | Must 2 | **Orb at bottom center**: the **Mento mascot** (stacked GIFs, opacity toggle; static PNG for reduced motion) + a Canvas/SVG **ring** for states idle/listening/thinking/speaking/waiting (amplitude from `SpeechPlayer`/mic, stub = caption progress); mapping in `19-brand-assets.md` §4 | 2.5 h |
 | Nice 13 | "My progress" (student view) | 2 h |
 | Nice 15 | Resume session from the event log | 1.5 h |
@@ -95,7 +95,7 @@ After kickoff the contracts are **frozen**. Changes are additive only and need a
 | Must 3 | `prompts/base.md`, `prompts/subjects/history.md`, `generic.md`, persona file; **class-context layer** (grade-level register for 7º–9º ano) and **learner summary** (open gaps); iterate on the Rome script | 4 h (continuous) |
 | Must 1–2 | **Turn handler:** assemble prompt (3 layers: base + subject profile + course context = class context + retrieved material pages + learner summary + topic; plus **board snapshot** + recent events), streaming LLM with tools, schema validation, SSE emit, abort handling | 5 h |
 | Must 1 | `draw` artistic pipeline: placeholder → image model → store → `draw_result`; cache by prompt hash; pregeneration script | 3 h |
-| Must 4 | Grounding in the turn: **FTS retrieval scoped to the chosen material** (+ `search_materials`), `sources` on actions, `outside_material`, uses the citation validator from Lane C | 3 h |
+| Must 4 | Grounding in the turn: **FTS retrieval scoped to the materials of the chosen subject** (none in a free session, D47) (+ `search_materials`), `sources` on actions, `outside_material`, uses the citation validator from Lane C | 3 h |
 | Must 6 | `ask_verification` + **judge call** + `record_evidence` through the Repository | 3 h |
 | Should | Structured SVG pipeline (streamed chunks) | 3 h |
 | Should 11 | **Voice (Person 3):** ephemeral token endpoint, Deepgram STT hook, TTS proxy + `SpeechPlayer` implementation with word captions and an **audio level** value for the orb, mic auto-open (`useAudioLevel`) | 6.5 h |
@@ -130,11 +130,11 @@ After kickoff the contracts are **frozen**. Changes are additive only and need a
 | Must 1 Board with live writing/drawing | A (render), B (script, drawing) |
 | Must 2 Two-way text conversation + click-and-ask | A (UI), B (turn loop) |
 | Must 3 Layered prompt (base + subject profile + class context + material excerpts + learner summary) | B |
-| Must 4 Material ingestion, retrieval scoped to the chosen material, citations, outside-material | C (ingestion, validator), B (retrieval in the turn) |
+| Must 4 Material ingestion, retrieval scoped to the chosen subject's materials, citations, outside-material | C (ingestion, validator), B (retrieval in the turn) |
 | Must 5 Source chips + PDF at the excerpt | A |
 | Must 6 Evidence recording | B (judge), C (storage) |
 | Must 7 Conversations and event log persisted per student | C |
-| Must 8 Students + class context exist (seed) and the start screen (name → material → topic) | C (seed), A (screen) |
+| Must 8 Students + class context exist (seed) and the start screen (subject cards + Mento button, D47) | C (seed), A (screen) |
 | Should 9a Students tab (metrics, list, create, detail) | C (APIs, page), optionally A (components) |
 | Should 9b Class context card | C |
 | Should 9c Materials tab (upload, status) | C |

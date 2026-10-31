@@ -108,7 +108,7 @@ All args are validated by the server before streaming (types, ids, allowed colum
 | `remove_element` / `update_element` | `id` (+ `html`) | Change or remove an element |
 | `ask_verification` | `concept`, `question`, `kind` (`explain`, `transfer`, `place_on_timeline`) | Puts a question on the board and **waits** for the student's answer |
 | `record_evidence` | `concept`, `result` (`correct`/`partial`/`incorrect`), `independent`, `hints_used`, `rationale`, `citation?` | **Server-side only** (not rendered): writes an evidence row |
-| `search_materials` | `query` | Main retrieval path for books (FTS over the chosen material); see §6 |
+| `search_materials` | `query` | Main retrieval path for books (FTS over the materials of the chosen subject); see §6 |
 
 `sources` format: `[{ "material_id": 3, "page": 12, "quote": "…exact excerpt…" }]` (the `Citation` shape in `workstreams/contracts-spec.md` §4). Source of truth for citations: `04-knowledge-and-sources.md`.
 
@@ -154,7 +154,7 @@ Handwriting font; pencil icon trailing the text being "written"; yellow blob **m
 ## 6. Grounding and citations (materials)
 
 - **Ingestion** (UI upload in the Materials tab, or `scripts/ingest.ts` as the fallback): PDF → per-page text (text layer first, vision only for pages that need it) → rows in `chunks` with `page` + FTS index + chapter outline; runs as a background job with status (`queued → processing → ready/failed`). Details: `04-knowledge-and-sources.md`.
-- **Context per turn** = base prompt + subject profile (from the chosen material) + **class context** (grade level + description) + **retrieved pages of the chosen material** (FTS top-k + outline chapter; all pages only if the material is small; prompt-cached) + learner summary (open gaps, recent progress) + topic + board snapshot + last N events. Mid-turn lookups use `search_materials`.
+- **Context per turn** = base prompt + subject profile (from the chosen subject; `generic` in a free session) + **class context** (grade level + description) + **retrieved pages from all `ready` materials of the chosen subject** (FTS top-k + outline chapter; all pages only if the materials are small; prompt-cached; none in a free session, D47) + learner summary (open gaps, recent progress) + topic + board snapshot + last N events. Mid-turn lookups use `search_materials`.
 - **Citation chips:** `sources` on `speak`/`write_text` render as chips (`Livro, p.12`). Clicking opens pdf.js at `page` and highlights `quote` by searching the text layer.
 - **Outside the material:** the model sets `outside_material: true`; the UI marks the element/caption visibly.
 - Validate citations server-side: the `quote` must actually occur in that chunk; otherwise drop the chip (avoids fabricated citations).
@@ -213,7 +213,7 @@ Handwriting font; pencil icon trailing the text being "written"; yellow blob **m
 
 The data model is defined in `07-architecture-and-data.md` (9 tables: `class_context`, `materials`, `chunks`, `students`, `sessions`, `events`, `evidence`, `analyses`, `insights`). Notes for the build:
 
-- `sessions` carries `student_id`, `material_id`, `topic`, `persona`, `modality`.
+- `sessions` carries `student_id`, `subject` (null = free session), `topic` (filled when the student says it by voice), `persona`, `modality` (D47).
 - `events.payload` stores tool args and results (`url` of generated assets); assets live on disk, referenced by path.
 - `evidence.rationale` (short text from the judge) feeds the teacher's "examples of reasoning".
 - `insights` (`gap | progress | suggestion`) are written by the post-session analysis and read by the Students tab and by the learner summary of the next conversation.
@@ -224,8 +224,9 @@ Served by the **Fastify API** (`apps/api`, prefix `/api`; the browser calls `NEX
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /api/students` | Student list (names for the picker; with counts for the teacher) |
-| `POST /api/sessions` | Create a conversation (`student_id`, `material_id`, `topic?`, `persona?`) |
+| `GET /api/students` | Student list (with counts for the teacher; the whiteboard uses the pre-set demo student, D47) |
+| `GET /api/subjects` | Start-screen cards: subjects with their count of `ready` materials (D47) |
+| `POST /api/sessions` | Create a conversation (`student_id`, `subject` or null for a free session, `persona?`, `modality`); the tutor opens with a greeting asking what to study (D47) |
 | `POST /api/sessions/:id/turn` | Turn request → SSE script |
 | `GET /api/sessions/:id/events` | Event log (replay, resume, teacher view) |
 | `POST /api/voice/token` | Ephemeral Deepgram token |

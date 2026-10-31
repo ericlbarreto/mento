@@ -15,7 +15,7 @@ The prompt for each turn is assembled from three layers by plain string concaten
 |---|---|---|
 | **Tutor base** | Pedagogy (explain, probe, hint, verify), citation rules, honesty when no source exists, style per modality (voice vs text), always answer in pt-BR | Never |
 | **Subject profile** | How the subject is taught, typical misconceptions, kinds of verification questions, allowed board operations | Material (its subject) |
-| **Course context** | **Class context** (grade level and class description from the teacher), excerpts retrieved from the chosen material, the student's learner summary (open gaps, recent progress) and the topic | Class (global), material, student, session |
+| **Course context** | **Class context** (grade level and class description from the teacher), excerpts retrieved from the materials of the chosen subject (none in a free session), the student's learner summary (open gaps, recent progress) and the topic | Class (global), material, student, session |
 
 ## Class context and grade level
 
@@ -90,7 +90,9 @@ A profile should state, in concrete terms:
 
 ## Grounding and citation rules
 
-- Use only the retrieved excerpts from the chosen material for claims derived from the material.
+- Use only the retrieved excerpts from the materials of the chosen subject for claims derived from the material.
+- **Opening (D47):** the first turn has no student message: greet the student by name in one short spoken sentence and ask what they want to study today (in a subject session, mention the subject).
+- **Free session (no material, D47):** use the `generic` profile, answer with general knowledge and set `outside_material: true` on every answer; never invent citations.
 - When using an excerpt, emit a citation: `material_id`, `page`, `quote`.
 - If the material does not support the answer: say so, answer with general knowledge, and **mark the answer as "outside the teacher's material"**.
 - If two sources conflict, say so; do not silently merge them.

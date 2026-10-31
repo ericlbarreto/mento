@@ -40,7 +40,7 @@ type Event = {
 
 | `type` | Written by | `payload` | Read by |
 |---|---|---|---|
-| `session_started` | Repository (`createSession`) | `{ student_id, material_id, topic?, modality, persona? }` | Analysis |
+| `session_started` | Repository (`createSession`) | `{ student_id, subject: string \| null, topic?, modality, persona? }` (`subject` null = free session with no material, D47) | Analysis |
 | `user_message` | Person 3 (turn handler) | `{ kind: "chat" \| "speech" \| "board_select" \| "quick_action", text, selected?: { element_id, text? }, stt?: { provider, duration_ms, confidence? } }` | Analysis, replay |
 | `tutor_action` | Person 3 (each streamed action) | `{ turn_id, action_id, order, name, args }` (`name` = a tool in `docs/16` §4, including `draw_result`) | Analysis, replay, board state |
 | `verification_asked` | Person 3 | `{ verification_id, element_id, concept, concept_key, question, kind }` | Analysis |
@@ -96,7 +96,7 @@ The tutor's `speak` (and `write_text`) accepts two optional fields: `purpose: "e
 ## 7. Concepts (shared vocabulary)
 
 - `concept` is a short pt-BR label; `concept_key = normalizeConcept(concept)` where `normalizeConcept` is **one shared function in `@mento/contracts`**: lowercase → Unicode NFD → strip diacritics → non-alphanumeric to space → collapse spaces → trim.
-- **Person 3 must reuse labels** in this priority: (1) labels of the student's **open gaps** (from `getLearnerSummary`); (2) **chapter/section titles** of the chosen material (from `getOutline`); (3) a new short label.
+- **Person 3 must reuse labels** in this priority: (1) labels of the student's **open gaps** (from `getLearnerSummary`); (2) **chapter/section titles** of the materials of the chosen subject (from `getOutline`); (3) a new short label.
 - **Person 1 matches** by `concept_key` first, then by the LLM's `matches_gap_id`; it stores `concept_key` on `insights` as well.
 - No `concepts` table (keep the data model small).
 
@@ -146,20 +146,22 @@ Analysis input (assembled by Person 1) and output (validated with Zod):
 ```ts
 interface Repository {
   // Written/read by Person 3
-  createSession(i: { student_id: number; material_id: number; topic?: string; persona?: string; modality: "text" | "voice" }): Promise<{ id: number }>;
+  // subject: null = free session (no material). Retrieval spans all ready materials of the subject (D47)
+  createSession(i: { student_id: number; subject: string | null; topic?: string; persona?: string; modality: "text" | "voice" }): Promise<{ id: number }>;
   appendEvent(session_id: number, e: { type: EventType; payload: unknown }): Promise<Event>;     // returns the stored event with its id
   listEvents(session_id: number, opts?: { after_id?: number }): Promise<Event[]>;
   endSession(session_id: number, reason: SessionEndReason): Promise<void>;                          // appends session_ended, publishes it on the EventBus
   insertEvidence(e: Omit<Evidence, "id">): Promise<{ id: number }>;
   getClassContext(): Promise<{ grade_level: "7º ano" | "8º ano" | "9º ano"; description: string }>;
   getLearnerSummary(student_id: number): Promise<LearnerSummary>;
-  searchChunks(material_id: number, query: string, k: number): Promise<Chunk[]>;
+  searchChunks(subject: string, query: string, k: number): Promise<Chunk[]>; // across all ready materials of the subject; each chunk keeps material_id
   getPages(material_id: number, pages: number[]): Promise<Chunk[]>;
-  getOutline(material_id: number): Promise<{ title: string; start_page: number; end_page: number }[]>;
+  getOutline(material_id: number) /* called per material of the subject */: Promise<{ title: string; start_page: number; end_page: number }[]>;
   validateCitation(c: Citation): Promise<boolean>;
   // Read by the whiteboard start screen (through the API)
   listStudents(): Promise<{ id: number; name: string }[]>;
-  listMaterials(opts?: { ready_only?: boolean }): Promise<MaterialSummary[]>;
+  listMaterials(opts?: { ready_only?: boolean; subject?: string }): Promise<MaterialSummary[]>;
+  listSubjects(): Promise<{ subject: string; ready_materials: number }[]>; // start-screen cards (D47)
   // Used by Person 1 (analysis and teacher UI)
   listInsights / upsertInsight / setInsightStatus / metrics ...   // internal to Person 1's packages
 }
