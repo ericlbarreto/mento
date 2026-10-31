@@ -57,6 +57,7 @@
 | D49 | **Models:** tutor `claude-sonnet-5-5`, judge `claude-haiku-5-5`, images Google Gemini (founder's choice), embeddings Voyage `voyage-4` by default (free allowance), STT Deepgram, TTS ElevenLabs Flash v2.5 | Latency first; cost is acceptable except embeddings |
 | D50 | **Sessions have no `material_id`:** the tutor searches all teacher materials (hybrid vector + text search on MongoDB Atlas) through `searchChunks` | Founder decision: the AI, not the student, picks the material |
 | D51 | **Judge runs in parallel with the next tutor turn** and only records evidence | Keeps the judge off the critical path; disagreement is measured |
+| D52 | **Ingestion and retrieval belong to the whiteboard back-end (Person 3)**: `packages/sources` (chunking, embeddings, PDF text, `searchChunks`) and the `chunks`/`materials` Mongo models move from Person 1 to Person 3; Person 1 keeps the material upload UI/route and the MongoDB `TurnRepository` | Founder decision: the tutor's retrieval quality and latency are part of the whiteboard back-end |
 
 ## Open
 

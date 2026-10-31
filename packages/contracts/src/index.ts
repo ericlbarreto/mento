@@ -14,3 +14,4 @@ export * from "./fixtures";
 export * from "./voice";
 export * from "./retrieval";
 export * from "./sessions";
+export * from "./chunk-store";
