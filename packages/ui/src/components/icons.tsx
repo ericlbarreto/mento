@@ -161,6 +161,14 @@ export const IconRuler = make(
     <path d="m14.5 12.5 2-2M11.5 9.5l2-2M8.5 6.5l2-2M17.5 15.5l2-2" />
   </>,
 );
+export const IconLeaf = make(
+  "IconLeaf",
+  <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10ZM2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />,
+);
+export const IconZap = make(
+  "IconZap",
+  <path d="M13 2 3 14h9l-1 8 10-12h-9z" />,
+);
 export const IconLightbulb = make(
   "IconLightbulb",
   <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5M9 18h6M10 22h4" />,

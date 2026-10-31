@@ -2,11 +2,13 @@
 import type { SessionSummary } from "@mento/contracts";
 
 /** Which icon a subject card shows, chosen by the subject `key` (plan §3 S1). Unknown keys get the book. */
-export type SubjectIconName = "landmark" | "ruler" | "book";
+export type SubjectIconName = "landmark" | "ruler" | "leaf" | "zap" | "book";
 
 export function subjectIcon(key: string): SubjectIconName {
   if (key === "history") return "landmark";
   if (key === "math") return "ruler";
+  if (key === "biology") return "leaf";
+  if (key === "physics") return "zap";
   return "book";
 }
 
