@@ -58,6 +58,7 @@
 | D50 | **Sessions have no `material_id`:** the tutor searches all teacher materials (hybrid vector + text search on MongoDB Atlas) through `searchChunks` | Founder decision: the AI, not the student, picks the material |
 | D51 | **Judge runs in parallel with the next tutor turn** and only records evidence | Keeps the judge off the critical path; disagreement is measured |
 | D52 | **Ingestion and retrieval belong to the whiteboard back-end (Person 3)**: `packages/sources` (chunking, embeddings, PDF text, `searchChunks`) and the `chunks`/`materials` Mongo models move from Person 1 to Person 3; Person 1 keeps the material upload UI/route and the MongoDB `TurnRepository` | Founder decision: the tutor's retrieval quality and latency are part of the whiteboard back-end |
+| D53 | **Subjects (matérias) drive the whiteboard:** the start screen lists subjects with their ready materials; a session is started from a subject (its books are the only sources: catalog and searches are limited to them) or as a free whiteboard (`subject_id` omitted/null: all materials). Supersedes the part of D50 where the tutor always searched every material | Founder decision for the new start-screen UI |
 
 ## Open
 

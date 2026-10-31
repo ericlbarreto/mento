@@ -57,7 +57,7 @@ export class MongoSubjectStore implements SubjectStore {
   }
 
   async upsertByKey(key: string, name: string): Promise<Subject> {
-    const doc = await SubjectModel.findOneAndUpdate({ key }, { $setOnInsert: { key, name } }, { upsert: true, new: true }).lean<SubjectLean>();
+    const doc = await SubjectModel.findOneAndUpdate({ key }, { $setOnInsert: { key, name } }, { upsert: true, returnDocument: "after" }).lean<SubjectLean>();
     return toSubject(doc);
   }
 }

@@ -13,3 +13,5 @@
 | 2026-10-30 | Implementation plans 3 to 5 written and verified | plans 1–5 | [2026-10-30-07-plans-3-to-5.md](2026-10-30-07-plans-3-to-5.md) | e8fc375, ccffa15, see git log |
 | 2026-10-30 | Pull request and prompt-log check | process | [2026-10-30-08-pull-request-and-log-check.md](2026-10-30-08-pull-request-and-log-check.md) | PR #5 |
 | 2026-10-30 | Executing plans 1 to 4 | plans 1–4 | [2026-10-30-09-executing-plans-1-to-4.md](2026-10-30-09-executing-plans-1-to-4.md) | 5c2d09e…2e7a445 |
+| 2026-10-30 | Plan 5 executed: retrieval tested on a real book | plan 5 | [2026-10-30-10-plan-5-retrieval-on-a-real-book.md](2026-10-30-10-plan-5-retrieval-on-a-real-book.md) | af1a392…4b1dbd1 |
+| 2026-10-30 | Subjects, optional subject on sessions, front-end guide | D53 | [2026-10-30-11-subjects-and-frontend-guide.md](2026-10-30-11-subjects-and-frontend-guide.md) | c916bc2…, see git log |

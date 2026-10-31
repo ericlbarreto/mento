@@ -197,3 +197,14 @@ Source of truth in code: `packages/contracts/src/{retrieval,chunk-store}.ts`. De
 - `Chunk = { id, material_id, subject, chapter?, page, passage_idx, text, score? }` (a passage of ~400 tokens inside one page). `validateCitation(c)` is true when `c.quote` occurs on that page (whitespace- and case-insensitive).
 - Ingestion (`@mento/sources/ingest`) stores passages with a 1024-dimension `embedding`; the catalog entry of each ready material is `{ material_id, title, subject, chapters: string[] }`.
 - `createSession` no longer takes `material_id`, and `session_started` has no `material_id`.
+
+## 14. Subjects (matérias), 2026-10-30
+
+Source of truth in code: `packages/contracts/src/{subjects,sessions,retrieval,chunk-store,errors}.ts`. Front-end guide: `docs/frontend-integration.md`.
+
+- **Subject** `{ id, name, key }` (`key` is a lowercase slug such as `history`; it also selects the tutor's subject profile). `SubjectSummary` adds `material_count` and `materials: [{ id, title, pages, status }]` (ready materials only).
+- **Materials belong to a subject** (`materials.subject_id`); the ingestion script creates the subject from `--subject=<key>`.
+- **Sessions:** `CreateSessionRequest.subject_id` is optional and nullable. With a subject, the tutor's catalog and every search are limited to that subject's materials (`SearchQuery.material_ids`); without one (free whiteboard), all materials are searched. `CreateSessionResponse` is `{ id, subject_id }`; `session_started` carries `subject_id` (or null).
+- **Errors:** every error body is `ErrorResponse = { error, message? }`.
+- Endpoints: `GET /api/subjects`, `GET /api/subjects/:id`, `POST /api/subjects`.
+
