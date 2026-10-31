@@ -94,7 +94,7 @@ export function Modal({ open, onClose, title, description, children }: { open: b
       aria-labelledby={titleId}
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
-      className="m-auto w-[min(560px,calc(100vw-32px))] rounded-[20px] border border-[var(--line)] bg-[var(--card)] p-0 text-[var(--ink)] shadow-[var(--shadow-float)] backdrop:bg-[rgba(22,34,80,0.35)]"
+      className="m-auto max-h-[calc(100dvh-32px)] w-[min(560px,calc(100vw-32px))] overflow-y-auto rounded-[20px] border border-[var(--line)] bg-[var(--card)] p-0 text-[var(--ink)] shadow-[var(--shadow-float)] backdrop:bg-[rgba(22,34,80,0.35)]"
     >
       <div className="p-7">
         <div className="mb-5 flex items-start justify-between gap-4">

@@ -80,7 +80,8 @@ export function TeacherStoreProvider({ children }: { children: React.ReactNode }
           pages: await countPages(file),
           status: "processing",
           created_at: new Date().toISOString(),
-          file_url: URL.createObjectURL(file),
+          // Typed as PDF whatever the browser guessed, so the iframe never renders it as HTML.
+          file_url: URL.createObjectURL(new Blob([file], { type: "application/pdf" })),
         };
         setMaterials((list) => [material, ...list]);
         // The API ingests in the background; the mock just flips to ready.

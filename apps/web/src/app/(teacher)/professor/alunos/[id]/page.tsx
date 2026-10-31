@@ -79,7 +79,6 @@ function FocusGap({ gap, name }: { gap: Insight; name: string }) {
         <Chip tone={critical ? "danger" : "warn"} className="text-[11px] font-bold uppercase tracking-[0.04em]">
           {critical ? "Ponto crítico" : "Atenção média"}
         </Chip>
-        <Chip>História · Roma Antiga</Chip>
         {gap.status === "new" && <Chip tone="blue">Novo</Chip>}
       </div>
       <h3 className="mt-4 text-[22px] font-bold leading-7">{gap.concept}</h3>
@@ -244,12 +243,13 @@ export default function StudentDetail({ params }: { params: Promise<{ id: string
             <Chip tone="blue">Ensino Fundamental II</Chip>
           </div>
           <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[15px]">
-            <span className={cx("flex items-center gap-1.5 font-semibold", status.tone === "danger" ? "text-[var(--danger)]" : status.tone === "warn" ? "text-[var(--warn)]" : "text-[var(--ok)]")}>
+            <span className={cx("flex items-center gap-1.5 font-semibold", { danger: "text-[var(--danger)]", warn: "text-[var(--warn)]", ok: "text-[var(--ok)]", neutral: "text-[var(--ink-soft)]" }[status.tone])}>
               <span className="size-2 rounded-full bg-current" aria-hidden="true" />
-              {openGaps === 0 ? "Nenhuma lacuna aberta" : openGaps === 1 ? "1 lacuna aberta" : `${openGaps} lacunas abertas`}
+              {row.conversations === 0 ? "Sem conversas ainda" : openGaps === 0 ? "Nenhuma lacuna aberta" : openGaps === 1 ? "1 lacuna aberta" : `${openGaps} lacunas abertas`}
             </span>
             <span className="text-[var(--ink-soft)]">
-              {row.conversations} {row.conversations === 1 ? "conversa" : "conversas"} · última {relativeDate(row.last_activity)}
+              {row.conversations} {row.conversations === 1 ? "conversa" : "conversas"}
+              {row.last_activity && ` · última ${relativeDate(row.last_activity)}`}
             </span>
           </p>
         </div>

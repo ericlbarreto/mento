@@ -26,7 +26,7 @@ export default function MaterialViewer({ params }: { params: Promise<{ id: strin
   const ready = material.status === "ready";
   const details = [
     ["Matéria", material.subject],
-    ["Páginas", String(material.pages)],
+    ["Páginas", material.pages === 0 ? "—" : String(material.pages)],
     ["Enviado", relativeDate(material.created_at)],
   ];
 
@@ -50,7 +50,7 @@ export default function MaterialViewer({ params }: { params: Promise<{ id: strin
               </Chip>
             )}
             <Chip>
-              {material.pages} {material.pages === 1 ? "página" : "páginas"}
+              {material.pages === 0 ? "páginas: calculando" : `${material.pages} ${material.pages === 1 ? "página" : "páginas"}`}
             </Chip>
           </div>
         </div>

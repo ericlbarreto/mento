@@ -41,7 +41,7 @@ export function TopBar() {
       </nav>
       <span className="flex shrink-0 items-center gap-2 rounded-full bg-[var(--blue-tint)] px-3 py-1.5 text-[13px] font-bold text-[var(--mento-blue)]">
         <span className="size-2 rounded-full bg-[var(--mento-blue)]" aria-hidden="true" />
-        Turma 8º B · {classContext.grade_level}
+        Turma · {classContext.grade_level}
       </span>
     </header>
   );

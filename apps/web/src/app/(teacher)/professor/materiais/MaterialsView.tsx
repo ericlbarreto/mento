@@ -10,6 +10,8 @@ import { relativeDate } from "../_lib/format";
 import { useTeacher } from "../_lib/store";
 import type { Material } from "../_lib/types";
 
+const pagesText = (n: number) => (n === 0 ? "páginas: calculando" : `${n} ${n === 1 ? "página" : "páginas"}`);
+
 function Status({ status }: { status: Material["status"] }) {
   if (status === "ready")
     return (
@@ -38,6 +40,7 @@ const FEATURES = [
 ];
 
 function EmptyState({ onUpload }: { onUpload: () => void }) {
+  const { classContext } = useTeacher();
   return (
     <Card className="overflow-hidden px-6 py-12 md:px-12">
       <div className="flex flex-col items-center text-center">
@@ -46,7 +49,7 @@ function EmptyState({ onUpload }: { onUpload: () => void }) {
         </span>
         <p className="-mt-4 rotate-[-2deg] bg-[var(--marker-yellow)] px-4 py-1 font-[family-name:var(--font-board)] text-[24px] shadow-[var(--shadow-card)]">Pronto para ler seus PDFs!</p>
         <Chip tone="danger" className="mt-6">
-          <IconBook size={14} /> Turma 8º B
+          <IconBook size={14} /> Turma · {classContext.grade_level}
         </Chip>
         <h2 className="mt-3 max-w-xl text-[30px] font-extrabold leading-9 tracking-[-0.01em]">Nenhum material adicionado ainda para a turma</h2>
         <p className="mt-3 max-w-xl text-[17px] leading-7 text-[var(--ink-soft)]">
@@ -80,7 +83,7 @@ function MaterialRow({ material }: { material: Material }) {
         </Link>
         <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-[var(--ink-soft)]">
           <span className="flex items-center gap-1.5">
-            <IconFile size={15} /> {material.pages} {material.pages === 1 ? "página" : "páginas"}
+            <IconFile size={15} /> {pagesText(material.pages)}
           </span>
           <span aria-hidden="true">•</span>
           <span>Enviado {relativeDate(material.created_at)}</span>
@@ -110,7 +113,7 @@ export function MaterialsView({ forceEmpty }: { forceEmpty: boolean }) {
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-2xl">
           <p className="flex items-center gap-2 text-[14px] font-bold text-[var(--mento-blue)]">
-            <IconBook size={17} /> Acervo didático · Turma 8º B
+            <IconBook size={17} /> Acervo didático · Turma · {store.classContext.grade_level}
           </p>
           <h1 className="mt-1 text-[36px] font-extrabold leading-[44px] tracking-[-0.02em]">Materiais</h1>
           <p className="mt-2 text-[17px] leading-7 text-[var(--ink-soft)]">Livros e apostilas em PDF que o tutor usa para explicar e citar a página exata.</p>

@@ -33,7 +33,6 @@ function useClassGaps() {
 function ClassGaps() {
   const groups = useClassGaps();
   const { students } = useTeacher();
-  if (groups.length === 0) return null;
   return (
     <section aria-labelledby="class-gaps" className="mb-10">
       <Card className="p-6 md:p-8">
@@ -41,10 +40,16 @@ function ClassGaps() {
           id="class-gaps"
           icon={<IconLayers size={18} />}
           title="Pontos de atenção da turma"
-          badge={<Chip tone="danger">{groups.length === 1 ? "1 tema" : `${groups.length} temas`} com lacunas abertas</Chip>}
+          badge={
+            <>
+              {groups.length > 0 && <Chip tone="danger">{groups.length === 1 ? "1 tema" : `${groups.length} temas`} com lacunas abertas</Chip>}
+              <SimulatedBadge />
+            </>
+          }
           aside="o que repetir em sala"
         />
         <p className="-mt-2 mb-6 text-[15px] text-[var(--ink-soft)]">Temas em que um ou mais alunos ainda erram, com uma ideia para a próxima aula.</p>
+        {groups.length === 0 && <p className="rounded-xl bg-[var(--paper)] p-5 text-[15px] text-[var(--ink-soft)]">Nenhuma lacuna aberta na turma por enquanto.</p>}
         <div className="grid gap-4 lg:grid-cols-3">
           {groups.map((g) => (
             <article key={g.concept} className={`flex flex-col rounded-2xl border p-5 ${g.critical ? "border-[var(--danger)]/30 bg-[var(--danger-soft)]/40" : "border-[var(--line)] bg-[var(--paper)]"}`}>
@@ -53,7 +58,7 @@ function ClassGaps() {
                   {g.critical ? "Atenção alta" : "Atenção média"}
                 </Chip>
                 <span className="text-[13px] font-semibold text-[var(--ink-soft)]">
-                  {g.students.length} {g.students.length === 1 ? "aluno" : "alunos"} ({Math.round((g.students.length / students.length) * 100)}% da turma)
+                  {g.students.length} de {students.length} alunos
                 </span>
               </div>
               <h3 className="mt-3 text-[19px] font-bold leading-6">{g.concept}</h3>
@@ -160,6 +165,7 @@ function StudentList() {
                     <Link
                       href={`/professor/alunos/${row.id}`}
                       onClick={(e) => e.stopPropagation()}
+                      aria-label={`Ver análise de ${row.name}`}
                       className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-[var(--blue-tint)] px-4 py-2 text-[14px] font-bold text-[var(--mento-blue)] hover:bg-[var(--mento-blue)] hover:text-white"
                     >
                       Ver análise <IconChevronRight size={16} />
@@ -198,12 +204,17 @@ export default function StudentsTab() {
         <p className="flex items-center gap-2 text-[13px] font-bold uppercase tracking-[0.06em] text-[var(--ink-soft)]">
           <span className="font-[family-name:var(--font-board)] text-[21px] normal-case tracking-normal text-[var(--accent-ink)]">diário da turma</span>
           <span className="size-1.5 rounded-full bg-[var(--accent)]" aria-hidden="true" />
-          Turma 8º B · {classContext.grade_level}
+          {classContext.grade_level} · Ensino Fundamental II
         </p>
         <h1 className="mt-1 text-[36px] font-extrabold leading-[44px] tracking-[-0.02em]">Alunos</h1>
         <p className="mt-2 text-[17px] leading-7 text-[var(--ink-soft)]">Como cada aluno está indo nas conversas com o tutor, com base no que ele mesmo respondeu.</p>
       </header>
 
+      {simulated > 0 && (
+        <p className="-mt-4 mb-4 flex justify-end">
+          <SimulatedBadge />
+        </p>
+      )}
       <section aria-label="Resumo da turma" className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Alunos" value={overview.students} unit="estudantes" note={simulated ? `${simulated} com dados simulados` : "todos acompanhados"} icon={<IconUsers size={18} />} />
         <MetricCard label="Conversas" value={overview.conversations} unit="sessões" note="com o tutor nesta turma" icon={<IconMessage size={18} />} />

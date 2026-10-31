@@ -44,9 +44,14 @@ export function UploadMaterialModal({ open, onClose }: { open: boolean; onClose:
           e.preventDefault();
           if (!file) return;
           setSending(true);
-          await uploadMaterial({ title: title.trim() || file.name, subject, file });
-          setSending(false);
-          close();
+          try {
+            await uploadMaterial({ title: title.trim() || file.name, subject, file });
+            close();
+          } catch {
+            setError("Não foi possível enviar. Tente de novo.");
+          } finally {
+            setSending(false);
+          }
         }}
         className="space-y-5"
       >
