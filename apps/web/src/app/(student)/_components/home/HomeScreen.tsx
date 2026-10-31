@@ -34,7 +34,7 @@ import {
 import { HistoryDrawer } from "../../session/_components/history/HistoryDrawer";
 import { Skeleton, StudentGrid, stagger } from "../start/pickers";
 import styles from "../start/start.module.css";
-import { bookCount, firstName, lastSessionLabel, sessionSubtitle, sessionTitle, subjectIcon, type SubjectIconName } from "./format";
+import { bookCount, firstName, sessionMinutes, sessionSubtitle, sessionTitle, subjectIcon, type SubjectIconName } from "./format";
 import { useHomeData } from "./useHomeData";
 
 const NAV: TopBarNavItem[] = [
@@ -182,7 +182,7 @@ function Hero({
   return (
     <section
       aria-labelledby="hero-heading"
-      className="relative grid gap-8 overflow-hidden rounded-(--radius-xl) border border-(--line) bg-[radial-gradient(ellipse_at_0%_100%,color-mix(in_srgb,var(--marker-yellow)_35%,transparent),transparent_55%),var(--card)] p-6 shadow-(--shadow-card) sm:p-10 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-12 lg:p-14"
+      className="relative grid gap-8 overflow-hidden rounded-(--radius-xl) border border-(--line) bg-[radial-gradient(ellipse_at_0%_100%,color-mix(in_srgb,var(--marker-yellow)_35%,transparent),transparent_55%),var(--card)] p-6 shadow-(--shadow-card) sm:p-10 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-10 lg:p-14"
     >
       <div className={cx("flex min-w-0 flex-col items-start gap-5", styles.fadeUp)}>
         <div className="flex flex-wrap items-center gap-2">
@@ -203,7 +203,7 @@ function Hero({
           onClick={onVoice}
           aria-label="Conversar com o Mento por voz: escolha uma matéria"
           className={cx(
-            "group mt-2 flex w-full max-w-xl items-center gap-4 rounded-(--radius-lg) bg-[linear-gradient(120deg,var(--mento-blue-strong),var(--mento-blue))] p-4 text-left text-white shadow-(--shadow-float) outline-none sm:gap-5 sm:p-5",
+            "group mt-2 flex w-full items-center gap-4 rounded-(--radius-lg) bg-[linear-gradient(120deg,var(--mento-blue-strong),var(--mento-blue))] p-4 text-left text-white shadow-(--shadow-float) outline-none sm:gap-5 sm:px-6 sm:py-6",
             "transition-[transform,box-shadow] duration-(--dur-base) ease-(--ease-out) hover:-translate-y-0.5 hover:shadow-(--shadow-pop) focus-visible:shadow-[var(--focus-ring),var(--shadow-float)] active:translate-y-0",
           )}
         >
@@ -227,7 +227,8 @@ function Hero({
         </button>
       </div>
 
-      <div className="flex min-w-0 flex-col items-center gap-4">
+      {/* Fixed width on desktop: a long "Última sessão" title wraps instead of widening the column. */}
+      <div className="flex w-full min-w-0 flex-col items-center gap-4 sm:max-w-sm sm:justify-self-center lg:w-80">
         <div
           className={cx(
             "flex size-36 items-center justify-center rounded-full border-8 border-(--card) bg-(--paper-2) shadow-(--shadow-float) sm:size-56 lg:size-72",
@@ -240,11 +241,18 @@ function Hero({
             <img src="/brand/mascot/float.gif" alt="" width={240} height={240} className="size-28 object-contain sm:size-44 lg:size-60" />
           </picture>
         </div>
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex w-full flex-col items-center gap-2">
           {latest && (
-            <Pill className="bg-(--mento-blue-soft) text-(--mento-blue-strong)" icon={<IconHistory className="size-4" />}>
-              Última sessão: {lastSessionLabel(latest)}
-            </Pill>
+            // A card, not a pill: the session title is free text of any length, so it wraps (2 lines max).
+            <div className="flex w-full items-start gap-2 rounded-(--radius-md) bg-(--mento-blue-soft) px-4 py-2.5 text-(--mento-blue-strong)">
+              <IconHistory className="mt-0.5 size-4 shrink-0" />
+              <span className="flex min-w-0 flex-col">
+                <span className="text-xs font-bold">Última sessão · {sessionMinutes(latest)} min</span>
+                <span className="line-clamp-2 text-sm font-semibold text-(--ink)" title={sessionTitle(latest)}>
+                  {sessionTitle(latest)}
+                </span>
+              </span>
+            </div>
           )}
           <Pill className="border border-[color-mix(in_srgb,var(--marker-yellow)_80%,var(--accent))] bg-[color-mix(in_srgb,var(--marker-yellow)_45%,var(--card))] text-(--ink)" icon={<IconLightbulb className="size-4" />}>
             Dica: Fale em voz alta qualquer dúvida
@@ -259,7 +267,7 @@ function Pill({ icon, className, children }: { icon: ReactNode; className?: stri
   return (
     <p className={cx("inline-flex max-w-full items-center gap-2 rounded-(--radius-pill) px-4 py-1.5 text-sm font-semibold", className)}>
       <span className="shrink-0">{icon}</span>
-      <span className="min-w-0 truncate">{children}</span>
+      <span className="min-w-0">{children}</span>
     </p>
   );
 }

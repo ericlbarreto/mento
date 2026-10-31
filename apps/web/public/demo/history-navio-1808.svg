@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 390" font-family="Comic Sans MS, Chalkboard, sans-serif">
+  <!-- Hand-drawn demo scene: the Portuguese royal fleet reaching Rio de Janeiro in 1808. Original sketch, no copied artwork. -->
+  <rect width="520" height="390" fill="#fffdf7"/>
+  <!-- sky: sun and gulls -->
+  <circle cx="86" cy="70" r="30" fill="#ffd95a" stroke="#f2b632" stroke-width="3"/>
+  <g stroke="#f2b632" stroke-width="3" stroke-linecap="round">
+    <line x1="86" y1="22" x2="86" y2="32"/><line x1="134" y1="70" x2="124" y2="70"/><line x1="38" y1="70" x2="48" y2="70"/>
+    <line x1="120" y1="36" x2="113" y2="43"/><line x1="52" y1="36" x2="59" y2="43"/>
+  </g>
+  <path d="M170 60 q8 -8 16 0 q8 -8 16 0 M215 44 q6 -6 12 0 q6 -6 12 0" fill="none" stroke="#5b6b7f" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Rio coastline: rounded hills and a sugarloaf-like peak -->
+  <path d="M300 250 Q330 200 360 228 Q385 150 420 120 Q440 108 452 140 Q462 190 480 205 Q500 190 520 200 V262 H300Z" fill="#b9dea6" stroke="#6f9f5c" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M395 175 q10 -6 18 2 M430 160 q8 -4 14 3 M470 215 q8 -5 15 1" fill="none" stroke="#6f9f5c" stroke-width="2" stroke-linecap="round"/>
+  <!-- palm trees on the shore -->
+  <g stroke="#8a5a3b" stroke-width="4" stroke-linecap="round" fill="none">
+    <path d="M330 252 q4 -24 -2 -40"/><path d="M352 254 q-2 -20 4 -34"/>
+  </g>
+  <g stroke="#4f8f3a" stroke-width="3" stroke-linecap="round" fill="none">
+    <path d="M328 212 q-14 -6 -22 4 M328 212 q12 -10 24 -2 M328 212 q-4 -14 -16 -16 M328 212 q10 -4 14 10"/>
+    <path d="M356 220 q-12 -8 -22 0 M356 220 q12 -8 22 2 M356 220 q2 -14 12 -16"/>
+  </g>
+  <!-- sea -->
+  <path d="M0 255 Q65 245 130 255 T260 255 T390 258 T520 255 V390 H0Z" fill="#a9d4f0" stroke="#4f8fc0" stroke-width="2.5"/>
+  <g fill="none" stroke="#4f8fc0" stroke-width="2.5" stroke-linecap="round">
+    <path d="M20 300 q15 -10 30 0 q15 10 30 0"/><path d="M380 300 q15 -10 30 0 q15 10 30 0"/>
+    <path d="M60 350 q15 -10 30 0 q15 10 30 0"/><path d="M300 345 q15 -10 30 0 q15 10 30 0"/>
+    <path d="M430 365 q12 -8 24 0 q12 8 24 0"/>
+  </g>
+  <!-- small escort ship (British escort) far behind -->
+  <g transform="translate(36 214) scale(0.45)">
+    <path d="M0 80 L160 80 L140 112 L22 112Z" fill="#9a6b4b" stroke="#5a3a26" stroke-width="5"/>
+    <line x1="80" y1="80" x2="80" y2="0" stroke="#5a3a26" stroke-width="6"/>
+    <path d="M84 10 Q120 34 84 70Z" fill="#fff" stroke="#5a3a26" stroke-width="4"/>
+  </g>
+  <!-- main ship: hull -->
+  <path d="M110 262 L330 262 Q322 300 290 312 L150 312 Q122 300 110 262Z" fill="#a8714c" stroke="#5a3a26" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M122 280 H318" stroke="#5a3a26" stroke-width="2.5"/>
+  <g fill="#ffe7a8" stroke="#5a3a26" stroke-width="2">
+    <rect x="150" y="286" width="12" height="10" rx="2"/><rect x="180" y="286" width="12" height="10" rx="2"/>
+    <rect x="210" y="286" width="12" height="10" rx="2"/><rect x="240" y="286" width="12" height="10" rx="2"/>
+    <rect x="270" y="286" width="12" height="10" rx="2"/>
+  </g>
+  <!-- masts -->
+  <g stroke="#5a3a26" stroke-width="5" stroke-linecap="round">
+    <line x1="160" y1="262" x2="160" y2="120"/><line x1="225" y1="262" x2="225" y2="92"/><line x1="285" y1="262" x2="285" y2="132"/>
+  </g>
+  <!-- sails, slightly bellied -->
+  <g fill="#fffaf0" stroke="#5a3a26" stroke-width="3" stroke-linejoin="round">
+    <path d="M138 140 Q160 132 182 140 Q186 170 182 200 Q160 194 138 200 Q134 170 138 140Z"/>
+    <path d="M140 208 Q160 202 180 208 Q184 230 180 250 Q160 246 140 250 Q136 230 140 208Z"/>
+    <path d="M198 110 Q225 102 252 110 Q257 146 252 182 Q225 176 198 182 Q193 146 198 110Z"/>
+    <path d="M200 190 Q225 184 250 190 Q255 220 250 250 Q225 245 200 250 Q195 220 200 190Z"/>
+    <path d="M266 150 Q285 144 304 150 Q308 178 304 206 Q285 201 266 206 Q262 178 266 150Z"/>
+  </g>
+  <!-- red cross on the main sail (Order of Christ style, simplified) -->
+  <path d="M225 128 V166 M210 146 H240" stroke="#c0392b" stroke-width="6" stroke-linecap="round"/>
+  <!-- flag: green and red, simplified -->
+  <line x1="225" y1="92" x2="225" y2="70" stroke="#5a3a26" stroke-width="3"/>
+  <path d="M227 70 h14 v16 h-14z" fill="#2e8b57" stroke="#1f5e3a" stroke-width="1.5"/>
+  <path d="M241 70 h20 v16 h-20z" fill="#d9443a" stroke="#8f2a23" stroke-width="1.5"/>
+  <!-- people on deck -->
+  <g stroke="#1d3f94" stroke-width="2.5" fill="#ffd2b0">
+    <circle cx="190" cy="250" r="6"/><circle cx="262" cy="250" r="6"/><circle cx="305" cy="252" r="5"/>
+  </g>
+  <!-- small crown over D. João -->
+  <path d="M184 240 l2 -8 l4 5 l4 -5 l2 8z" fill="#ffd95a" stroke="#b8862f" stroke-width="1.5"/>
+  <!-- motion lines behind the ship -->
+  <path d="M84 282 h18 M76 296 h22" stroke="#4f8fc0" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- labels -->
+  <text x="372" y="96" font-size="16" fill="#3f6f2e">Rio de Janeiro</text>
+  <path d="M410 102 q6 10 6 20" stroke="#3f6f2e" stroke-width="2" fill="none"/>
+  <text x="128" y="342" font-size="15" fill="#5a3a26">a Corte portuguesa</text>
+  <rect x="150" y="12" width="230" height="34" rx="10" fill="#fff4c9" stroke="#d1a43a" stroke-width="2.5"/>
+  <text x="265" y="35" font-size="19" fill="#7a4b0f" text-anchor="middle" font-weight="bold">1808 · a Corte chega</text>
+</svg>
