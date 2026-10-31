@@ -27,7 +27,8 @@ export interface Mic {
 /**
  * Captures the microphone as 80 ms chunks (1280 samples) of 16 kHz mono linear16.
  * The AudioContext runs at 16 kHz so the browser resamples the device stream (tested target: Chrome).
- * Echo cancellation is on, so the tutor's own voice does not trigger SpeechStarted (headphones still recommended).
+ * Echo cancellation is on, so the tutor's own voice is mostly removed from the mic; what leaks through is filtered
+ * by `classifyBargeIn` (barge-in.ts) so speakers work without headphones.
  */
 export async function startMic(onChunk: (pcm: ArrayBuffer) => void): Promise<Mic> {
   const stream = await navigator.mediaDevices.getUserMedia({

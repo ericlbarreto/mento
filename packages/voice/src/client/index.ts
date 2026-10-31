@@ -4,3 +4,4 @@ export * from "./pcm";
 export * from "./mic";
 export * from "./pcm-player";
 export * from "./use-stt";
+export * from "./barge-in";
