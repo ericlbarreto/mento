@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FastifyInstance } from "fastify";
 import { StreamMessage, type TurnRequest } from "@mento/contracts";
 import { InMemoryTurnRepository, ScriptedLlm, stopEvent, toolEvent } from "@mento/tutor/testing";
@@ -31,6 +31,7 @@ function parseSse(text: string) {
 }
 
 const post = (url: string, body: unknown) => fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+const postWithoutBody = (url: string) => fetch(url, { method: "POST" });
 
 describe("sessions and turns", () => {
   it("creates a session from a student only, runs a turn and every SSE message satisfies the contract", async () => {
@@ -54,6 +55,41 @@ describe("sessions and turns", () => {
     expect((await post(`${base}/api/sessions/${id}/turn`, { modality: "fax" })).status).toBe(400);
     expect((await post(`${base}/api/sessions/${id}/end`, { reason: "user_left" })).status).toBe(200);
     expect((await post(`${base}/api/sessions/nope/end`, { reason: "user_left" })).status).toBe(404);
+  });
+
+  it("finishes and resumes idempotently, blocks ended turns, and triggers analysis once per finish", async () => {
+    const base = await start();
+    const handle = vi.spyOn(app!.container.sessionEnded, "handle").mockResolvedValue();
+    const repo = app!.container.repo;
+    const { id } = (await (await post(`${base}/api/sessions`, { student_id: "s", modality: "text" })).json()) as { id: string };
+
+    const firstFinish = await post(`${base}/api/sessions/${id}/finish`, { reason: "manual" });
+    expect(firstFinish.status).toBe(200);
+    expect(await firstFinish.json()).toEqual({ ok: true, transition: "finished" });
+    expect(await post(`${base}/api/sessions/${id}/finish`, { reason: "manual" }).then((response) => response.json()))
+      .toEqual({ ok: true, transition: "already_finished" });
+
+    const blocked = await post(`${base}/api/sessions/${id}/turn`, { modality: "text", appended: [] });
+    expect(blocked.status).toBe(409);
+    expect(await blocked.json()).toEqual({ error: "session_ended" });
+
+    expect(await postWithoutBody(`${base}/api/sessions/${id}/resume`).then((response) => response.json()))
+      .toEqual({ ok: true, transition: "resumed" });
+    expect(await postWithoutBody(`${base}/api/sessions/${id}/resume`).then((response) => response.json()))
+      .toEqual({ ok: true, transition: "already_active" });
+    expect((await post(`${base}/api/sessions/${id}/turn`, { modality: "text", appended: [] })).status).toBe(200);
+
+    expect(await post(`${base}/api/sessions/${id}/end`, { reason: "user_left" }).then((response) => response.json()))
+      .toEqual({ ok: true });
+    expect(await post(`${base}/api/sessions/${id}/finish`, { reason: "manual" }).then((response) => response.json()))
+      .toEqual({ ok: true, transition: "already_finished" });
+    expect(handle).toHaveBeenCalledTimes(2);
+
+    const events = await repo.listEvents(id);
+    expect(events.filter((event) => event.type === "session_ended")).toHaveLength(2);
+    expect(events.filter((event) => event.type === "session_resumed")).toHaveLength(1);
+    expect((await post(`${base}/api/sessions/missing/finish`, { reason: "manual" })).status).toBe(404);
+    expect((await postWithoutBody(`${base}/api/sessions/missing/resume`)).status).toBe(404);
   });
 
   it("answers 503 for a turn when no LLM is configured", async () => {

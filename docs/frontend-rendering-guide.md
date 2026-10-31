@@ -357,7 +357,7 @@ function rebuild(events: { type: string; payload: any }[]) {
 }
 ```
 
-To continue the conversation, keep the same session id and send new turns; the server already knows the history. A read-only viewer (teacher side) can reuse the same `Board` component.
+To continue the conversation, keep the same session id, call `POST /api/sessions/:id/resume`, and only then send a new turn. The call is idempotent, so retrying it is safe. A turn sent while the session is still ended receives `409 session_ended`. When the student leaves again, call `POST /api/sessions/:id/finish`; repeated finish calls do not duplicate the analysis or insights. A read-only viewer (teacher side) can reuse the same `Board` component without resuming.
 
 ## 10. Checklist before the demo
 
@@ -370,4 +370,5 @@ To continue the conversation, keep the same session id and send new turns; the s
 - [ ] Orb: thinking → speaking → listening/waiting; mic muted while the tutor speaks without headphones.
 - [ ] Interrupting stops audio at once and the tutor continues from there.
 - [ ] A past session re-opens with the same board and transcript.
+- [ ] Continuing history calls `/resume` before the next turn and `/finish` when leaving again.
 - [ ] Without the API keys: `GET /api/dev/fixture-turn?name=rome-intro&speed=1` replays a turn in the same format.
