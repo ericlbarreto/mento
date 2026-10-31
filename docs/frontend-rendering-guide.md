@@ -132,7 +132,7 @@ Draw a vertical line with dots (`border-left` on the `ol`, a `::before` dot on e
 
 ### `draw` → `draw_result`: image with a placeholder
 
-`draw` arrives with the size; the picture arrives seconds later in `draw_result` (often after `script_done`). Never wait for it.
+`draw` arrives with the size; the picture arrives seconds later in `draw_result` (often after `script_done`). Never wait for it: apply `draw_result` **outside** the playback queue, as soon as it arrives (the board queue does this: it does not wait for the current `speak` to end).
 
 ```tsx
 function ImageBlock({ el }: { el: BoardElement }) {
@@ -299,7 +299,7 @@ const stt = useStt({
 ```
 
 - Start it when the session starts (voice mode). Show `stt.caption.text` live while the student talks (kind `interim`).
-- **Without headphones**, mute the mic while the tutor speaks (`stt.setMuted(true)` when a `speak` starts) and unmute in `onScriptFinished()` after the last `speak` ends; otherwise the tutor's voice triggers `onSpeechStarted` and cuts itself. **With headphones**, keep it open for barge-in. Offer a "toque para falar" button either way.
+- **Speakers or headphones: keep the mic open while the tutor talks** (D60). `startMic` already asks the browser for echo cancellation. Do **not** cut the tutor on `onSpeechStarted` (it may be the tutor's own voice): cut it when a caption's words differ from what the tutor is saying. `classifyBargeIn({ transcript, kind, tutorText })` from `@mento/voice/client` returns `wait` (fewer than two words in an interim caption), `echo` (≥ 80% of the words are in the tutor's text) or `interrupt`. Ignore a final caption that is `echo`; do not send it as a message. Compare against the tutor's last two lines (the previous line can still leak in for ~1.5 s). Reference: `apps/web/src/app/(student)/session/_components/voice/turnTaking.ts` (`judgeCaption`).
 - `onScriptFinished()`: set the orb to `waiting` if a question is open, else `listening`; unmute the mic.
 
 ## 7. Sending what the student does
@@ -367,7 +367,7 @@ To continue the conversation, keep the same session id, call `POST /api/sessions
 - [ ] Image placeholder shows at once; the picture fades in later without moving the layout (fixed aspect ratio).
 - [ ] `highlight` and `circle_annotate` animate on the right element.
 - [ ] Question card pulses; the next answer goes as `verification_answer`.
-- [ ] Orb: thinking → speaking → listening/waiting; mic muted while the tutor speaks without headphones.
+- [ ] Orb: thinking → speaking → listening/waiting; the tutor is not cut by its own voice on speakers, and is cut by the student's different words.
 - [ ] Interrupting stops audio at once and the tutor continues from there.
 - [ ] A past session re-opens with the same board and transcript.
 - [ ] Continuing history calls `/resume` before the next turn and `/finish` when leaving again.
