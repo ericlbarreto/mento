@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Mento — Plano de Negócios · Desafio 3: IA segura na escola</title>
+<style>
+  @page { size: A4; margin: 19mm 17mm 19mm 17mm;
+    @bottom-left { content: "Mento · Plano de Negócios · Desafio 3 · versão 31/10/2026"; font: 8pt 'Helvetica Neue', Arial, sans-serif; color: #7a84a8; }
+    @bottom-right { content: counter(page); font: 8pt 'Helvetica Neue', Arial, sans-serif; color: #7a84a8; } }
+  @page :first { margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } }
+  :root { --blue:#1E59ED; --navy:#162250; --bg:#F6F1E7; --ink:#1d2540; --mut:#5b6486; --line:#dcd6c6; --ok:#1f8a4c; --warn:#b96a00; --bad:#b3261e; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font: 10pt/1.5 'Helvetica Neue', Arial, sans-serif; color: var(--ink); margin: 0; }
+  h1 { font-size: 19pt; color: var(--navy); margin: 0 0 4mm; letter-spacing: -.3px; break-after: avoid; }
+  h2 { font-size: 12.5pt; color: var(--blue); margin: 6mm 0 2mm; break-after: avoid; }
+  h3 { font-size: 10.5pt; color: var(--navy); margin: 4mm 0 1mm; break-after: avoid; }
+  p { margin: 0 0 2.4mm; } ul { margin: 0 0 2.6mm; padding-left: 5mm; } li { margin-bottom: 1mm; }
+  .sec { break-before: page; }
+  .num { display:inline-block; background: var(--blue); color:#fff; border-radius: 50%; width: 8mm; height: 8mm; line-height: 8mm; text-align:center; font-size: 11pt; margin-right: 3mm; vertical-align: 1px; }
+  .cover { width: 210mm; height: 297mm; background: var(--bg); position: relative; padding: 28mm 24mm; page-break-after: always; }
+  .cover img.logo { width: 62mm; }
+  .cover .kick { margin-top: 40mm; display:table; background: var(--blue); color:#fff; font-weight:700; font-size: 10pt; padding: 1.5mm 4mm; border-radius: 6mm; letter-spacing:.4px; }
+  .cover h1 { font-size: 31pt; line-height: 1.12; margin-top: 8mm; }
+  .cover .sub { font-size: 13pt; color: var(--mut); margin-top: 6mm; max-width: 140mm; }
+  .cover .mascot { position:absolute; right: 18mm; bottom: 44mm; width: 58mm; }
+  .cover .meta { position:absolute; left: 24mm; bottom: 20mm; font-size: 9pt; color: var(--mut); max-width: 150mm; }
+  .cover .bar { position:absolute; left:0; top:0; bottom:0; width: 8mm; background: var(--blue); }
+  table { border-collapse: collapse; width: 100%; margin: 2mm 0 4mm; font-size: 8.8pt; break-inside: avoid; }
+  th { background: var(--navy); color:#fff; text-align:left; padding: 1.6mm 2mm; font-weight:600; }
+  td { padding: 1.5mm 2mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:nth-child(even) td { background: #faf7f0; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  .box { border-left: 3px solid var(--blue); background: #eef3ff; padding: 2.5mm 4mm; margin: 3mm 0 4mm; break-inside: avoid; }
+  .box.warn { border-color: var(--warn); background: #fff4e0; } .box.fill { border-color: var(--bad); background: #fdeceb; } .box.ok { border-color: var(--ok); background: #e9f6ee; }
+  .box b.t { display:block; font-size: 8.5pt; text-transform: uppercase; letter-spacing:.6px; margin-bottom: 1mm; }
+  .tag { display:inline-block; font-size: 7pt; font-weight:700; padding: .3mm 1.6mm; border-radius: 2mm; vertical-align: 1px; color:#fff; letter-spacing:.3px; white-space: nowrap; }
+  .t-ok { background: var(--ok); } .t-as { background: var(--warn); } .t-nv { background: var(--bad); } .t-hp { background: #6b4fd8; } .t-ex { background: #0f7c8a; }
+  .grid3 { display:grid; grid-template-columns: repeat(3,1fr); gap: 3mm; margin: 2mm 0 4mm; }
+  .card { border: 1px solid var(--line); border-radius: 2mm; padding: 3mm; background: #fff; break-inside: avoid; }
+  .card .big { font-size: 21pt; font-weight: 700; color: var(--blue); line-height:1.1; } .card .lbl { font-size: 8.2pt; color: var(--mut); }
+  .card h4 { margin: 0 0 1.5mm; font-size: 10pt; color: var(--navy); }
+  .small { font-size: 8pt; color: var(--mut); } .src { font-size: 7.6pt; color: var(--mut); }
+  figure { margin: 2mm 0 4mm; break-inside: avoid; } figcaption { font-size: 8pt; color: var(--mut); }
+  a { color: var(--blue); text-decoration: none; word-break: break-all; }
+  .toc td { border: none; padding: .9mm 0; background:none !important; } .toc td:last-child { text-align:right; color: var(--mut); }
+  .shot { width: 100%; border: 1px solid var(--line); border-radius: 2mm; box-shadow: 0 1.5mm 4mm rgba(22,34,80,.10); display:block; }
+  .shot.w { width: 76%; margin: 0 auto; }
+  .fig { break-inside: avoid; margin: 0 0 6mm; } .fig .cap { font-size: 8.8pt; color: var(--ink); margin-top: 2mm; } .fig .cap b { color: var(--blue); }
+  .two { display:grid; grid-template-columns: 1fr 1fr; gap: 4mm; } .two .fig { margin-bottom: 2mm; }
+  .note { font-size: 7.8pt; color: var(--mut); font-style: italic; }
+</style>
+</head>
+<body>
+
+<!-- ============ CAPA ============ -->
+<div class="cover">
+  <div class="bar"></div>
+  <img class="logo" src="assets/logo.png" alt="Mento">
+  <div class="kick">DESAFIO 3 · ADOÇÃO SAUDÁVEL DE IA</div>
+  <h1>IA que ensina sem entregar a resposta, e que devolve tempo ao professor.</h1>
+  <div class="sub">Plano de negócios da Mento: tutoria por voz em quadro-branco ao vivo, ancorada nos livros do professor, para o Ensino Fundamental II (6º ao 9º ano), com foco inicial no 7º ao 9º ano e com o professor no controle.</div>
+  <img class="mascot" src="assets/mascot.png" alt="">
+  <div class="meta"><b>Hackathon Teachy &lt;&gt; LEPV 2026 · versão de 31 de outubro de 2026</b><br>Plano de negócios e tese de solução para o Desafio 3. Dados de terceiros trazem a fonte e a data; o que é estimativa nossa está marcado como premissa.</div>
+</div>
+
+<!-- ============ 1 ============ -->
+<h1><span class="num">1</span>Resumo: a resposta da Mento ao Desafio 3</h1>
+<div class="box"><b class="t">O desafio (Teachy)</b>“Como podemos ajudar professores, estudantes e escolas a usarem IA no dia a dia de forma <b>segura</b>, <b>economizando tempo</b> e <b>preservando a aprendizagem</b>?”</div>
+<p><b>A Mento é um tutor de IA que ensina em vez de responder.</b> O professor envia seus livros (PDF) e descreve a turma. O aluno conversa por voz com um tutor que escreve, desenha e circula ao vivo no quadro, ensina em passos pequenos, dá <b>pistas em vez da resposta</b>, verifica o que o aluno entendeu e <b>cita a página do livro do professor</b>. Cada conversa vira, sem trabalho extra, um <b>diagnóstico por conceito</b> para o professor, que decide o que fazer.</p>
+<table>
+<tr><th style="width:34mm">Pilar do desafio</th><th>Como a Mento resolve</th></tr>
+<tr><td><b>Preserva a aprendizagem</b><br><span class="small">lado do aluno</span></td><td>Tutor socrático: uma pergunta a cada resposta, <b>pistas em 3 níveis</b> em vez da solução, “explique com suas palavras”, perguntas novas de verificação. O aluno trabalha; o tutor guia.</td></tr>
+<tr><td><b>Segurança</b><br><span class="small">aluno e escola</span></td><td>Responde a partir do <b>livro do professor</b>, com <b>citação validada</b> contra o texto; avisa quando sai do material; não faz inferência psicológica; o professor vê tudo e <b>decide</b>.</td></tr>
+<tr><td><b>Economiza tempo</b><br><span class="small">lado do professor</span></td><td>A dúvida individual vai para o tutor; a conversa vira <b>diagnóstico automático</b> (conceito, lição de origem, próximo passo) e a <b>lista de exercícios sai do livro</b> em um clique.</td></tr>
+</table>
+<div class="grid3">
+  <div class="card"><div class="big">39%</div><div class="lbl">dos alunos dos anos finais já usam IA para pesquisar na escola (Cetic.br, 2024)</div></div>
+  <div class="card"><div class="big">78%</div><div class="lbl">das escolas não têm nenhum guia para o uso de IA (Cetic.br, 2025)</div></div>
+  <div class="card"><div class="big">15,4 h</div><div class="lbl">por semana que o professor gasta só preparando aula e corrigindo (TALIS 2024)</div></div>
+</div>
+<p>O aluno já usa IA, a escola não tem regra e o professor não tem tempo. A Mento é a IA que a escola pode adotar: <b>desenhada para ensinar, ancorada no que o professor ensina e sob o controle dele</b>.</p>
+
+<!-- ============ 2 ============ -->
+<div class="sec">
+<h1><span class="num">2</span>O problema, com dados</h1>
+<p>Os números abaixo vêm do material do desafio (Teachy, 2026) e das fontes originais que ele cita. A IA já entrou na escola, mas <b>sem orientação e sem desenho pedagógico</b>. Por isso a pergunta de segurança, aqui, é pedagógica: <b>como garantir que o aluno aprendeu certo?</b> Para garantir, três peças precisam se encontrar: o que a escola ensina, quem é o aluno e o que ele já entendeu, e o que o professor enxerga. Hoje cada uma mora num lugar.</p>
+
+<h2>Lado do aluno: usa IA, mas a IA pode atrapalhar o aprendizado</h2>
+<table>
+<tr><th>Dado</th><th class="n">Valor</th><th>Fonte</th></tr>
+<tr><td>Alunos dos <b>anos finais</b> do fundamental que usam IA generativa para pesquisas escolares</td><td class="n"><b>39%</b></td><td>Cetic.br, TIC Educação 2024 <span class="tag t-ex">DESAFIO 3</span></td></tr>
+<tr><td>Alunos do ensino médio que usam IA para pesquisas escolares</td><td class="n"><b>70%</b></td><td>Cetic.br, TIC Educação 2024 <span class="tag t-ex">DESAFIO 3</span></td></tr>
+<tr><td>Queda no desempenho em prova <b>sem IA</b> de quem praticou com um chatbot <b>sem proteções</b></td><td class="n"><b>−17%</b></td><td>Bastani et al., PNAS 2025 (≈ mil alunos, matemática, Turquia). O tutor com orientações pedagógicas <b>mitigou</b> o prejuízo <span class="tag t-ex">DESAFIO 3</span></td></tr>
+<tr><td>Mesmo estudo: na prática com IA, as notas subiram 48% (chatbot) e 127% (tutor com guarda-corpos); na prova sem IA, o chatbot piorou e o tutor ficou neutro</td><td class="n">48% / 127%</td><td>Preprint SSRN 2024 e cobertura da Wharton</td></tr>
+<tr><td>Alunos de 15 anos abaixo do nível básico em matemática</td><td class="n"><b>72–73%</b></td><td>OCDE/Inep, PISA 2025 (o material do desafio traz 72% e 73% em páginas diferentes) <span class="tag t-ex">DESAFIO 3</span></td></tr>
+<tr><td>Alunos que usaram IA em atividades escolares e receberam orientação de um professor</td><td class="n">37% usaram; 19% orientados</td><td>Reportagem de nov/2025 sobre o Cetic.br</td></tr>
+</table>
+
+<h2>Lado do professor: sem tempo, e a IA ainda é uma promessa</h2>
+<table>
+<tr><th>Dado</th><th class="n">Valor</th><th>Fonte</th></tr>
+<tr><td>Horas por semana preparando aulas e corrigindo (anos finais, tempo integral)</td><td class="n"><b>15,4 h</b> (OCDE: 12 h)</td><td>OCDE/Inep, TALIS 2024 <span class="tag t-ex">DESAFIO 3</span></td></tr>
+<tr><td>Só de correção de provas e tarefas</td><td class="n"><b>6,1 h</b> (OCDE: 4,6 h)</td><td>TALIS 2024 <span class="tag t-ex">DESAFIO 3</span></td></tr>
+<tr><td>Professores que citam o excesso de correção como fonte importante de estresse</td><td class="n"><b>60%</b></td><td>TALIS 2024 <span class="tag t-ex">DESAFIO 3</span></td></tr>
+<tr><td>Tempo de aula gasto em manter a ordem</td><td class="n"><b>21%</b> (OCDE: 15%)</td><td>TALIS 2024 <span class="tag t-ex">DESAFIO 3</span></td></tr>
+<tr><td>Professores que usam alguma IA semanalmente</td><td class="n"><b>30%</b></td><td>Cetic.br (2025), Pew (2026), Gallup (2025) <span class="tag t-ex">DESAFIO 3</span></td></tr>
+<tr><td>Horas economizadas por semana por quem usa IA toda semana (professores de escolas públicas dos EUA, autorrelato)</td><td class="n"><b>5,9 h</b></td><td>Gallup / Walton Family Foundation, 2025 <span class="tag t-ex">DESAFIO 3</span> — dado dos EUA, não do Brasil</td></tr>
+</table>
+
+<h2>Lado da escola: usa, mas sem regra</h2>
+<table>
+<tr><th>Dado</th><th class="n">Valor</th><th>Fonte</th></tr>
+<tr><td>Escolas <b>sem</b> guia formal para uso de IA no ensino, na aprendizagem ou na gestão</td><td class="n"><b>78%</b></td><td>Cetic.br, TIC Educação 2025, indicador E5A <span class="tag t-ex">DESAFIO 3</span></td></tr>
+<tr><td>Escolas que liberam o uso de IA pelos alunos em atividades educacionais (particulares: 31%)</td><td class="n">37%</td><td>Cetic.br, TIC Educação 2025, via <a href="https://fastcompanybrasil.com/tech/so-37-das-escolas-liberam-ia-para-alunos-mas-53-dos-gestores-ja-usam/">Fast Company Brasil</a></td></tr>
+</table>
+<div class="box"><b class="t">Leitura: ninguém consegue garantir que o aluno aprendeu certo</b>O aluno <b>já usa</b> IA (39% nos anos finais), mas a IA responde sobre qualquer coisa, sem saber o que a escola ensina nem quem é o aluno, e o único experimento controlado do material do desafio mostra que o <b>desenho da ferramenta decide</b> se ela ajuda ou atrapalha (−17% na prova sem IA). A maioria das escolas <b>não tem regra</b> (78%) e só uma parte dos alunos que usam IA recebe orientação de um professor. O professor <b>não tem tempo</b> (15,4 h por semana só em preparar e corrigir) e <b>não vê a conversa</b>. Os dados estão <b>espalhados</b>: o livro num lugar, a nota em outro, a dúvida do aluno em lugar nenhum. A pergunta certa não é “usar ou não usar IA”, e sim: <b>como garantir aprendizagem assertiva quando as peças estão separadas?</b> É daí que parte a solução.</div>
+</div>
+
+<!-- ============ 3 ============ -->
+<div class="sec">
+<h1><span class="num">3</span>Como a Mento resolve: do problema ao produto</h1>
+<p>Cada linha liga um problema dos dados da seção 2 a uma decisão de produto e ao que a evidência diz. As telas correspondentes estão na seção 4.</p>
+<table>
+<tr><th style="width:30mm">Problema (dado)</th><th>O que a Mento faz</th><th style="width:44mm">Por que funciona (evidência)</th></tr>
+<tr><td><b>A IA vira muleta</b> e piora a prova (−17%)</td><td>O tutor <b>dá pista, não a resposta</b>: 3 níveis de pista (empurrãozinho, afunilar, quase a resposta); toda fala termina em <b>uma pergunta</b>; a cada 2–3 respostas pede “explique para um colega” ou “aplique a um caso novo”.</td><td>Bastani 2025: o tutor com orientações pedagógicas mitigou o dano do chatbot. Harvard (Kestin et al. 2025): tutor estruturado superou a aula ativa em física <sup>1</sup></td></tr>
+<tr><td><b>Alucinação e conteúdo fora do currículo</b></td><td>Ensina com trechos do <b>livro do professor</b> (busca por significado e por texto), com <b>citação (livro, página, trecho) validada</b>; se sai do material, avisa o aluno.</td><td>Ancoragem no material que o professor escolheu: o professor sabe o que a IA ensina</td></tr>
+<tr><td><b>Escola sem regra</b> (78%)</td><td>O professor define livros e contexto da turma, vê o que cada aluno entendeu e <b>dispensa</b> o que não concorda. A IA nunca aprova, reprova ou rotula o aluno.</td><td>Governança por desenho: a regra está no produto, não num documento que ninguém lê</td></tr>
+<tr><td><b>Privacidade de menores</b></td><td>Sem inferências psicológicas nem “estilos de aprendizagem”; dados pessoais nunca vão ao modelo; memória no banco da escola, corrigível e apagável; arquitetura compatível com retenção zero.</td><td>LGPD (Lei 13.709/2018, art. 14: melhor interesse da criança e do adolescente)</td></tr>
+<tr><td><b>Professor sem tempo</b> (15,4 h; 6,1 h só corrigindo)</td><td>(1) o aluno tira dúvidas com o tutor <b>fora da aula</b>; (2) <b>diagnóstico automático</b>: conceito, estágio (em observação, lacuna, persistente), lição de origem e próximo passo; (3) <b>lista de exercícios</b> (3 de múltipla escolha e 2 abertas) <b>gerada do livro</b> para o tópico em que a turma trava.</td><td>Ciclo diagnosticar → recomendar → agir → medir de novo: feedback rápido antecipa ≈ 6 meses de progresso (EEF) <sup>2</sup></td></tr>
+<tr><td><b>“Uma nota sozinha não mostra onde o aluno travou”</b></td><td>Evidência por conceito (acertou, em parte, errou; pistas usadas) em vez de só nota; gravidade e confiança por <b>regras auditáveis</b>, não pela opinião do modelo.</td><td>Material do desafio, seção “Insights e diagnóstico”</td></tr>
+<tr><td><b>Engajamento</b> (24% citam aulas pouco interessantes; Datafolha 2026)</td><td>Quadro vivo: o tutor <b>desenha e circula</b> enquanto fala; o aluno clica num ponto do quadro e pergunta; resposta por voz em ~2 s.</td><td>Harvard 2025: alunos relataram mais engajamento (estudo pequeno e de curto prazo) <sup>1</sup></td></tr>
+</table>
+<p class="src">1. Kestin, Miller et al., <i>Scientific Reports</i>, jun/2025: 194 estudantes de física em Harvard, ensaio cruzado; 2 tópicos, teste de curto prazo; os autores não afirmam que o tutor vença a aula ativa em todos os contextos. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12179260/">PMC12179260</a>. &nbsp; 2. EEF, <i>Teaching and Learning Toolkit — Feedback</i>, via material do desafio.</p>
+</div>
+
+<!-- ============ 4 ============ -->
+<div class="sec">
+<h1><span class="num">4</span>A plataforma em ação: como cada problema é resolvido</h1>
+<h2>Lado do aluno</h2>
+<div class="fig"><img class="shot w" src="assets/screens/aluno-matematica.jpg" alt=""><div class="cap"><b>Preserva a aprendizagem e a segurança.</b> O tutor desenha o gráfico das duas retas, <b>circula o ponto (7, 3)</b> e confere com as contas; cita <b>“Livro · p.18”</b> (chip de fonte) e termina com uma pergunta para o aluno pensar: “se as duas retas fossem paralelas, elas teriam algum ponto em comum?”. Não entrega a resposta.</div></div><div class="fig"><img class="shot w" src="assets/screens/aluno-roma.jpg" alt=""><div class="cap"><b>Ensino visual com fonte.</b> História, 8º ano: o tutor escreve só o essencial no quadro, <b>circula os termos</b> que está explicando (República × Império), marca com <b>“Fora do material”</b> o que não vem do livro e cita <b>“Livro · p.425”</b>. A conversa fica registrada à direita e o aluno pode interromper ou escrever a qualquer momento.</div></div>
+<h2 style="margin-top:2mm">Lado do professor</h2>
+<div class="fig"><img class="shot w" src="assets/screens/prof-painel.jpg" alt=""><div class="cap"><b>Economiza tempo.</b> Sem o professor fazer nada, a conversa do aluno vira o painel da turma: <b>tópicos com mais dificuldade</b>, quem está com cada lacuna e o estágio (<i>Lacuna</i>, <i>Em observação</i>), com a página do livro onde começar, e uma <b>intervenção para a próxima aula</b> que o professor pode <b>dispensar</b>. O painel mostra o que o aluno entendeu, “sem nota e sem ranking”.</div></div><div class="fig"><img class="shot w" src="assets/screens/prof-aluno.jpg" alt=""><div class="cap"><b>Diagnóstico por aluno.</b> Para cada lacuna: a explicação do diagnóstico, a <b>lição de origem</b> (“provavelmente a origem está em Formas de governo, lição 2, páginas 20–25”), a confiança e “pode começar em…”, mais o domínio por conceito conversa a conversa. É a diferença entre saber que o aluno foi mal e saber <b>por quê</b>.</div></div>
+<p class="note">Telas da plataforma em 31/10/2026, com alunos de demonstração (fictícios, “Ana Souza” e colegas); nenhum aluno real usou o sistema.</p>
+</div>
+<h2 style="margin-top:2mm">Configuração e materiais</h2>
+<div class="two">
+<div class="fig"><img class="shot" src="assets/screens/aluno-inicio.jpg" alt=""><div class="cap"><b>Entrada do aluno.</b> Um companheiro de estudos com IA pedagógica: conversar por voz ou escolher um caderno de estudo da série, com o material do professor.</div></div><div class="fig"><img class="shot" src="assets/screens/prof-materiais.jpg" alt=""><div class="cap"><b>Materiais do professor.</b> Ele envia o PDF; o tutor passa a explicar e citar a página exata. As listas de exercícios geradas ficam aqui.</div></div>
+</div>
+</div>
+
+<!-- ============ 5 ============ -->
+<div class="sec">
+<h1><span class="num">5</span>Como vamos provar que resolve: o piloto</h1>
+<p>O desafio pede que a IA economize tempo <b>e</b> preserve a aprendizagem. O piloto mede os dois lados e a segurança, com critérios definidos <b>antes</b> de começar. Se o resultado for fraco, publicamos mesmo assim.</p>
+<h3>Desenho (hipótese de trabalho)</h3>
+<ul>
+<li>1 escola privada do 7º ao 9º ano, 1 disciplina, 2–4 turmas; 6–8 semanas; <b>turmas de comparação</b> sem a Mento (ou entrada escalonada).</li>
+<li>Antes de qualquer aluno real usar: base legal LGPD, consentimento dos responsáveis, revisão jurídica e professor treinado.</li>
+</ul>
+<table>
+<tr><th style="width:26mm">Pilar</th><th>O que medimos</th><th>Como</th><th>Sucesso se…</th></tr>
+<tr><td><b>Aprendizagem</b></td><td>Desempenho em prova <b>sem IA</b>, antes e depois; retenção após 4 semanas</td><td>Questões equivalentes (mesmo desenho do estudo de Bastani), aplicadas pela escola; análise por turma</td><td>Mento &gt; comparação, e <b>nunca pior</b> (sem o efeito “muleta”)</td></tr>
+<tr><td><b>Tempo do professor</b></td><td>Horas por semana em correção, preparo e retomada; tempo até identificar a lacuna de um aluno</td><td>Questionário antes/depois com itens do TALIS; diário de tempo em 2 semanas; registro de uso do painel</td><td>Redução medida [meta a definir com a escola]</td></tr>
+<tr><td><b>Segurança</b></td><td>% de respostas com citação válida; % de trechos “fora do material” sinalizados; incidentes de conteúdo; vezes em que o tutor entregou a resposta direta</td><td>Registros automáticos do sistema; revisão por amostra de conversas por um pedagogo</td><td>Zero incidentes graves; citação válida ≈ 100%</td></tr>
+<tr><td><b>Adoção</b></td><td>Alunos ativos por semana; sessões por aluno; % de lacunas que o professor adota ou descarta</td><td>Registros do sistema</td><td>Uso sustentado sem incentivo extra</td></tr>
+</table>
+<div class="box ok"><b class="t">Por que este piloto responde ao desafio</b>Ele mede exatamente o que o desafio pede: <b>aprendizagem preservada</b> (nota sem IA, o ponto fraco do chatbot comum), <b>tempo devolvido ao professor</b> e <b>segurança</b> das respostas, com o professor no controle. Preço e modelo comercial só serão definidos com esses dados.</div>
+</div>
+
+<!-- ============ 6 ============ -->
+<div class="sec">
+<h1><span class="num">6</span>Mercado, concorrência e caminho até as escolas</h1>
+<h2>Quem é o cliente <span class="tag t-hp">HIPÓTESE</span></h2>
+<p>Escolas privadas com 7º, 8º e 9º ano, começando pelo Recife: coordenação pedagógica compra, professor usa, aluno aprende. Escolas públicas ficam para depois (licitação, conectividade e dispositivos exigem estratégia própria).</p>
+<h2>Tamanho do mercado (conta simples, em alunos)</h2>
+<table>
+<tr><th>Passo</th><th class="n">Valor</th><th>Base</th></tr>
+<tr><td>Matrículas no ensino fundamental, Brasil, 2024</td><td class="n">≈ 26 milhões</td><td>Inep, Notas Estatísticas do Censo da Educação Básica 2024 <span class="tag t-ok">FONTE</span></td></tr>
+<tr><td>Foco 7º a 9º ano (≈ 43% do fundamental são anos finais, do 6º ao 9º; 3/4 deles)</td><td class="n">≈ 8,4 milhões</td><td><span class="tag t-as">PREMISSA</span> — trocar pelo número da sinopse do Inep</td></tr>
+<tr><td>Na rede privada (≈ 16,3% dos anos finais, Censo 2023)</td><td class="n">≈ 1,4 milhão</td><td>Imprensa sobre o Censo 2023</td></tr>
+</table>
+<p class="small">Sem preço, não calculamos valor em reais: não há dado para isso. O número de alunos mostra o tamanho do problema, não de receita.</p>
+<h2>Concorrência: soluções pontuais x uma plataforma centralizada</h2>
+<p>Hoje a escola e o aluno juntam peças soltas: um assistente geral para tirar dúvidas, um app de flashcards, uma plataforma de planejamento, um quadro-branco. Cada uma resolve <b>um</b> problema, e quem faz a ponte entre elas é o professor, na mão. A Mento é <b>geral por desenho</b>: centraliza <b>alunos, professores, turmas, materiais e conversas</b> num só lugar, e é isso que a torna mais assertiva.</p>
+<table>
+<tr><th style="width:36mm">Categoria</th><th>Exemplos</th><th>Como funciona hoje</th><th>O que a Mento centraliza</th></tr>
+<tr><td>Assistentes gerais</td><td>ChatGPT, Gemini, Claude</td><td>O aluno arrasta o PDF ou cola o texto <b>a cada conversa</b> e explica a série de novo; a IA não conhece a turma nem o que o professor ensinou</td><td>Os livros do professor já estão na plataforma; o tutor conhece a série, a turma e o histórico do aluno, sem arrastar documento nenhum</td></tr>
+<tr><td>Quadro-branco e tutores pessoais</td><td>Gauth, Studdy, Khanmigo</td><td>Explicam bem, mas cada sessão é uma ilha, sem ligação com o currículo da escola</td><td>O quadro é parte do ciclo: professor → material → aluno → evidência → professor</td></tr>
+<tr><td>Materiais viram estudo</td><td>StudyFetch, Quizlet, Gizmo</td><td>Cada estudante sobe o próprio material e gera flashcards e quizzes</td><td>O material é institucional: o professor sobe uma vez e a turma inteira estuda com ele, com a página citada</td></tr>
+<tr><td>IA para escolas e professores</td><td>Teachy, Flint, Lyceum</td><td>Planejamento, atividades e acompanhamento para o professor, com tutoria em graus variados</td><td>Tutoria ao vivo por voz no quadro <b>e</b> diagnóstico por conceito no mesmo lugar; complementar a plataformas como a Teachy</td></tr>
+</table>
+<div class="box"><b class="t">Por que centralizar é mais assertivo</b>
+(1) <b>Contexto pronto:</b> o tutor já sabe a série, as características da turma e os livros do professor, então a explicação nasce no nível certo. (2) <b>Um só lugar:</b> aluno, professor e material compartilham a mesma base; nada de arrastar documento nem reexplicar. (3) <b>Ciclo fechado:</b> o que o aluno aprende vira diagnóstico para o professor, e as lacunas abertas voltam para o tutor na próxima conversa. (4) <b>Resolve vários problemas de uma vez</b> (dúvida individual, segurança, tempo de correção, visão da turma) em vez de um quadro-branco genérico que resolve um só.</div>
+</div>
+
+<h2>Referência: o tutor de IA que o Y Combinator quer financiar</h2>
+<div class="box"><b class="t">YC, Requests for Startups, outono de 2026: “The Primer”</b>O YC incluiu entre as ideias que quer financiar um <b>tutor de IA adaptativo</b>, inspirado em <i>A Era do Diamante</i> (Neal Stephenson), proposto por Andrew Miklas: dar a cada criança um tutor paciente que cresce com ela, começando por leitura, escrita e aritmética, <b>apoiando os professores, não os substituindo</b>. A premissa do pedido é que a tutoria individual de qualidade nunca escalou e que os modelos atuais tornam isso plausível. A Mento aplica a mesma tese ao <b>Ensino Fundamental II dentro da escola</b>, com o material e o controle do professor. <span class="small">Fonte: resumos da imprensa especializada (<a href="https://explainx.ai/blog/yc-requests-for-startups-fall-2026">explainx.ai</a>, <a href="https://www.ibtimes.sg/A000Ncu">IBTimes</a>). Referência de categoria, não um endosso do YC à Mento.</span></div>
+</div>
+
+<!-- ============ 7 ============ -->
+<div class="sec">
+<h1><span class="num">7</span>Roadmap: o que vem em seguida</h1>
+<p>A base já existe: um espaço do professor com <b>contexto da turma</b>, <b>alunos</b>, <b>matérias e materiais</b>, o tutor por voz e o ciclo de diagnóstico. Simplificamos de propósito a configuração da escola para chegar rápido ao que importa, que é o aluno aprendendo. O próximo passo é completar a <b>configuração essencial da escola</b>.</p>
+<table>
+<tr><th style="width:30mm">Etapa</th><th>O que entra</th><th style="width:52mm">Em que se baseia (já existe)</th></tr>
+<tr><td><b>1. Configuração da escola</b><br><span class="small">próximo</span></td><td><b>Turmas</b> (várias por professor e por série), <b>séries e grade curricular</b> (matérias por série), <b>cadastro e importação de alunos</b> (planilha), <b>contas e acesso</b> de professor, aluno e coordenação, consentimento dos responsáveis.</td><td>Hoje: uma turma com contexto (“8º ano”), alunos e matérias simples; o tutor já usa a série e as características da turma</td></tr>
+<tr><td><b>2. Mais matérias e materiais</b></td><td>Matemática, Português e Ciências com o mesmo rigor de citação; livros escaneados; upload pelo professor com sequência de lições.</td><td>Já existem matérias, upload de PDF, citação por página e sequência de lições com pré-requisitos</td></tr>
+<tr><td><b>3. Visão da escola</b></td><td>Painel de coordenação: lacunas por turma e por série, evolução ao longo do bimestre, relatório para as famílias.</td><td>O painel do professor já agrupa lacunas por tópico e mostra intervenções para a aula</td></tr>
+<tr><td><b>4. Piloto e evidência</b></td><td>Piloto de 6–8 semanas numa escola, com os critérios da seção 5; publicação aberta dos resultados.</td><td>Registros automáticos de citação, pistas e uso já alimentam as métricas</td></tr>
+<tr><td><b>5. Integrações e escala</b></td><td>Integração com plataformas de planejamento e gestão (ex.: Teachy), regras de uso de IA da escola, novas séries e redes.</td><td>Contratos de dados e regras de diagnóstico independentes de provedor</td></tr>
+</table>
+<h2>Caminho até as escolas</h2>
+<ul>
+<li><b>Agora:</b> mostrar a plataforma à Teachy e aos jurados; 15–20 entrevistas com coordenadores e professores do 7º ao 9º ano; reunir cartas de intenção para o piloto.</li>
+<li><b>Depois:</b> piloto numa escola privada do Recife; em seguida, indicação entre escolas e parcerias. Escolas públicas exigem estratégia própria (licitação, dispositivos, conectividade).</li>
+</ul>
+
+<h1 style="margin-top:8mm"><span class="num">8</span>Equipe, tração e pedido</h1>
+<div class="box fill"><b class="t">A preencher pela equipe</b>
+<b>Equipe</b> (nomes, cargos, experiência, dedicação): o repositório mostra três pessoas — Eric Barreto (back-end do tutor, voz e recuperação), Robério Filho (front-end e design) e Mateus Ataide (painel do professor e insights) <i>[confirmar e completar]</i>.<br>
+<b>Tração real</b> (entrevistas, cartas de intenção, escolas conversadas): [PREENCHER].<br>
+<b>O que pedimos neste momento</b> (parceria para o piloto, mentoria pedagógica, conversa com a Teachy, ou investimento de R$ [VALOR]): [PREENCHER].</div>
+</div>
+
+<!-- ============ ANEXOS ============ -->
+<div class="sec">
+<h1>Anexo A — Fontes (consultadas em 31/10/2026)</h1>
+<ul class="src">
+<li><b>Material do desafio:</b> Teachy &amp; LEPV, <i>Hackathon Teachy &lt;&gt; LEPV 2026 — Desafios da educação brasileira</i> (46 páginas; Desafio 3 nas páginas 22–30). Dados de terceiros citados por ele: Cetic.br TIC Educação 2024 e 2025; OCDE/Inep TALIS 2024 e PISA 2025; Gallup/Walton Family Foundation 2025; Pew Research 2026; Bastani et al., PNAS 2025; EEF <i>Teaching and Learning Toolkit — Feedback</i>.</li>
+<li>Bastani et al., “Generative AI without guardrails can harm learning: Evidence from high school mathematics”, PNAS 122, 2025 — <a href="https://papers.ssrn.com/abstract=4895486">preprint SSRN</a>; <a href="https://knowledge.wharton.upenn.edu/article/without-guardrails-generative-ai-can-harm-education">Wharton</a>. Os percentuais 48%/127% e −17% vêm do preprint de 2024 e da cobertura da Wharton.</li>
+<li>Kestin, Miller et al., “AI tutoring outperforms in-class active learning”, <i>Scientific Reports</i>, 2025 (DOI 10.1038/s41598-025-97652-6) — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12179260/">PMC12179260</a>. Estudo pequeno, de curto prazo, em Harvard.</li>
+<li>Banco Mundial, avaliação aleatória de tutoria com IA em Edo (Nigéria): <a href="https://blogs.worldbank.org/en/education/From-chalkboards-to-chatbots-Transforming-learning-in-Nigeria">blog do Banco Mundial</a>. Citado só como contexto de que tutoria com IA bem desenhada pode funcionar em países em desenvolvimento; tamanho do efeito <b>não</b> usado aqui por divergência entre versões.</li>
+<li>Cetic.br, TIC Educação 2025, via <a href="https://fastcompanybrasil.com/tech/so-37-das-escolas-liberam-ia-para-alunos-mas-53-dos-gestores-ja-usam/">Fast Company Brasil</a> (37% das escolas liberam IA; 31% nas particulares).</li>
+<li>Inep, <a href="https://cefort.ufam.edu.br/repositoriocp/wp-content/uploads/tainacan-items/71/3943/notas_estatisticas_censo_da_educacao_basica_2024.pdf">Notas Estatísticas do Censo da Educação Básica 2024</a> (≈ 26 mi no fundamental); rede privada 16,3% dos anos finais (Censo 2023, via <a href="https://sbtnews.sbt.com.br/noticia/brasil/quase-9-milhoes-de-brasileiros-de-18-a-29-anos-nao-concluiram-a-educacao-basica-aponta-censo-escolar-2023">SBT News</a>).</li>
+<li>Estrutura de memorando de investimento esperada por VCs: <a href="https://www.goingvc.com/post/whats-inside-an-early-stage-vc-investment-memo">GoingVC</a>, <a href="https://aspireapp.com/blog/investment-memorandum">Aspire</a>, <a href="https://carta.com/uk/en/learn/private-funds/management/portfolio-management/investment-memo/">Carta</a>; Paul Graham, <a href="https://paulgraham.com/investors.html">How to Present to Investors</a>. São guias de vendors e blogs, não pesquisas com investidores.</li>
+<li>Y Combinator, Requests for Startups, outono de 2026 (“The Primer”): <a href="https://explainx.ai/blog/yc-requests-for-startups-fall-2026">explainx.ai</a>, <a href="https://www.ibtimes.sg/A000Ncu">IBTimes</a> (resumos; conferir em ycombinator.com/rfs).</li>
+<li>Repositório Mento: <code>prompts/base.md</code> (pistas, verificação, aviso fora do material), <code>docs/10-decisions.md</code> (D55–D74), hand-off do back-end de 30/10/2026 (latência), <code>docs/08-privacy-zdr-security.md</code>.</li>
+</ul>
+<h1 style="margin-top:7mm">Anexo B — Premissas e notas sobre os dados</h1>
+<ul>
+<li>Parcela dos anos finais (43%) e 3/4 para 7º–9º: premissas; trocar pela sinopse do Inep. Rede privada 16,3%: dado de 2023 de imprensa.</li>
+<li>Gallup 5,9 h/semana: professores dos EUA, autorrelato; <b>não</b> é evidência sobre o Brasil nem sobre a Mento.</li>
+<li>PISA 2025 aparece como 72% e 73% no material do desafio; conferir na OCDE/Inep antes de citar.</li>
+<li>Comparação com outras soluções: baseada em informações públicas de cada produto (sites e comunicados, 2026).</li>
+<li>Marca “Mento” (INPI) e regras de propriedade intelectual do hackathon: a confirmar pela equipe.</li>
+<li>As telas usam alunos de demonstração (fictícios).</li>
+</ul>
+<h1 style="margin-top:7mm">Anexo C — O que só a equipe pode preencher</h1>
+<ul><li>Equipe (nomes, cargos, experiência, dedicação, sociedade) · tração real · pedido (parceria, mentoria ou valor de investimento) · contato · regras de IP do hackathon.</li></ul>
+</div>
+
+</body>
+</html>

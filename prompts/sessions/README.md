@@ -7,6 +7,7 @@
 | [`01-teacher-interface/`](01-teacher-interface/README.md) | **Person 1** | Teacher interface + data + materials + insights | `workstreams/01-teacher-interface.md` |
 | [`02-whiteboard-frontend/`](02-whiteboard-frontend/README.md) | **Person 2** | Whiteboard front-end (+ design system) | `workstreams/02-whiteboard-frontend.md` |
 | [`03-whiteboard-backend/`](03-whiteboard-backend/README.md) | **Person 3** | Whiteboard back-end (tutor, STT/TTS, orchestration) | `workstreams/03-whiteboard-backend.md` |
+| [`04-business-plan/`](04-business-plan/README.md) | Founder | Investor business plan (PDF) and 5-minute pitch | `docs/business-plan/` |
 
 ## Each folder contains
 
