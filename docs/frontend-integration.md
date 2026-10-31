@@ -207,7 +207,7 @@ const stt = useStt({
 // stt.start(), stt.stop(), stt.setMuted(true | false), stt.caption (SttCaption: interim/final text + word timings), stt.state
 ```
 
-`SttCaption` = `{ kind: "interim" | "final", text, words: [{ word, start_ms, end_ms, confidence }], speech_final }`: show the interim text live, send the final one. Mute the mic while the tutor speaks and unmute after `script_done` + the last `speak` (headphones recommended: the tutor's voice must not trigger `SpeechStarted`). Errors: 503 `voice_unavailable` (no Deepgram key). **Known issue (2026-10-30): the current Deepgram key cannot mint tokens (HTTP 403 → the API answers 500); it needs the Member role.**
+`SttCaption` = `{ kind: "interim" | "final", text, words: [{ word, start_ms, end_ms, confidence }], speech_final }`: show the interim text live, send the final one. Mute the mic while the tutor speaks and unmute after `script_done` + the last `speak` (headphones recommended: the tutor's voice must not trigger `SpeechStarted`). Errors: 503 `voice_unavailable` (no Deepgram key). Token minting works with a Deepgram key that has the Member role (verified 2026-10-30).
 
 ### Tutor speech (TTS): `GET /api/tts/:action_id`
 
