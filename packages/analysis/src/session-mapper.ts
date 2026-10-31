@@ -105,6 +105,7 @@ export function toSessionBundle(raw: { session: StoredSession; events: StoredEve
     student_id: raw.session.student_id,
     material_id: materialId,
     lesson_id: lessonId,
+    ...(raw.session.subject_id !== undefined ? { subject_id: raw.session.subject_id } : {}),
     ...(raw.session.topic || raw.session.title ? { topic: (raw.session.topic ?? raw.session.title) as string } : {}),
     modality: raw.session.modality,
     status: raw.session.ended_at ? "ended" : "active",
