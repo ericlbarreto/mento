@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ClassAnalysis } from "./_components/ClassAnalysis";
-import { ClassContextCard } from "./_components/ClassContextCard";
 import { IconBook, IconChevronRight, IconFlag, IconLightbulb, IconSearch, IconShield, IconUsers } from "./_components/icons";
 import { ErrorBlock, LoadingBlock } from "./_components/LoadState";
 import { Avatar, Card, Chip, MetricCard } from "./_components/ui";
@@ -165,10 +164,6 @@ export default function StudentsTab() {
             />
             <MetricCard label="Sugestões de mediação" value={stats.suggestions} unit="para decidir" note="passos propostos pela análise" icon={<IconLightbulb size={18} />} tone="warn" />
           </section>
-
-          <div className="mb-8">
-            <ClassContextCard />
-          </div>
 
           <div className="mb-12">
             <ClassAnalysis />
