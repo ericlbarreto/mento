@@ -7,7 +7,7 @@ const { dbName, close } = await openRepo(args);
 try {
   const db = mongoose.connection.db!;
   console.log(`database "${dbName}"`);
-  for (const name of ["students", "classcontexts", "teachermaterials", "teacherchunks", "analyses", "insights"]) {
+  for (const name of ["students", "classcontexts", "subjects", "materials", "chunks", "analyses", "insights"]) {
     console.log(`  ${name.padEnd(14)} ${await db.collection(name).countDocuments()}`);
   }
   const bySeverity = await db.collection("insights").aggregate([{ $group: { _id: { kind: "$kind", severity: "$severity", status: "$status" }, n: { $sum: 1 } } }]).toArray();

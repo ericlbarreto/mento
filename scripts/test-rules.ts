@@ -26,10 +26,12 @@ const RULES: Record<string, string> = {
   "BR-18": "Overview metrics match a recount",
   "BR-19": "Student views: profile, history, insights table, evolution",
   "BR-20": "Seeds are idempotent and reset only teacher collections",
-  "BR-21": "Material upload validation (415, 413, 400, duplicate)",
-  "BR-22": "Ingestion status: queued, processing n/N, ready/failed, recovery",
-  "BR-23": "Chunks, Portuguese search and citation validation",
-  "BR-24": "Lesson sequence extraction and fallback",
+  "BR-21": "Upload of a PDF for a subject: validation (400, 404, 413, 415, 503), duplicate",
+  "BR-22": "Ingestion status: extracting, embedding, ready/failed, recovery without duplicates",
+  "BR-23": "Embedded passages for the tutor's retriever and citation validation",
+  "BR-24": "Chapters and lesson sequence extraction and fallback",
+  "BR-25": "The uploaded material reaches the whiteboard: hidden while processing, then in the subject, catalog and search",
+  "BR-26": "Fixtures stay out of the tutor's way; whiteboard-ingested materials read fine",
 };
 
 const dir = mkdtempSync(join(tmpdir(), "mento-rules-"));

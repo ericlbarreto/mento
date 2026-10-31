@@ -1,27 +1,18 @@
 import mongoose from "mongoose";
 import {
+  Material,
   MaterialInput,
   StudentInput,
-  normalizeConcept,
   type Analysis,
   type AnalysisRecord,
-  type TextChunk,
   type ClassContext,
   type Insight,
   type InsightDraft,
   type InsightFilter,
-  type Material,
   type Student,
   type TeacherRepository,
 } from "@mento/contracts";
-import {
-  AnalysisModel,
-  ClassContextModel,
-  InsightModel,
-  StudentModel,
-  TeacherChunkModel as ChunkModel,
-  TeacherMaterialModel as MaterialModel,
-} from "../models";
+import { AnalysisModel, ClassContextModel, InsightModel, MaterialModel, StudentModel } from "../models";
 
 /** Lean Mongo document → contract object: `_id` → `id`, Dates → ISO strings, `__v` dropped. */
 function plain<T>(doc: unknown): T {
@@ -34,6 +25,17 @@ function plain<T>(doc: unknown): T {
 }
 
 const maybe = <T>(doc: unknown): T | null => (doc ? plain<T>(doc) : null);
+
+/**
+ * The `materials` collection is shared with the whiteboard back-end, whose documents use `createdAt` and may lack the
+ * upload fields. Map it to the contract (snake_case timestamps, defaults for missing fields).
+ */
+function toMaterial(doc: unknown): Material {
+  const { createdAt, updatedAt, ...rest } = plain<Record<string, unknown>>(doc);
+  const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : typeof v === "string" ? v : new Date(0).toISOString());
+  return Material.parse({ ...rest, created_at: iso(createdAt), updated_at: iso(updatedAt) });
+}
+const maybeMaterial = (doc: unknown): Material | null => (doc ? toMaterial(doc) : null);
 const validId = (id: string) => mongoose.isValidObjectId(id);
 const upsertOptions = { upsert: true, returnDocument: "after", lean: true, setDefaultsOnInsert: true } as const;
 
@@ -68,47 +70,29 @@ export class MongoRepository implements TeacherRepository {
   }
 
   async listMaterials() {
-    const docs = await MaterialModel.find().sort({ created_at: 1, _id: 1 }).lean();
-    return docs.map((d) => plain<Material>(d));
+    const docs = await MaterialModel.find().sort({ createdAt: 1, _id: 1 }).lean();
+    return docs.map((d) => toMaterial(d));
   }
   async getMaterial(id: string) {
     if (!validId(id)) return null;
-    return maybe<Material>(await MaterialModel.findById(id).lean());
+    return maybeMaterial(await MaterialModel.findById(id).lean());
   }
   async getMaterialByFixtureId(fixtureId: string) {
-    return maybe<Material>(await MaterialModel.findOne({ fixture_id: fixtureId }).lean());
+    return maybeMaterial(await MaterialModel.findOne({ fixture_id: fixtureId }).lean());
   }
   async findMaterialBySha256(sha256: string) {
-    return maybe<Material>(await MaterialModel.findOne({ "file.sha256": sha256 }).lean());
+    return maybeMaterial(await MaterialModel.findOne({ "file.sha256": sha256 }).lean());
   }
   async upsertMaterial(input: Parameters<TeacherRepository["upsertMaterial"]>[0]) {
     const data = MaterialInput.parse(input);
     if (data.fixture_id) {
-      return plain<Material>(await MaterialModel.findOneAndUpdate({ fixture_id: data.fixture_id }, { $set: data }, upsertOptions));
+      return toMaterial(await MaterialModel.findOneAndUpdate({ fixture_id: data.fixture_id }, { $set: data }, upsertOptions));
     }
-    return plain<Material>((await MaterialModel.create(data)).toObject());
+    return toMaterial((await MaterialModel.create(data)).toObject());
   }
   async updateMaterial(id: string, patch: Parameters<TeacherRepository["updateMaterial"]>[1]) {
     if (!validId(id)) return null;
-    return maybe<Material>(await MaterialModel.findByIdAndUpdate(id, { $set: patch }, { returnDocument: "after", lean: true }));
-  }
-
-  async replaceChunks(materialId: string, chunks: TextChunk[]) {
-    await ChunkModel.deleteMany({ material_id: materialId });
-    if (chunks.length > 0) await ChunkModel.insertMany(chunks);
-  }
-  async searchChunks(materialId: string, query: string, k: number) {
-    const q = normalizeConcept(query);
-    if (!q) return [];
-    const docs = await ChunkModel.find({ material_id: materialId, $text: { $search: q } }, { score: { $meta: "textScore" } })
-      .sort({ score: { $meta: "textScore" }, page: 1 })
-      .limit(k)
-      .lean();
-    return docs.map((d) => plain<TextChunk>(d));
-  }
-  async getPages(materialId: string, pages: number[]) {
-    const docs = await ChunkModel.find({ material_id: materialId, page: { $in: pages } }).sort({ page: 1, chunk_index: 1 }).lean();
-    return docs.map((d) => plain<TextChunk>(d));
+    return maybeMaterial(await MaterialModel.findByIdAndUpdate(id, { $set: patch }, { returnDocument: "after", lean: true }));
   }
 
   async getAnalysisBySession(sessionId: string) {
@@ -145,8 +129,8 @@ export class MongoRepository implements TeacherRepository {
     await Promise.all([
       StudentModel.deleteMany({}),
       ClassContextModel.deleteMany({}),
-      MaterialModel.deleteMany({}),
-      ChunkModel.deleteMany({}),
+      // Only fixture materials: real materials (and their passages) belong to the whiteboard catalog and stay.
+      MaterialModel.deleteMany({ is_fixture: true }),
       AnalysisModel.deleteMany({}),
       InsightModel.deleteMany({}),
     ]);
@@ -158,7 +142,6 @@ export class MongoRepository implements TeacherRepository {
       StudentModel.syncIndexes(),
       ClassContextModel.syncIndexes(),
       MaterialModel.syncIndexes(),
-      ChunkModel.syncIndexes(),
       AnalysisModel.syncIndexes(),
       InsightModel.syncIndexes(),
     ]);

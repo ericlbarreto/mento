@@ -1,59 +1,95 @@
-import type { TextChunk, Material, TeacherRepository } from "@mento/contracts";
+import type { ChunkStore, Material, TeacherRepository } from "@mento/contracts";
+import { cleanPageText } from "../clean";
+import { ingestPdf } from "../ingest";
+import { extractPdfPages } from "../pdf";
+import type { Embed } from "../voyage";
 import type { FileStore } from "./file-store";
-import { buildOutline, chapterOf } from "./outline";
+import { buildOutline } from "./outline";
 import { openPdf } from "./pdf";
 import { extractSequence, type SequenceLlm } from "./sequence";
-import { chunkPage, normalizeSearchText } from "./text";
-
-/** Pages with fewer characters than this have no usable text layer (scanned): they need OCR/vision. */
-export const MIN_TEXT_CHARS = 50;
 
 export interface IngestDeps {
+  /** The `materials` collection: status, progress, chapters, lesson sequence. */
   repo: TeacherRepository;
-  store: FileStore;
+  /** The whiteboard's passage store (`chunks`, with embeddings): what the tutor searches. */
+  chunks: ChunkStore;
+  files: FileStore;
+  /** Voyage embeddings (`embedWithVoyage`). */
+  embed: Embed;
   llm?: SequenceLlm | undefined;
   onStatus?: (material: Material) => void;
+  log?: (message: string, error?: unknown) => void;
+}
+
+/** Calls `embed` in slices so progress can be reported while the (slow) embedding runs. */
+function withProgress(embed: Embed, onProgress: (done: number, total: number) => void, slice = 128): Embed {
+  return async (texts, input_type) => {
+    const vectors: number[][] = [];
+    onProgress(0, texts.length);
+    for (let i = 0; i < texts.length; i += slice) {
+      vectors.push(...(await embed(texts.slice(i, i + slice), input_type)));
+      onProgress(Math.min(i + slice, texts.length), texts.length);
+    }
+    return vectors;
+  };
 }
 
 /**
- * PDF → text per page → chunks → chapter outline → lesson sequence.
- * Updates `status` / `progress` on the material as it goes; a failure is stored on the material, not thrown.
+ * The upload job, in the order the tutor needs it:
+ * PDF → text per page → chapters → passages + embeddings in `chunks` (the whiteboard's own `ingestPdf`) → lesson sequence
+ * → `ready`. Only then does the material appear in the catalog and in the subject. Any failure removes the passages and marks
+ * the material `failed` with the reason (nothing half-ingested stays searchable). Running it again re-does everything.
  */
 export async function ingestMaterial(materialId: string, deps: IngestDeps): Promise<Material | null> {
-  const { repo, store } = deps;
+  const { repo, chunks, files } = deps;
   const notify = (m: Material | null) => {
     if (m) deps.onStatus?.(m);
     return m;
   };
   const material = await repo.getMaterial(materialId);
   if (!material?.file) return null;
+  const step = (stage: Material["progress"]["stage"], done = 0, total = 0, extra: Partial<Material> = {}) =>
+    repo.updateMaterial(materialId, { ...extra, progress: { stage, done, total } });
+  // Progress writes go one after another (never out of order) and at most ~50 per stage.
+  let writes: Promise<unknown> = Promise.resolve();
+  const progress = (stage: Material["progress"]["stage"], done: number, total: number) => {
+    if (done !== total && done % Math.max(1, Math.floor(total / 50)) !== 0) return;
+    writes = writes.then(() => step(stage, done, total)).then((m) => notify(m as Material | null), () => undefined);
+  };
 
   try {
-    notify(await repo.updateMaterial(materialId, { status: "processing", error: null, progress: { done: 0, total: 0 } }));
-    const pdf = await openPdf(await store.read(material.file.key));
-    const total = pdf.pageCount;
-    notify(await repo.updateMaterial(materialId, { page_count: total, progress: { done: 0, total } }));
+    notify(await step("extracting", 0, 0, { status: "processing", error: null }));
+    await chunks.deletePassages?.(materialId); // a repeated ingestion (restart, retry) must not duplicate passages
+    const data = await files.read(material.file.key);
 
-    const pages: string[] = [];
-    const needsOcr: number[] = [];
-    for (let p = 1; p <= total; p++) {
-      const text = await pdf.pageText(p);
-      pages.push(text);
-      if (text.replace(/\s/g, "").length < MIN_TEXT_CHARS) needsOcr.push(p);
-      notify(await repo.updateMaterial(materialId, { progress: { done: p, total } }));
-    }
+    const pages = await extractPdfPages(new Uint8Array(data), (done, total) => progress("extracting", done, total));
+    await writes;
+    const bookmarks = await (await openPdf(data)).outline();
+    const chapters = buildOutline(bookmarks, pages.map((p) => cleanPageText(p.text)));
+    notify(await repo.updateMaterial(materialId, { pages: pages.length, chapters }));
 
-    const outline = buildOutline(await pdf.outline(), pages);
-    const chunks: TextChunk[] = pages.flatMap((text, i) =>
-      chunkPage(text).map((piece, index) => ({
-        material_id: materialId, page: i + 1, chunk_index: index, chapter: chapterOf(outline, i + 1), text: piece, text_norm: normalizeSearchText(piece),
-      })),
+    const report = await ingestPdf({
+      pages,
+      material_id: materialId,
+      title: material.title,
+      subject: material.subject,
+      ...(material.subject_id ? { subject_id: material.subject_id } : {}),
+      chapters,
+      markReady: false,
+      store: chunks,
+      embed: withProgress(deps.embed, (done, total) => progress("embedding", done, total)),
+      ...(deps.log ? { log: deps.log } : {}),
+    });
+
+    await writes;
+    const sequence = await extractSequence({ outline: chapters, pages: pages.map((p) => cleanPageText(p.text)), llm: deps.llm });
+    return notify(
+      await step("done", report.passages, report.passages, {
+        status: "ready", sequence, pages_needing_ocr: report.empty_pages, toc_pages: report.toc_pages, passages: report.passages, error: null,
+      }),
     );
-    const sequence = await extractSequence({ outline, pages, llm: deps.llm });
-
-    await repo.replaceChunks(materialId, chunks);
-    return notify(await repo.updateMaterial(materialId, { status: "ready", outline, sequence, pages_needing_ocr: needsOcr, progress: { done: total, total }, error: null }));
   } catch (err) {
+    await chunks.deletePassages?.(materialId).catch(() => undefined);
     return notify(await repo.updateMaterial(materialId, { status: "failed", error: err instanceof Error ? err.message : String(err) }));
   }
 }
@@ -63,22 +99,19 @@ export class MaterialIngestQueue {
   private tail: Promise<unknown> = Promise.resolve();
   private pending = 0;
 
-  constructor(
-    private readonly deps: IngestDeps,
-    private readonly log: (message: string, error?: unknown) => void = () => {},
-  ) {}
+  constructor(private readonly deps: IngestDeps) {}
 
   enqueue(materialId: string): void {
     this.pending += 1;
     this.tail = this.tail
       .then(() => ingestMaterial(materialId, this.deps))
-      .catch((err) => this.log(`ingestion of ${materialId} crashed`, err))
+      .catch((err) => this.deps.log?.(`ingestion of ${materialId} crashed`, err))
       .finally(() => {
         this.pending -= 1;
       });
   }
 
-  /** Re-queues materials left `queued` or `processing` by a restart. Returns how many were queued. */
+  /** Re-queues uploads left `queued` or `processing` by a restart (their passages are cleared when the job starts). */
   async recover(): Promise<number> {
     const stuck = (await this.deps.repo.listMaterials()).filter((m) => m.file && (m.status === "queued" || m.status === "processing"));
     for (const m of stuck) this.enqueue(m.id);

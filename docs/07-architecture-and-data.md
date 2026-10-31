@@ -75,12 +75,12 @@ The block above is the conceptual model. What exists in MongoDB today (`packages
 |---|---|
 | `students` | `fixture_id`, `name`, `is_simulated`, `profile` (birth date, enrollment, class, guardian), `school_history[]`, `current_term[]`: fictional, read-only, never sent to an LLM |
 | `classcontexts` | singleton: `grade_level`, `description` |
-| `teachermaterials` | teacher uploads: metadata, `status`/`progress`, `outline`, **`sequence`** (lessons with prerequisites), `pages_needing_ocr`, `file {key,size,sha256}`. **Separate from the whiteboard's `materials`** (subjects, catalog) |
-| `teacherchunks` | text pieces of uploaded pages for search and citation checks; text index on `text_norm`, Portuguese. Created only by real PDF ingestion. **Separate from the whiteboard's `chunks`** (embedded passages for hybrid retrieval) |
+| `materials` (shared with the whiteboard) | one per book: `title`, `subject` (key) and `subject_id`, `pages`, `chapters`, `status` (`queued → processing → ready | failed`), and from the upload `file`, `progress`, **`sequence`** (lessons with prerequisites), `pages_needing_ocr`, `toc_pages`, `passages`. Lab data has `is_fixture` and never reaches the tutor |
+| `chunks` (shared) | embedded passages (Voyage, 1024 numbers) the tutor searches; filled by the upload job through the whiteboard's `ingestPdf` |
 | `analyses` | one per session (unique `session_id`): status, `input_hash`, versions, findings, summary, rejections |
 | `insights` | `gap | progress | suggestion` rows with `severity`, `rule`, `diagnosis`, `root_cause`, `metrics`, `evidence`, `status` |
 
-**Whiteboard collections (Person 3), untouched by the teacher code:** `materials`, `chunks` (with embeddings), `subjects`.
+**Whiteboard collections (Person 3):** `subjects`, `sessions`, `events`, `evidences`, plus the shared `materials` and `chunks` above. The teacher code only resets its own collections and fixture materials.
 
 **Not in MongoDB yet:** `sessions`, `events`, `evidence`. The analysis reads them through the `ConversationSource` interface (`FileConversationSource` over `fixtures/analysis-lab/conversations.json`); the whiteboard back-end swaps in a MongoDB source later (D59). Shapes: `workstreams/contracts-spec.md` §15.
 

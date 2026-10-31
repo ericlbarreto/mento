@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { chooseDatabase, connectMongo, disconnectMongo, MongoRepository } from "@mento/db";
+import { connectMongo, disconnectMongo, MongoRepository } from "@mento/db";
 
 try {
   process.loadEnvFile(new URL("../../.env", import.meta.url));
@@ -28,11 +28,14 @@ export function parseArgs(argv: string[]): Args {
   return { flags, values };
 }
 
-/** Connects to MONGODB_URI. Database: `--db`, else MONGODB_DB, else the one named in the URI, else `mento` (never the Atlas default `test`). */
+/**
+ * Connects to MONGODB_URI. Database: `--db`, else MONGODB_DB, else the one named in the URI (`test` when it names none):
+ * the same database as the whiteboard scripts (`pnpm ingest`), so the tutor's books and the teacher's data live together.
+ */
 export async function openRepo(args: Args) {
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error("MONGODB_URI is not set (see .env.example)");
-  const chosen = chooseDatabase(uri, args.values.get("db") ?? process.env.MONGODB_DB);
+  const chosen = args.values.get("db") ?? process.env.MONGODB_DB;
   await connectMongo(uri, chosen ? { dbName: chosen } : {});
   const repo = new MongoRepository();
   await repo.syncIndexes();

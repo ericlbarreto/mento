@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { normalizeConcept, RULES_VERSION, type AnalysisRecord, type TextChunk, type InsightDraft, type TeacherRepository } from "@mento/contracts";
+import { RULES_VERSION, type AnalysisRecord, type InsightDraft, type TeacherRepository } from "@mento/contracts";
 
 const zeroMetrics = {
   attempts: 1, correct: 0, partial: 0, incorrect: 1, independent_correct: 0, hints_used: 0,
@@ -25,9 +25,6 @@ export function analysisRecord(overrides: Partial<AnalysisRecord> = {}): Analysi
   };
 }
 
-function chunk(material_id: string, page: number, text: string): TextChunk {
-  return { material_id, page, chunk_index: 0, chapter: null, text, text_norm: normalizeConcept(text) };
-}
 
 /** Same behaviours for every implementation of TeacherRepository (memory and MongoDB). */
 export function repositorySuite(name: string, getRepo: () => TeacherRepository, reset: () => Promise<void>) {
@@ -61,36 +58,20 @@ export function repositorySuite(name: string, getRepo: () => TeacherRepository, 
     });
 
     it("materials: upsert by fixture_id, find by sha256, update", async () => {
-      const m1 = await repo.upsertMaterial({ fixture_id: "mat_roma", title: "Roma", subject: "História", is_fixture: true, status: "ready" });
-      const m2 = await repo.upsertMaterial({ fixture_id: "mat_roma", title: "Roma 2", subject: "História", is_fixture: true, status: "ready" });
+      const m1 = await repo.upsertMaterial({ fixture_id: "mat_roma", title: "Roma", subject: "history", is_fixture: true, status: "ready" });
+      const m2 = await repo.upsertMaterial({ fixture_id: "mat_roma", title: "Roma 2", subject: "history", is_fixture: true, status: "ready" });
       expect(m2.id).toBe(m1.id);
       expect((await repo.listMaterials()).length).toBe(1);
-      const up = await repo.upsertMaterial({ title: "Livro", subject: "História", file: { key: "k", size: 3, sha256: "abc", mime: "application/pdf" } });
+      const up = await repo.upsertMaterial({ title: "Livro", subject: "history", subject_id: "sub1", file: { key: "k", size: 3, sha256: "abc", mime: "application/pdf" } });
       expect((await repo.findMaterialBySha256("abc"))?.id).toBe(up.id);
       expect(await repo.findMaterialBySha256("zzz")).toBeNull();
-      const upd = await repo.updateMaterial(up.id, { status: "processing", progress: { done: 1, total: 4 } });
+      const upd = await repo.updateMaterial(up.id, { status: "processing", progress: { stage: "embedding", done: 1, total: 4 } });
       expect(upd?.status).toBe("processing");
-      expect(upd?.progress).toEqual({ done: 1, total: 4 });
+      expect(upd?.progress).toEqual({ stage: "embedding", done: 1, total: 4 });
+      expect(upd?.subject_id).toBe("sub1");
+      expect(upd?.subject).toBe("history");
       expect(upd?.title).toBe("Livro");
       expect(await repo.updateMaterial("000000000000000000000000", { status: "failed" })).toBeNull();
-    });
-
-    it("chunks: replace overwrites; getPages orders; search finds the right page in Portuguese", async () => {
-      const m = await repo.upsertMaterial({ title: "Roma", subject: "História" });
-      await repo.replaceChunks(m.id, [chunk(m.id, 9, "texto antigo")]);
-      await repo.replaceChunks(m.id, [
-        chunk(m.id, 1, "A fundação de Roma ocorreu em 753 a.C. segundo a lenda de Rômulo e Remo."),
-        chunk(m.id, 2, "O fim da República aconteceu quando Otávio recebeu o título de Augusto."),
-        chunk(m.id, 3, "O Coliseu foi inaugurado em 80 d.C. durante o Império."),
-      ]);
-      expect((await repo.getPages(m.id, [3, 1])).map((c) => c.page)).toEqual([1, 3]);
-      expect((await repo.getPages(m.id, [9])).length).toBe(0);
-      const hits = await repo.searchChunks(m.id, "fim da república", 2);
-      expect(hits[0]?.page).toBe(2);
-      expect((await repo.searchChunks(m.id, "coliseu", 5))[0]?.page).toBe(3);
-      expect(await repo.searchChunks(m.id, "   ", 5)).toEqual([]);
-      const other = await repo.upsertMaterial({ title: "Outro", subject: "Outro" });
-      expect(await repo.searchChunks(other.id, "coliseu", 5)).toEqual([]);
     });
 
     it("analyses: saveAnalysis upserts by session_id", async () => {
@@ -122,18 +103,17 @@ export function repositorySuite(name: string, getRepo: () => TeacherRepository, 
       expect((await repo.listInsights({ student_id: "stu-a" }))[0]?.id).toBe(i1.id);
     });
 
-    it("resetTeacherData clears every teacher collection", async () => {
-      const m = await repo.upsertMaterial({ title: "Roma", subject: "História" });
+    it("resetTeacherData clears the teacher collections and fixture materials, but keeps real materials", async () => {
+      const real = await repo.upsertMaterial({ title: "Livro real", subject: "history", status: "ready" });
+      await repo.upsertMaterial({ fixture_id: "mat_x", title: "Fixture", subject: "history", is_fixture: true, status: "ready" });
       await repo.upsertStudent({ name: "x" });
       await repo.setClassContext({ grade_level: "8º ano", description: "" });
-      await repo.replaceChunks(m.id, [chunk(m.id, 1, "texto")]);
       await repo.saveAnalysis(analysisRecord());
       await repo.createInsight(insightDraft());
       await repo.resetTeacherData();
       expect(await repo.listStudents()).toEqual([]);
-      expect(await repo.listMaterials()).toEqual([]);
+      expect((await repo.listMaterials()).map((m) => m.id)).toEqual([real.id]);
       expect(await repo.getClassContext()).toBeNull();
-      expect(await repo.getPages(m.id, [1])).toEqual([]);
       expect(await repo.getAnalysisBySession("ses-1")).toBeNull();
       expect(await repo.listInsights()).toEqual([]);
     });

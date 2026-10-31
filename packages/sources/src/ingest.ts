@@ -1,11 +1,18 @@
 import type { ChunkStore, MaterialRecord } from "@mento/contracts";
 import { chapterForPage, chunkPages } from "./chunker";
 import { cleanPageText, isTableOfContents } from "./clean";
-import { extractPdfPages } from "./pdf";
+import { extractPdfPages, type PdfPage } from "./pdf";
 import type { Embed } from "./voyage";
 
 export interface IngestInput {
-  data: Uint8Array;
+  /** PDF bytes. Optional when `pages` are given. */
+  data?: Uint8Array;
+  /** Pages already extracted (the teacher upload extracts them first to report progress). */
+  pages?: PdfPage[];
+  /** Ingest into a material that already exists (created by the teacher upload) instead of creating a new one. */
+  material_id?: string;
+  /** Mark the material `ready` at the end (default true). The upload does it itself after saving the lesson sequence. */
+  markReady?: boolean;
   title: string;
   subject: string;
   /** The subject (matéria) document the material belongs to. */
@@ -26,12 +33,16 @@ export interface IngestReport {
   toc_pages: number[];
 }
 
-/** PDF → text per page → passages → embeddings → stored with the material. Marks the material failed on error. */
+/** PDF → text per page → passages → embeddings → stored with the material. Marks the material failed (and removes its passages) on error. */
 export async function ingestPdf(input: IngestInput): Promise<IngestReport> {
   const { data, title, subject, subject_id, store, embed, log } = input;
   const chapters = input.chapters ?? [];
-  const pages = (await extractPdfPages(data)).map((p) => ({ page: p.page, text: cleanPageText(p.text) }));
-  const { id } = await store.createMaterial({ title, subject, ...(subject_id ? { subject_id } : {}), chapters, pages: pages.length, status: "processing" });
+  const raw = input.pages ?? (data ? await extractPdfPages(data) : null);
+  if (!raw) throw new Error("ingestPdf needs the PDF data or its extracted pages");
+  const pages = raw.map((p) => ({ page: p.page, text: cleanPageText(p.text) }));
+  const id =
+    input.material_id ??
+    (await store.createMaterial({ title, subject, ...(subject_id ? { subject_id } : {}), chapters, pages: pages.length, status: "processing" })).id;
   try {
     const empty_pages = pages.filter((p) => p.text.replace(/\s/g, "").length < 20).map((p) => p.page);
     if (empty_pages.length) log?.(`${empty_pages.length} page(s) without a text layer: ${empty_pages.slice(0, 10).join(", ")}${empty_pages.length > 10 ? "…" : ""}`);
@@ -50,9 +61,10 @@ export async function ingestPdf(input: IngestInput): Promise<IngestReport> {
         embedding: vectors[i] as number[],
       })),
     );
-    await store.updateMaterial(id, { status: "ready" });
+    if (input.markReady !== false) await store.updateMaterial(id, { status: "ready" });
     return { material_id: id, pages: pages.length, passages: passages.length, empty_pages, toc_pages };
   } catch (err) {
+    await store.deletePassages?.(id); // never leave a half-ingested material searchable
     await store.updateMaterial(id, { status: "failed" });
     throw err;
   }

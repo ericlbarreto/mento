@@ -247,3 +247,7 @@ All phases were implemented and verified: `pnpm test:rules` reports **24 of 24 b
 | LLM provider | Interface + `LlmWriter` with an injected `complete()`; **not wired to a provider** | Q4 is still open and there is no key; the template writer runs everything |
 
 **Still open (not code):** the LLM provider (Q4); Person 3 filling `session.lesson_id` and `evidence.lesson_id` from `material.sequence`, and calling `container.sessionEnded.handle(id)` from `POST /sessions/:id/end`; Person 3 reviewing the event, evidence and session schemas in `packages/contracts`; the teacher screens (frontend) on top of this API.
+
+## Update 2026-10-31: upload linked to a subject, with embeddings (D64)
+
+After the rebase the teacher upload kept its own `teachermaterials` / `teacherchunks`. It now feeds the whiteboard's flow: the upload requires a `subject_id`, and the job runs the whiteboard's `ingestPdf` (Voyage embeddings into `chunks`), then saves chapters and lesson sequence and marks the material `ready`. One `materials` and one `chunks` collection remain; the database is the one named in `MONGODB_URI` (the same `pnpm ingest` writes to). Verified on Atlas with the real tutor citing an uploaded PDF. The "database `mento`" and "`teachermaterials`" mentions above are historical.

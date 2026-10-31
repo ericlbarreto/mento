@@ -12,4 +12,4 @@ Dev/ops scripts run with `tsx` from the repo root.
 | `pnpm e2e:teacher [--keep]` | seed → analysis → the real API over HTTP → upload, on a throwaway database `mento_e2e` |
 | `pnpm ingest`, `pnpm retrieval:check`, `pnpm voice:smoke`, `pnpm llm:smoke`, `pnpm turn:bench`, `pnpm images:pregenerate`, `pnpm turn` | Whiteboard back-end scripts (Person 3) |
 
-The database is `--db`, else `MONGODB_DB`, else the one named in `MONGODB_URI`, else `mento` (never the Atlas default `test`). Integration tests use `mento_test_*` databases and drop them.
+The database is `--db`, else `MONGODB_DB`, else the one named in `MONGODB_URI` (`test` when it names none): the same as `pnpm ingest`, so the tutor's books and the teacher's data live together. Integration tests use `mento_test_*` databases and drop them.

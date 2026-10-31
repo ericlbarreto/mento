@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FastifyInstance } from "fastify";
-import { makeTestPdf } from "@mento/sources";
+import { fakeEmbed, makeTestPdf } from "@mento/sources";
 import { makeApp, multipart } from "./helpers";
 
 let open: FastifyInstance[] = [];
@@ -254,26 +254,30 @@ describe("analysis lifecycle over HTTP (BR-16)", () => {
 });
 
 describe("material upload (BR-21)", () => {
-  const goodPdf = () => makeTestPdf(["Capítulo 1 — Roma\nTexto de exemplo com bastante conteúdo para a primeira página do livro.", "Capítulo 2 — A República\nOutra página com conteúdo suficiente para ser extraído."]);
+  const goodPdf = () => makeTestPdf(["Capítulo 1 — Roma\nTexto de exemplo com bastante conteúdo para a primeira página do livro.", "Capítulo 2 — A República\nO fim da República aconteceu quando Otávio recebeu o título de Augusto."]);
+  const upload = (app: FastifyInstance, fields: Record<string, string>, file?: Parameters<typeof multipart>[1]) =>
+    app.inject({ method: "POST", url: "/api/materials", ...multipart(fields, file) });
 
-  it("BR-21 a valid PDF answers 202 queued, then becomes ready with pages, outline and sequence", async () => {
-    const { app } = await world();
-    const upload = await app.inject({ method: "POST", url: "/api/materials", ...multipart({ title: "Livro de Roma", subject: "História" }, { name: "roma.pdf", data: goodPdf() }) });
-    expect(upload.statusCode).toBe(202);
-    const { id, status, duplicate } = upload.json();
+  it("BR-21 a valid PDF of a subject answers 202 queued, then becomes ready with pages, chapters, passages and sequence", async () => {
+    const { app, history, chunkStore } = await world();
+    const res = await upload(app, { subject_id: history.id, title: "Livro de Roma" }, { name: "roma.pdf", data: goodPdf() });
+    expect(res.statusCode).toBe(202);
+    const { id, status, duplicate } = res.json();
     expect(status).toBe("queued");
     expect(duplicate).toBe(false);
     await app.container.ingest.idle();
     const m = (await app.inject(`/api/materials/${id}`)).json();
-    expect(m).toMatchObject({ title: "Livro de Roma", subject: "História", status: "ready", page_count: 2, progress: { done: 2, total: 2 }, error: null });
-    expect(m.outline.map((o: { title: string }) => o.title)).toEqual(["Capítulo 1 — Roma", "Capítulo 2 — A República"]);
+    expect(m).toMatchObject({ title: "Livro de Roma", subject: "history", subject_id: history.id, status: "ready", pages: 2, progress: { stage: "done" }, error: null });
+    expect(m.chapters.map((o: { title: string }) => o.title)).toEqual(["Capítulo 1 — Roma", "Capítulo 2 — A República"]);
     expect(m.sequence).toHaveLength(2);
+    expect(m.passages).toBeGreaterThan(0);
+    expect(chunkStore.passagesOf(id)).toHaveLength(m.passages);
     expect((await app.inject("/api/materials")).json().map((x: { title: string }) => x.title)).toEqual(expect.arrayContaining(["Livro de Roma"]));
   });
 
   it("BR-21 the same file twice returns the same material (200, duplicate)", async () => {
-    const { app } = await world();
-    const send = () => app.inject({ method: "POST", url: "/api/materials", ...multipart({ title: "Livro", subject: "História" }, { name: "a.pdf", data: goodPdf() }) });
+    const { app, history } = await world();
+    const send = () => upload(app, { subject_id: history.id, title: "Livro" }, { name: "a.pdf", data: goodPdf() });
     const first = await send();
     const second = await send();
     expect(second.statusCode).toBe(200);
@@ -283,43 +287,60 @@ describe("material upload (BR-21)", () => {
   });
 
   it("BR-21 the title defaults to the file name", async () => {
-    const { app } = await world();
-    const { id } = (await app.inject({ method: "POST", url: "/api/materials", ...multipart({ subject: "Geografia" }, { name: "atlas-mediterraneo.pdf", data: goodPdf() }) })).json();
+    const { app, history } = await world();
+    const { id } = (await upload(app, { subject_id: history.id }, { name: "atlas-mediterraneo.pdf", data: goodPdf() })).json();
     expect((await app.inject(`/api/materials/${id}`)).json().title).toBe("atlas-mediterraneo");
     await app.container.ingest.idle();
   });
 
-  it("BR-21 a file that is not a PDF is 415; a missing file or a bad subject is 400", async () => {
-    const { app } = await world();
-    const notPdf = await app.inject({ method: "POST", url: "/api/materials", ...multipart({ subject: "História" }, { name: "x.pdf", data: Buffer.from("MZ not a pdf at all"), type: "application/pdf" }) });
-    expect(notPdf.statusCode).toBe(415);
-    expect((await app.inject({ method: "POST", url: "/api/materials", ...multipart({ subject: "História" }) })).statusCode).toBe(400);
-    expect((await app.inject({ method: "POST", url: "/api/materials", ...multipart({ subject: "Astrologia" }, { name: "a.pdf", data: goodPdf() }) })).statusCode).toBe(400);
-    expect((await app.inject({ method: "POST", url: "/api/materials", ...multipart({}, { name: "a.pdf", data: goodPdf() }) })).statusCode).toBe(400);
-    expect((await app.inject("/api/materials")).json()).toHaveLength(1); // only the lab material
+  it("BR-21 the subject is required: missing subject_id is 400, an unknown subject is 404 subject_not_found, a non-PDF is 415, no file is 400", async () => {
+    const { app, history } = await world();
+    const pdf = { name: "a.pdf", data: goodPdf() };
+    expect((await upload(app, {}, pdf)).statusCode).toBe(400);
+    const unknown = await upload(app, { subject_id: "000000000000000000000000" }, pdf);
+    expect(unknown.statusCode).toBe(404);
+    expect(unknown.json()).toMatchObject({ error: "subject_not_found" });
+    expect((await upload(app, { subject_id: "not-an-id" }, pdf)).statusCode).toBe(404);
+    expect((await upload(app, { subject_id: history.id }, { name: "x.pdf", data: Buffer.from("MZ not a pdf at all"), type: "application/pdf" })).statusCode).toBe(415);
+    expect((await upload(app, { subject_id: history.id })).statusCode).toBe(400);
+    expect((await app.inject("/api/materials")).json()).toHaveLength(1); // only the lab material: nothing was stored
   });
 
   it("BR-21 a file above the size limit is 413 and nothing is stored", async () => {
-    const { app } = await world({ uploadMaxMb: 0.001 }); // ~1 KB
+    const { app, history } = await world({ uploadMaxMb: 0.001 }); // ~1 KB
     const big = makeTestPdf(Array.from({ length: 12 }, (_, i) => `Página ${i + 1}\n${"texto ".repeat(80)}`));
     expect(big.length).toBeGreaterThan(1100);
-    const res = await app.inject({ method: "POST", url: "/api/materials", ...multipart({ subject: "História" }, { name: "grande.pdf", data: big }) });
-    expect(res.statusCode).toBe(413);
+    expect((await upload(app, { subject_id: history.id }, { name: "grande.pdf", data: big })).statusCode).toBe(413);
     expect((await app.inject("/api/materials")).json()).toHaveLength(1);
   });
 
-  it("BR-21 a corrupt PDF is accepted for processing and ends failed with the error", async () => {
-    const { app } = await world();
-    const { id } = (await app.inject({ method: "POST", url: "/api/materials", ...multipart({ subject: "História" }, { name: "ruim.pdf", data: Buffer.from("%PDF-1.4 truncated garbage") }) })).json();
+  it("BR-21 without embeddings (no VOYAGE_API_KEY) or without the database the upload answers 503 and stores nothing", async () => {
+    const noEmbed = await world({ embed: null });
+    const res = await upload(noEmbed.app, { subject_id: noEmbed.history.id }, { name: "a.pdf", data: goodPdf() });
+    expect(res.statusCode).toBe(503);
+    expect(res.json()).toMatchObject({ error: "embeddings_unavailable" });
+    expect((await noEmbed.app.inject("/api/materials")).json()).toHaveLength(1);
+
+    const noDb = await world({ dbReady: false });
+    const down = await upload(noDb.app, { subject_id: noDb.history.id }, { name: "a.pdf", data: goodPdf() });
+    expect(down.statusCode).toBe(503);
+    expect(down.json()).toMatchObject({ error: "database_unavailable" });
+  });
+
+  it("BR-21 a corrupt PDF is accepted for processing and ends failed with the error, without passages", async () => {
+    const { app, history, chunkStore } = await world();
+    const { id } = (await upload(app, { subject_id: history.id }, { name: "ruim.pdf", data: Buffer.from("%PDF-1.4 truncated garbage") })).json();
     await app.container.ingest.idle();
-    expect((await app.inject(`/api/materials/${id}`)).json()).toMatchObject({ status: "failed" });
-    expect((await app.inject(`/api/materials/${id}`)).json().error).toBeTruthy();
+    const m = (await app.inject(`/api/materials/${id}`)).json();
+    expect(m.status).toBe("failed");
+    expect(m.error).toBeTruthy();
+    expect(chunkStore.passagesOf(id)).toEqual([]);
   });
 
   it("BR-21 GET /files/:id serves the PDF with Range support; lab material without a file is 404", async () => {
-    const { app } = await world();
+    const { app, history } = await world();
     const pdf = goodPdf();
-    const { id } = (await app.inject({ method: "POST", url: "/api/materials", ...multipart({ subject: "História" }, { name: "a.pdf", data: pdf }) })).json();
+    const { id } = (await upload(app, { subject_id: history.id }, { name: "a.pdf", data: pdf })).json();
     await app.container.ingest.idle();
     const full = await app.inject(`/api/files/${id}`);
     expect(full.statusCode).toBe(200);
@@ -339,6 +360,70 @@ describe("material upload (BR-21)", () => {
     expect((await app.inject(`/api/files/${lab.id}`)).statusCode).toBe(404);
     expect((await app.inject("/api/files/000000000000000000000000")).statusCode).toBe(404);
     expect((await app.inject("/api/materials/000000000000000000000000")).statusCode).toBe(404);
+  });
+});
+
+describe("the uploaded material reaches the whiteboard (BR-25)", () => {
+  const pdf = () =>
+    makeTestPdf(["Capítulo 1 — Fundação de Roma\nSegundo a lenda, Roma foi fundada em 753 a.C. por Rômulo e Remo.", "Capítulo 2 — A República\nO fim da República aconteceu quando Otávio recebeu o título de Augusto."]);
+
+  it("BR-25 the material is invisible to the tutor while it is processing and appears in the subject and the catalog when ready", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const slow = fakeEmbed(32);
+    const { app, history, chunkStore } = await world({ embed: async (texts, type) => (await gate, slow(texts, type)) });
+    const { id } = (await app.inject({ method: "POST", url: "/api/materials", ...multipart({ subject_id: history.id, title: "Roma" }, { name: "roma.pdf", data: pdf() }) })).json();
+
+    // the embeddings are still being made: not in the subject card, not in the catalog the tutor reads
+    await vi.waitFor(async () => expect((await app.inject(`/api/materials/${id}`)).json().progress.stage).toBe("embedding"));
+    expect((await app.inject(`/api/materials/${id}`)).json().status).toBe("processing");
+    expect((await app.inject(`/api/subjects/${history.id}`)).json()).toMatchObject({ material_count: 0, materials: [] });
+    expect(await chunkStore.listCatalog(history.id)).toEqual([]);
+
+    release();
+    await app.container.ingest.idle();
+    expect((await app.inject(`/api/subjects/${history.id}`)).json()).toMatchObject({ key: "history", material_count: 1, materials: [{ id, title: "Roma", pages: 2, status: "ready" }] });
+    expect((await app.inject("/api/subjects")).json().subjects[0]).toMatchObject({ material_count: 1 });
+    expect(await chunkStore.listCatalog(history.id)).toEqual([{ material_id: id, title: "Roma", subject: "history", subject_id: history.id, chapters: ["Capítulo 1 — Fundação de Roma", "Capítulo 2 — A República"] }]);
+  });
+
+  it("BR-25 the tutor's retriever finds the uploaded pages and validates quotes against them", async () => {
+    const { app, history } = await world();
+    const { id } = (await app.inject({ method: "POST", url: "/api/materials", ...multipart({ subject_id: history.id }, { name: "roma.pdf", data: pdf() }) })).json();
+    await app.container.ingest.idle();
+    const { retriever } = app.container;
+    expect((await retriever.searchChunks({ query: "fim da república", k: 3, material_ids: [id] }))[0]).toMatchObject({ page: 2, material_id: id, subject: "history" });
+    expect(await retriever.validateCitation({ material_id: id, page: 2, quote: "O fim da República aconteceu" })).toBe(true);
+    expect(await retriever.validateCitation({ material_id: id, page: 1, quote: "O fim da República aconteceu" })).toBe(false);
+  });
+
+  it("BR-25 a session started from the subject limits the tutor to the uploaded book", async () => {
+    const { app, history } = await world();
+    await app.inject({ method: "POST", url: "/api/materials", ...multipart({ subject_id: history.id, title: "Roma" }, { name: "roma.pdf", data: pdf() }) });
+    await app.container.ingest.idle();
+    const session = await app.inject({ method: "POST", url: "/api/sessions", payload: { student_id: "s1", modality: "text", subject_id: history.id } });
+    expect(session.statusCode).toBe(201);
+    expect(session.json().subject_id).toBe(history.id);
+    // the catalog the tutor puts in its prompt for that subject
+    expect((await app.container.repo.getCatalog(history.id)).map((c) => c.title)).toEqual(["Roma"]);
+  });
+});
+
+describe("fixtures stay out of the tutor's way (BR-26)", () => {
+  it("BR-26 the lab material lives in `materials` with is_fixture but is not in any catalog or subject card", async () => {
+    const { app, chunkStore, history } = await world();
+    const lab = (await app.inject("/api/materials")).json().find((m: { is_fixture: boolean }) => m.is_fixture);
+    expect(lab).toMatchObject({ status: "ready", subject: "history", sequence: expect.any(Array) });
+    expect(lab.sequence.length).toBe(8);
+    expect(await chunkStore.listCatalog()).toEqual([]);
+    expect((await app.inject(`/api/subjects/${history.id}`)).json()).toMatchObject({ material_count: 0 });
+  });
+
+  it("BR-26 the analysis still reads the fixture's lesson sequence", async () => {
+    const { app } = await world();
+    const run = await app.container.analysis.run("ses_ana_02");
+    expect(run.analysis.status).toBe("done");
+    expect(run.insights.some((i) => i.root_cause?.lesson_id === "L2")).toBe(true);
   });
 });
 

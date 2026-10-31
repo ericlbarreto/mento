@@ -95,7 +95,7 @@ The teacher backend exists and is tested (`pnpm test:rules`, `pnpm e2e:teacher`)
 - **Student detail also shows** the mocked personal data and school history (profile, guardian, 6º/7º ano grades, current term; D57).
 - **Dismissing a gap also dismisses its suggestion;** a dismissed insight is never reopened by later analyses (D63).
 - **Class context** is rejected if it names a student (the tutor reads it in every chat).
-- **Upload** accepts PDFs only, de-duplicates by content, and processes in the background (`queued → processing n/N → ready | failed`); the result is the page chunks, the chapter outline and the lesson sequence.
+- **Upload linked to a subject.** The teacher picks the subject (matéria) and sends a PDF: only PDFs, no duplicates (same content returns the existing material), `202` right away. In the background: text per page → chapters → passages with **embeddings in the vector store** (the same pipeline as `pnpm ingest`) → lesson sequence → `ready`. Status `queued → processing (extracting n/N, embedding n/N) → ready | failed`. Only `ready` materials appear in the subject and reach the tutor; a failure keeps the reason and leaves nothing half-searchable (D64).
 - Endpoints: `workstreams/contracts-spec.md` §15 and `/api/openapi.json`.
 
 ## Out of scope for the teacher UI

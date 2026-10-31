@@ -1,5 +1,6 @@
 import type { Material, TeacherRepository } from "@mento/contracts";
-import { MemoryFileStore, makeTestPdf } from "../src/upload";
+import { MemoryChunkStore, MemoryRepository } from "@mento/db";
+import { MemoryFileStore, fakeEmbed, makeTestPdf } from "../src";
 
 export const PAGES = [
   "Capítulo 1 — Fundação de Roma\nSegundo a lenda, Roma foi fundada em 753 a.C. por Rômulo e Remo.\nA cidade foi governada por sete reis durante a Monarquia.",
@@ -9,10 +10,31 @@ export const PAGES = [
 ];
 
 export const book = () => makeTestPdf(PAGES);
+export const embed = fakeEmbed(32);
 
-/** Stores a PDF and creates the `queued` material the upload route would create. */
-export async function queuedMaterial(repo: TeacherRepository, store: MemoryFileStore, data: Buffer, title = "Livro"): Promise<Material> {
+/** The same world the API builds: materials in one repository, passages and catalog in the whiteboard's chunk store. */
+export function world() {
+  const repo = new MemoryRepository();
+  const chunks = new MemoryChunkStore(repo);
+  const files = new MemoryFileStore();
+  return { repo, chunks, files, deps: { repo, chunks, files, embed } };
+}
+
+/** Stores a PDF and creates the `queued` material that the upload route creates. */
+export async function queuedMaterial(
+  repo: TeacherRepository,
+  files: MemoryFileStore,
+  data: Buffer,
+  title = "Livro",
+  subject = { key: "history", id: "sub-history" },
+): Promise<Material> {
   const key = `${title}.pdf`;
-  await store.put(key, data);
-  return repo.upsertMaterial({ title, subject: "História", status: "queued", file: { key, size: data.length, sha256: title, mime: "application/pdf" } });
+  await files.put(key, data);
+  return repo.upsertMaterial({
+    title,
+    subject: subject.key,
+    subject_id: subject.id,
+    status: "queued",
+    file: { key, size: data.length, sha256: title, mime: "application/pdf" },
+  });
 }

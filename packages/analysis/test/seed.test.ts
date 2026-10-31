@@ -70,7 +70,7 @@ describe.skipIf(!uri)("seeds on MongoDB (database mento_test_analysis)", () => {
     const snapshot = async () => ({
       ...(await counts(repo)),
       analyses: await mongoose.connection.db!.collection("analyses").countDocuments(),
-      chunks: await mongoose.connection.db!.collection("teacherchunks").countDocuments(),
+      chunks: await mongoose.connection.db!.collection("chunks").countDocuments(),
     });
     const first = await snapshot();
     await run();
@@ -78,11 +78,12 @@ describe.skipIf(!uri)("seeds on MongoDB (database mento_test_analysis)", () => {
     expect(first).toEqual({ students: 6, materials: 1, insights: 17, analyses: 8, chunks: 0 });
   }, 60_000);
 
-  it("BR-20 reset clears only the teacher collections: a collection owned by the whiteboard survives", async () => {
+  it("BR-20 reset clears only the teacher collections: whiteboard collections and real materials survive", async () => {
     const db = mongoose.connection.db!;
     await db.collection("sessions").insertOne({ _id: "keep-me" as never, note: "written by the whiteboard (Person 3)" });
+    await repo.upsertMaterial({ title: "Livro real do Eric", subject: "history", status: "ready", pages: 10 });
     await repo.resetTeacherData();
-    expect(await counts(repo)).toEqual({ students: 0, materials: 0, insights: 0 });
+    expect(await counts(repo)).toEqual({ students: 0, materials: 1, insights: 0 }); // the fixture material went, the real one stayed
     expect(await db.collection("analyses").countDocuments()).toBe(0);
     expect(await db.collection("sessions").countDocuments()).toBe(1);
   });

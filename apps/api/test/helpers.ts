@@ -1,22 +1,35 @@
-import { MemoryRepository } from "@mento/db";
+import { MemoryChunkStore, MemoryRepository, MemorySubjectStore } from "@mento/db";
 import { seedLabMaterial, seedStudents } from "@mento/analysis";
-import { MemoryFileStore } from "@mento/sources";
+import { MemoryFileStore, fakeEmbed } from "@mento/sources";
+import type { Embed } from "@mento/sources";
 import { buildApp } from "../src/app";
 import { loadConfig } from "../src/config";
 
-export async function makeApp(options: { uploadMaxMb?: number; analyzeAll?: boolean } = {}) {
+export async function makeApp(options: { uploadMaxMb?: number; analyzeAll?: boolean; embed?: Embed | null; dbReady?: boolean } = {}) {
   const config = loadConfig({ LOG_LEVEL: "silent", ...(options.uploadMaxMb ? { UPLOAD_MAX_MB: String(options.uploadMaxMb) } : {}) } as NodeJS.ProcessEnv);
   let t = Date.parse("2026-11-01T00:00:00Z");
   const repo = new MemoryRepository({ now: () => new Date((t += 1000)).toISOString() });
   const students = await seedStudents(repo);
   await seedLabMaterial(repo);
   const store = new MemoryFileStore();
-  const app = await buildApp(config, { teacherRepo: repo, fileStore: store, retryDelayMs: 10 });
+  // The whiteboard side, in memory: subjects, the passage store (`chunks`) and the Voyage stand-in.
+  const subjects = new MemorySubjectStore(repo);
+  const history = await subjects.create({ name: "História", key: "history" });
+  const chunkStore = new MemoryChunkStore(repo);
+  const app = await buildApp(config, {
+    teacherRepo: repo,
+    fileStore: store,
+    retryDelayMs: 10,
+    subjects,
+    chunkStore,
+    embed: "embed" in options ? options.embed : fakeEmbed(32),
+    dbReady: () => options.dbReady ?? true,
+  });
   if (options.analyzeAll) {
     for (const s of await app.container.conversations.listAllSessions()) await app.container.analysis.run(s.id);
   }
   const studentId = (fixture: string) => students.find((s) => s.fixture_id === fixture)!.id;
-  return { app, repo, store, students, studentId };
+  return { app, repo, store, students, studentId, subjects, history, chunkStore };
 }
 
 export function multipart(fields: Record<string, string>, file?: { name: string; data: Buffer; type?: string }) {

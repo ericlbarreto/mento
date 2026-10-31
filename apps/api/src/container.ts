@@ -1,7 +1,7 @@
 import path, { join } from "node:path";
-import type { ConversationSource, Retriever, SessionHistory, SubjectStore, TeacherRepository } from "@mento/contracts";
+import type { ChunkStore, ConversationSource, Retriever, SessionHistory, SubjectStore, TeacherRepository } from "@mento/contracts";
 import { MongoChunkStore, MongoEvidenceStore, MongoRepository, MongoSubjectStore, MongoTurnRepository, mongoState } from "@mento/db";
-import { createRetriever, embedWithVoyage, DiskFileStore, MaterialIngestQueue, type FileStore, type SequenceLlm } from "@mento/sources";
+import { createRetriever, embedWithVoyage, DiskFileStore, MaterialIngestQueue, type Embed, type FileStore, type SequenceLlm } from "@mento/sources";
 import {
   AnalysisService,
   FileConversationSource,
@@ -44,6 +44,10 @@ export interface Container {
   history: SessionHistory;
   /** Hybrid search over the teacher's materials; finds nothing until VOYAGE_API_KEY and MongoDB Atlas are set up. */
   retriever: Retriever;
+  /** Embedded passages (`chunks`) and the catalog of ready materials: what the tutor reads and the upload fills. */
+  chunkStore: ChunkStore;
+  /** Voyage embeddings; null without VOYAGE_API_KEY (the upload then answers 503 `embeddings_unavailable`). */
+  embed: Embed | null;
   /** Subjects (matérias) and their materials, stored in MongoDB. */
   subjects: SubjectStore;
   /** True while MongoDB is connected (routes that need it answer 503 otherwise). */
@@ -106,11 +110,6 @@ function buildDraw(config: Config, images: ImageStore): DrawPipeline {
   });
 }
 
-function buildRetriever(config: Config, store: MongoChunkStore): Retriever {
-  if (!config.VOYAGE_API_KEY) return emptyRetriever;
-  return createRetriever({ store, embed: embedWithVoyage({ apiKey: config.VOYAGE_API_KEY }), isAvailable: isMongoUp });
-}
-
 function buildEngine(config: Config, repo: TurnRepository, tts: TtsService | null, images: ImageStore, evidence: EvidenceStore, retriever: Retriever): TurnEngine | null {
   if (!config.ANTHROPIC_API_KEY) return null;
   const llm = new AnthropicLlm({ apiKey: config.ANTHROPIC_API_KEY });
@@ -137,16 +136,17 @@ export function createContainer(config: Config, allOverrides: ContainerOverrides
 
   // ---- Whiteboard (Person 3) ----
   const tts = "tts" in overrides ? (overrides.tts ?? null) : buildTts(config);
-  const store = new MongoChunkStore();
+  const dbReady = overrides.dbReady ?? isMongoUp;
+  const store = overrides.chunkStore ?? new MongoChunkStore();
+  const embed = "embed" in overrides ? (overrides.embed ?? null) : config.VOYAGE_API_KEY ? embedWithVoyage({ apiKey: config.VOYAGE_API_KEY }) : null;
   const mongoRepo = new MongoTurnRepository(store);
   const repo = overrides.repo ?? mongoRepo;
   const images = overrides.images ?? new ImageStore(join(config.DATA_DIR, "files", "gen"));
   const evidence = overrides.evidence ?? new MongoEvidenceStore();
   const history = overrides.history ?? mongoRepo;
-  const retriever = overrides.retriever ?? buildRetriever(config, store);
+  const retriever = overrides.retriever ?? (embed ? createRetriever({ store, embed, isAvailable: dbReady }) : emptyRetriever);
   const engine = "engine" in overrides ? (overrides.engine ?? null) : buildEngine(config, repo, tts, images, evidence, retriever);
   const subjects = overrides.subjects ?? new MongoSubjectStore();
-  const dbReady = overrides.dbReady ?? isMongoUp;
 
   // ---- Teacher side (Person 1) ----
   const teacherRepo = overrides.teacherRepo ?? new MongoRepository();
@@ -157,22 +157,22 @@ export function createContainer(config: Config, allOverrides: ContainerOverrides
   const sessionEnded = overrides.sessionEnded ?? new SessionEndedHandler(analysis, { retryDelayMs: retryDelayMs ?? 30_000, log });
   const ingest =
     overrides.ingest ??
-    new MaterialIngestQueue(
-      {
-        repo: teacherRepo,
-        store: fileStore,
-        llm: sequenceLlm,
-        onStatus: (m) => bus.emit({ type: "material_status", material_id: m.id, status: m.status, progress: m.progress }),
-      },
+    new MaterialIngestQueue({
+      repo: teacherRepo,
+      chunks: store,
+      files: fileStore,
+      embed: embed ?? (async () => Promise.reject(new Error("VOYAGE_API_KEY is not set"))),
+      llm: sequenceLlm,
+      onStatus: (m) => bus.emit({ type: "material_status", material_id: m.id, status: m.status, progress: m.progress }),
       log,
-    );
+    });
 
   return {
     config,
     mongo: new MongoService(config.MONGODB_URI, config.MONGODB_DB),
     mintSttToken,
     ...overrides,
-    tts, repo, images, evidence, history, retriever, subjects, dbReady, engine,
+    tts, repo, images, evidence, history, retriever, chunkStore: store, embed, subjects, dbReady, engine,
     teacherRepo, conversations, analysis, sessionEnded, bus, fileStore, ingest,
   };
 }

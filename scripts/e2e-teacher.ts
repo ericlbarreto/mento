@@ -79,27 +79,54 @@ try {
   check("a description naming a student is rejected (422)", (await send("PUT", "/class-context", { grade_level: "8º ano", description: "O Diego se distrai." })).status === 422);
   check("a valid description is saved", (await send("PUT", "/class-context", { grade_level: "9º ano", description: "Turma de 9º ano, gosta de debates." })).status === 200 && (await get("/class-context")).grade_level === "9º ano");
 
-  console.log("\n# 5. material upload → ingestion");
+  console.log("\n# 5. upload linked to a subject → embeddings in the vector store");
+  const subjectRes = await send("POST", "/subjects", { name: "História (e2e)", key: "history_e2e" });
+  const subject = (await subjectRes.json()) as any;
+  check("subject created (201)", subjectRes.status === 201 && !!subject.id, subject);
   const pdf = makeTestPdf([
     "Capítulo 1 — Fundação de Roma\nSegundo a lenda, Roma foi fundada em 753 a.C. por Rômulo e Remo e governada por sete reis.",
     "Capítulo 2 — A República\nO fim da República aconteceu quando Otávio recebeu o título de Augusto, em 27 a.C.",
   ]);
-  const form = new FormData();
-  form.set("title", "Livro de teste");
-  form.set("subject", "História");
-  form.set("file", new Blob([new Uint8Array(pdf)], { type: "application/pdf" }), "livro.pdf");
-  const upload = await fetch(base + "/materials", { method: "POST", body: form });
-  const { id: materialId } = (await upload.json()) as any;
-  check("upload accepted (202, queued)", upload.status === 202);
-  await until("ingestion", async () => (await get(`/materials/${materialId}`)).status === "ready");
-  const material = await get(`/materials/${materialId}`);
-  check("material ready with 2 pages, outline and sequence", material.page_count === 2 && material.outline.length === 2 && material.sequence.length === 2, material);
-  const chunkHits = await mongoose.connection.db!.collection("teacherchunks").find({ material_id: materialId, $text: { $search: "fim república" } }).toArray();
-  check("Portuguese text search finds the page of 'fim da república'", chunkHits[0]?.page === 2, chunkHits.map((c) => c.page));
-  const range = await fetch(`${base}/files/${materialId}`, { headers: { range: "bytes=0-4" } });
-  check("PDF served with Range (206, %PDF-)", range.status === 206 && (await range.text()) === "%PDF-");
-  const again = await fetch(base + "/materials", { method: "POST", body: form });
-  check("same file again is a duplicate (200)", again.status === 200 && ((await again.json()) as any).duplicate === true);
+  const form = () => {
+    const f = new FormData();
+    f.set("title", "Livro de teste");
+    f.set("subject_id", subject.id);
+    f.set("file", new Blob([new Uint8Array(pdf)], { type: "application/pdf" }), "livro.pdf");
+    return f;
+  };
+  const noSubject = new FormData();
+  noSubject.set("file", new Blob([new Uint8Array(pdf)], { type: "application/pdf" }), "livro.pdf");
+  check("upload without a subject is refused (400)", (await fetch(base + "/materials", { method: "POST", body: noSubject })).status === 400);
+  const wrong = form();
+  wrong.set("subject_id", "000000000000000000000000");
+  check("upload to an unknown subject is refused (404)", (await fetch(base + "/materials", { method: "POST", body: wrong })).status === 404);
+
+  if (!app.container.embed) {
+    const refused = await fetch(base + "/materials", { method: "POST", body: form() });
+    check("no VOYAGE_API_KEY: upload answers 503 embeddings_unavailable (embedding part skipped)", refused.status === 503);
+  } else {
+    const upload = await fetch(base + "/materials", { method: "POST", body: form() });
+    const { id: materialId } = (await upload.json()) as any;
+    check("upload accepted (202, queued)", upload.status === 202);
+    const sawCard = await get(`/subjects/${subject.id}`);
+    check("while processing the subject does not list it yet", sawCard.material_count === 0 || (await get(`/materials/${materialId}`)).status === "ready", sawCard);
+    await until("ingestion with real Voyage embeddings", async () => ["ready", "failed"].includes((await get(`/materials/${materialId}`)).status));
+    const material = await get(`/materials/${materialId}`);
+    check("material ready, linked to the subject, with chapters and lesson sequence", material.status === "ready" && material.subject === "history_e2e" && material.subject_id === subject.id && material.pages === 2 && material.chapters.length === 2 && material.sequence.length === 2, material);
+    const stored = await mongoose.connection.db!.collection("chunks").find({ material_id: materialId }).toArray();
+    check("passages stored in `chunks`, one embedding of 1024 numbers each", stored.length === material.passages && stored.length > 0 && stored.every((c) => c.embedding.length === 1024 && c.subject === "history_e2e"), { passages: stored.length, dims: stored[0]?.embedding?.length });
+    const card = await get(`/subjects/${subject.id}`);
+    check("the subject card now lists the material", card.material_count === 1 && card.materials[0].id === materialId, card);
+    const catalog = await app.container.chunkStore.listCatalog(subject.id);
+    check("the tutor's catalog for the subject has the book and its chapters", catalog.length === 1 && catalog[0]!.chapters.length === 2, catalog);
+    check("the tutor's citation check accepts a real quote of the uploaded page", await app.container.retriever.validateCitation({ material_id: materialId, page: 2, quote: "O fim da República aconteceu" }));
+    const session = await fetch(base + "/sessions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ student_id: "e2e", modality: "text", subject_id: subject.id }) });
+    check("a session can start from the subject (201)", session.status === 201, await session.clone().text());
+    const range = await fetch(`${base}/files/${materialId}`, { headers: { range: "bytes=0-4" } });
+    check("PDF served with Range (206, %PDF-)", range.status === 206 && (await range.text()) === "%PDF-");
+    const again = await fetch(base + "/materials", { method: "POST", body: form() });
+    check("same file again is a duplicate (200)", again.status === 200 && ((await again.json()) as any).duplicate === true);
+  }
 } finally {
   await app.close();
   if (!keep) await mongoose.connection.dropDatabase();

@@ -7,12 +7,9 @@ export * from "./subject.model";
 export * from "./session.model";
 export * from "./event.model";
 export * from "./evidence.model";
-// Teacher side (Person 1): student, class-context, teacher-material, teacher-chunk, analysis, insight.
-// `TeacherMaterial` / `TeacherChunk` live in their own collections (teachermaterials, teacherchunks): the teacher upload
-// keeps text chunks and the lesson sequence, the whiteboard catalog keeps embedded passages. Unifying them is a later decision.
+// Teacher side (Person 1): student, class-context, analysis, insight. Materials are the shared `material` model above:
+// the teacher upload creates them (with a subject) and the ingestion stores their embedded passages in `chunk`.
 export * from "./student.model";
 export * from "./class-context.model";
-export * from "./teacher-material.model";
-export * from "./teacher-chunk.model";
 export * from "./analysis.model";
 export * from "./insight.model";

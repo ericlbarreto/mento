@@ -2,10 +2,8 @@ import { randomBytes } from "node:crypto";
 import {
   MaterialInput,
   StudentInput,
-  normalizeConcept,
   type Analysis,
   type AnalysisRecord,
-  type TextChunk,
   type ClassContext,
   type Insight,
   type InsightDraft,
@@ -20,15 +18,6 @@ export interface MemoryRepositoryOptions {
   now?: () => string;
 }
 
-const STOPWORDS = new Set(["de", "da", "do", "das", "dos", "a", "o", "as", "os", "e", "em", "um", "uma", "para", "por", "com", "que", "no", "na", "nos", "nas", "ao", "se"]);
-
-function stems(text: string): string[] {
-  return normalizeConcept(text)
-    .split(" ")
-    .filter((t) => t && !STOPWORDS.has(t))
-    .map((t) => t.slice(0, 6));
-}
-
 const newId = () => randomBytes(12).toString("hex");
 const clone = <T>(value: T): T => structuredClone(value);
 
@@ -37,7 +26,6 @@ export class MemoryRepository implements TeacherRepository {
   private students = new Map<string, Student>();
   private classContext: ClassContext | null = null;
   private materials = new Map<string, Material>();
-  private chunks = new Map<string, TextChunk[]>();
   private analyses = new Map<string, Analysis>(); // by session_id
   private insights = new Map<string, Insight>();
   private insightSeq = new Map<string, number>();
@@ -111,29 +99,6 @@ export class MemoryRepository implements TeacherRepository {
     return clone(updated);
   }
 
-  async replaceChunks(materialId: string, chunks: TextChunk[]) {
-    this.chunks.set(materialId, chunks.map(clone));
-  }
-  async searchChunks(materialId: string, query: string, k: number) {
-    const wanted = new Set(stems(query));
-    if (wanted.size === 0) return [];
-    return (this.chunks.get(materialId) ?? [])
-      .map((chunk) => {
-        const have = new Set(stems(chunk.text_norm));
-        return { chunk, score: [...wanted].filter((s) => have.has(s)).length };
-      })
-      .filter((x) => x.score > 0)
-      .sort((a, b) => b.score - a.score || a.chunk.page - b.chunk.page || a.chunk.chunk_index - b.chunk.chunk_index)
-      .slice(0, k)
-      .map((x) => clone(x.chunk));
-  }
-  async getPages(materialId: string, pages: number[]) {
-    return (this.chunks.get(materialId) ?? [])
-      .filter((c) => pages.includes(c.page))
-      .sort((a, b) => a.page - b.page || a.chunk_index - b.chunk_index)
-      .map(clone);
-  }
-
   async getAnalysisBySession(sessionId: string) {
     const a = this.analyses.get(sessionId);
     return a ? clone(a) : null;
@@ -184,8 +149,7 @@ export class MemoryRepository implements TeacherRepository {
   async resetTeacherData() {
     this.students.clear();
     this.classContext = null;
-    this.materials.clear();
-    this.chunks.clear();
+    for (const [id, m] of this.materials) if (m.is_fixture) this.materials.delete(id);
     this.analyses.clear();
     this.insights.clear();
     this.insightSeq.clear();

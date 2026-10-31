@@ -30,18 +30,18 @@ export async function seedStudents(repo: TeacherRepository) {
   return students;
 }
 
-/** `pnpm seed:lab`: the lab material (metadata + lesson sequence; no PDF, so no chunks). Idempotent. */
+/** `pnpm seed:lab`: the lab material (metadata + lesson sequence; no PDF, so no passages), flagged `is_fixture`. Idempotent. */
 export async function seedLabMaterial(repo: TeacherRepository): Promise<Material> {
   const m = loadLabMaterial();
   return repo.upsertMaterial({
     fixture_id: LAB_MATERIAL_FIXTURE_ID,
     title: m.title,
-    subject: "História",
-    is_fixture: true,
-    page_count: m.page_count,
+    subject: "history",
+    is_fixture: true, // never shown to the tutor: no catalog entry, no subject count
+    pages: m.page_count,
     status: "ready",
-    progress: { done: m.page_count, total: m.page_count },
-    outline: m.sequence.map((l) => ({ title: l.title, start_page: l.pages[0], end_page: l.pages[1] })),
+    progress: { stage: "done", done: m.page_count, total: m.page_count },
+    chapters: m.sequence.map((l) => ({ title: l.title, start_page: l.pages[0], end_page: l.pages[1] })),
     sequence: m.sequence,
   });
 }

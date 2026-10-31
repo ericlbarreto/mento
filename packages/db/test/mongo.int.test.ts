@@ -18,5 +18,9 @@ describe.skipIf(!uri)("MongoDB integration (database mento_test_db)", () => {
     await disconnectMongo();
   }, 30_000);
 
-  repositorySuite("mongo", () => repo, () => repo.resetTeacherData());
+  // The throwaway database: wipe real materials too (resetTeacherData keeps them on purpose).
+  repositorySuite("mongo", () => repo, async () => {
+    await repo.resetTeacherData();
+    await mongoose.connection.db!.collection("materials").deleteMany({});
+  });
 });

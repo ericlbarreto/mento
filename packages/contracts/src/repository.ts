@@ -1,10 +1,13 @@
 import type { Analysis, AnalysisRecord, Insight, InsightDraft, InsightFilter } from "./insights";
 import type { ClassContext } from "./class-context";
-import type { Material, MaterialInput, TextChunk } from "./material";
+import type { Material, MaterialInput } from "./material";
 import type { SessionBundle, Session } from "./session";
 import type { Student, StudentInput } from "./student";
 
-/** Persistence used by the teacher side (Person 1). One in-memory and one MongoDB implementation (@mento/db). */
+/**
+ * Persistence used by the teacher side (Person 1). One in-memory and one MongoDB implementation (@mento/db).
+ * Materials live in the shared `materials` collection; their embedded passages are the whiteboard's `ChunkStore`.
+ */
 export interface TeacherRepository {
   listStudents(): Promise<Student[]>;
   getStudent(id: string): Promise<Student | null>;
@@ -23,10 +26,6 @@ export interface TeacherRepository {
   upsertMaterial(input: MaterialInput): Promise<Material>;
   updateMaterial(id: string, patch: Partial<MaterialInput>): Promise<Material | null>;
 
-  replaceChunks(materialId: string, chunks: TextChunk[]): Promise<void>;
-  /** Full-text search inside one material, best first. */
-  searchChunks(materialId: string, query: string, k: number): Promise<TextChunk[]>;
-  getPages(materialId: string, pages: number[]): Promise<TextChunk[]>;
 
   getAnalysisBySession(sessionId: string): Promise<Analysis | null>;
   /** Upserts by `session_id`. */
@@ -37,7 +36,7 @@ export interface TeacherRepository {
   createInsight(draft: InsightDraft): Promise<Insight>;
   updateInsight(id: string, patch: Partial<InsightDraft>): Promise<Insight | null>;
 
-  /** Deletes only the teacher-side collections (students, class context, materials, chunks, analyses, insights). */
+  /** Deletes only the teacher-side collections (students, class context, analyses, insights) and fixture materials. */
   resetTeacherData(): Promise<void>;
 }
 

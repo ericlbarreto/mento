@@ -1,4 +1,4 @@
-import { chooseDatabase, connectMongo, disconnectMongo, mongoState, pingMongo, type MongoState } from "@mento/db";
+import { connectMongo, disconnectMongo, mongoState, pingMongo, type MongoState } from "@mento/db";
 
 /** Owns the MongoDB connection lifecycle for the API process. Other services receive the models from @mento/db. */
 export class MongoService {
@@ -8,8 +8,7 @@ export class MongoService {
   ) {}
 
   async connect(): Promise<void> {
-    const dbName = chooseDatabase(this.uri, this.dbName);
-    await connectMongo(this.uri, dbName ? { dbName } : {});
+    await connectMongo(this.uri, this.dbName ? { dbName: this.dbName } : {});
   }
 
   async disconnect(): Promise<void> {

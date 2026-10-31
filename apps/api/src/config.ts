@@ -12,7 +12,7 @@ const schema = z.object({
   API_PORT: z.coerce.number().int().default(4000),
   API_HOST: z.string().default("0.0.0.0"),
   MONGODB_URI: z.string().default("mongodb://localhost:27017/mento"),
-  /** Optional. Without it the database named in MONGODB_URI is used; an Atlas URI with none falls back to `mento` (never `test`). */
+  /** Optional. Without it the database named in MONGODB_URI is used (`test` when an Atlas URI names none): the same one the whiteboard ingestion script writes to. */
   MONGODB_DB: z.string().optional(),
   WEB_ORIGIN: z.string().default("http://localhost:3000"),
   LOG_LEVEL: z.string().default("info"),
