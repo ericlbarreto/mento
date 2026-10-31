@@ -3,3 +3,6 @@
 export * from "./material.model";
 export * from "./chunk.model";
 export * from "./subject.model";
+export * from "./session.model";
+export * from "./event.model";
+export * from "./evidence.model";
