@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import type { Action, ActionName, Citation, Interrupted, SpeechPlayer } from "../protocol";
+import type { Action, ActionName, Citation, Interrupted, SpeechPlayer } from "@mento/contracts";
 import type { SpeechClock } from "../speech";
 import type { BoardStore, ElementState } from "../store";
 

@@ -1,6 +1,6 @@
 // Pure board reducer: one Action in, next BoardState out. Never throws on bad targets:
 // unknown ids are ignored and reported through `onWarning` (the model can reference stale ids).
-import type { Action } from "../protocol";
+import type { Action } from "@mento/contracts";
 import type { Annotation, BoardState, ElementState } from "./types";
 
 export interface ApplyContext {

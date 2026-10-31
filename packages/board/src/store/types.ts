@@ -8,7 +8,7 @@ import type {
   DrawArgs,
   HighlightArgs,
   WriteTimelineArgs,
-} from "../protocol";
+} from "@mento/contracts";
 
 export type ElementType = "text" | "timeline" | "image" | "svg" | "question";
 export type Author = "tutor" | "student";

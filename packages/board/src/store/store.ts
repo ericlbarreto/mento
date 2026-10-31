@@ -1,6 +1,6 @@
 // Board store: the reducer behind fine-grained subscriptions, so React components can subscribe to one
 // element or one column (useSyncExternalStore) and adding an element never re-renders the others.
-import type { Action, Column } from "../protocol";
+import type { Action, Column } from "@mento/contracts";
 import { applyAction, applySvg } from "./reducer";
 import { type BoardState, COLUMNS, type ElementState, emptyBoard } from "./types";
 

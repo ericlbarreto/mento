@@ -2,7 +2,7 @@
 // and played strictly ascending, one at a time. `speak` gates the next action, `draw` does not.
 // Stream lifecycle: actions… → script_done (no more script; late results such as draw_result may follow)
 // → turn_done. interrupt() is synchronous so new user input cuts the tutor in < 100 ms.
-import type { Action, SpeechPlayer, StreamMessage, WordTiming } from "../protocol";
+import type { Action, SpeechPlayer, StreamMessage, WordTiming } from "@mento/contracts";
 import { type SpeechClock, TextSpeechPlayer } from "../speech";
 import type { BoardStore } from "../store";
 import { defaultHandlers } from "./handlers";
@@ -46,9 +46,14 @@ export interface ActionQueue {
   resume(): void;
   /**
    * Stops speech, drops pending actions, keeps the board. Returns the `interrupted` payload, or null when
-   * nothing was cut or the turn id is not known yet (it only arrives with script_done / turn_done).
+   * nothing was cut or no turn id is known. The current turn's id only arrives with script_done / turn_done;
+   * before that the previous turn's id is used.
    */
   interrupt(): InterruptedPayload | null;
+  /** Seeds the previous turn's id (e.g. the last `turn_id` of a reopened session). */
+  setLastTurnId(turn_id: string | null): void;
+  /** Id of the last turn whose script_done / turn_done arrived (survives new turns and interrupts). */
+  getLastTurnId(): string | null;
   getState(): QueueState;
   /** True once script_done (or turn_done) arrived for the current turn. */
   isScriptDone(): boolean;
@@ -67,6 +72,7 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
   let generation = 0;
   let abort = new AbortController();
   let turnId: string | null = null;
+  let lastTurnId: string | null = null;
   let turnActive = false;
   let scriptDone = false;
   let turnDone = false;
@@ -217,8 +223,10 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
     if (words) {
       const said = words.filter((w) => w.end_ms <= spoken_ms).map((w) => w.word);
       spoken_chars = said.length ? Math.min(action.args.text.length, said.join(" ").length) : 0;
-    } else if (!(action.args.audio_url && audio) && speech.progress) {
-      spoken_chars = Math.round(speech.progress() * action.args.text.length);
+    } else if (speech.progress) {
+      // Text clock, or audio that fell back to it (progress is 0 while the text clock is not running).
+      const progress = speech.progress();
+      if (progress > 0 || !(action.args.audio_url && audio)) spoken_chars = Math.round(progress * action.args.text.length);
     }
     return { spoken_ms: Math.round(spoken_ms), spoken_chars };
   };
@@ -228,6 +236,10 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
     getState: derive,
     isScriptDone: () => scriptDone,
     getAlignment: (id) => alignments.get(id),
+    getLastTurnId: () => lastTurnId,
+    setLastTurnId(id) {
+      lastTurnId = id;
+    },
 
     beginTurn() {
       resetTurn();
@@ -267,11 +279,13 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
           return;
         case "script_done":
           turnId = msg.turn_id;
+          lastTurnId = msg.turn_id;
           scriptDone = true;
           emit();
           return;
         case "turn_done":
           turnId = msg.turn_id;
+          lastTurnId = msg.turn_id;
           finish();
           return;
         case "error":
@@ -305,8 +319,9 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
     interrupt() {
       const cut = current !== null || pending.size > 0 || (turnActive && !scriptDone);
       let payload: InterruptedPayload | null = null;
-      if (cut && turnId) {
-        payload = { turn_id: turnId };
+      const knownTurnId = turnId ?? lastTurnId;
+      if (cut && knownTurnId) {
+        payload = { turn_id: knownTurnId };
         if (current) {
           payload.action_id = current.id;
           if (current.name === "speak") {

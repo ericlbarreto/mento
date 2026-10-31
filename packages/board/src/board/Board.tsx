@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import type { Column } from "../protocol";
+import type { Column } from "@mento/contracts";
 import { type RendererMap, basicRenderers } from "../renderers";
 import { type BoardStore, useBoardColumn } from "../store";
 import { type BoardEnv, BoardEnvProvider } from "./context";

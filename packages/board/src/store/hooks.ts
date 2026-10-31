@@ -2,7 +2,7 @@
 
 // React bindings for the board store: one subscription per element / per column.
 import { useCallback, useSyncExternalStore } from "react";
-import type { Column } from "../protocol";
+import type { Column } from "@mento/contracts";
 import type { BoardStore } from "./store";
 import type { ElementState } from "./types";
 

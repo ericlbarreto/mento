@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FIXTURE_TURNS, type FixtureName } from "../mock";
-import type { Action, StreamMessage } from "../protocol";
+import type { Action, SpeechPlayer, StreamMessage } from "@mento/contracts";
 import { TextSpeechPlayer, readingTimeMs } from "../speech";
 import { createBoardStore } from "../store";
 import { MAX_SVG_CHARS, createActionQueue } from "./queue";
@@ -53,45 +53,57 @@ describe("action queue", () => {
     for (const m of shuffled) t.queue.push(m);
     for (const m of intro.filter((m) => !isAction(m))) t.queue.push(m);
     await vi.runAllTimersAsync();
-    expect(t.ids()).toEqual(["title", "colosseum", "timeline_rome", "republic_end", "q_republic_end"]);
-    expect(t.store.getElement("colosseum")?.status).toBe("ready");
-    expect(t.captions).toHaveLength(3);
+    expect(t.ids()).toEqual(["title", "colosseum", "tl_republica"]);
+    expect(t.store.getElement("colosseum")).toMatchObject({ status: "ready", data: { url: "/files/gen/colosseum.jpg" } });
+    expect(t.captions).toHaveLength(2);
     expect(t.warnings).toEqual([]);
   });
 
   it("speak gates the next action; draw does not block", async () => {
     const t = setup();
-    const msgs = intro.slice(0, 5); // write_text, highlight, speak, draw, write_timeline
+    const msgs = intro.slice(0, 5); // write_text, speak, speech_alignment, draw, write_timeline
     t.queue.beginTurn();
     expect(t.queue.getState()).toBe("thinking");
     for (const m of msgs) t.queue.push(m);
     await flush();
     expect(t.ids()).toEqual(["title"]); // speaking: the draw waits
     expect(t.queue.getState()).toBe("playing");
-    const speak = msgs[2] as Extract<StreamMessage, { type: "action" }>;
+    const speak = msgs[1] as Extract<StreamMessage, { type: "action" }>;
     if (speak.action.name !== "speak") throw new Error("fixture changed");
     await vi.advanceTimersByTimeAsync(readingTimeMs(speak.action.args.text) - 10);
     expect(t.ids()).toEqual(["title"]);
     await vi.advanceTimersByTimeAsync(20);
     // draw placeholder and the timeline land together: draw continued immediately
-    expect(t.ids()).toEqual(["title", "colosseum", "timeline_rome"]);
+    expect(t.ids()).toEqual(["title", "colosseum", "tl_republica"]);
     expect(t.store.getElement("colosseum")?.status).toBe("placeholder");
   });
 
-  it("script_done ends the script (waiting_answer) and a late draw_result still swaps the image", async () => {
+  it("script_done ends the script and a late draw_result still swaps the image", async () => {
     const t = setup();
     const scriptDoneAt = intro.findIndex((m) => m.type === "script_done");
     t.queue.beginTurn();
     for (const m of intro.slice(0, scriptDoneAt + 1)) t.queue.push(m);
     await vi.runAllTimersAsync();
-    expect(t.queue.getState()).toBe("waiting_answer");
+    expect(t.queue.getState()).toBe("idle");
     expect(t.queue.isScriptDone()).toBe(true);
     expect(t.store.getElement("colosseum")?.status).toBe("placeholder");
     for (const m of intro.slice(scriptDoneAt + 1)) t.queue.push(m); // draw_result, turn_done
     await vi.runAllTimersAsync();
     expect(t.store.getElement("colosseum")?.status).toBe("ready");
+    expect(t.queue.getState()).toBe("idle");
+    expect(t.states).toEqual(["thinking", "playing", "idle", "playing", "idle"]);
+  });
+
+  it("a script that ends on ask_verification waits for the answer", async () => {
+    const t = setup();
+    t.queue.beginTurn();
+    for (const m of intro) t.queue.push(m);
+    await vi.runAllTimersAsync();
+    t.queue.beginTurn();
+    for (const m of messagesOf("click-and-ask")) t.queue.push(m);
+    await vi.runAllTimersAsync();
     expect(t.queue.getState()).toBe("waiting_answer");
-    expect(t.states).toEqual(["thinking", "playing", "waiting_answer", "playing", "waiting_answer"]);
+    expect(t.store.getElement("q_augusto")?.type).toBe("question");
   });
 
   it("interrupt() clears pending synchronously, keeps the board and returns the payload", async () => {
@@ -101,8 +113,8 @@ describe("action queue", () => {
     await flush();
     await vi.advanceTimersByTimeAsync(1500); // midway through the first speak
     const payload = t.queue.interrupt();
-    expect(payload).toMatchObject({ turn_id: "turn_intro", action_id: "act_intro_3", spoken_ms: 1500 });
-    expect(payload?.spoken_chars).toBeGreaterThan(0);
+    // spoken_chars from speech_alignment: the words that ended by 1500 ms.
+    expect(payload).toEqual({ turn_id: "turn_1", action_id: "act_2", spoken_ms: 1500, spoken_chars: "Hoje vamos ver como Roma".length });
     expect(t.queue.getState()).toBe("idle");
     const before = t.ids();
     expect(before).toEqual(["title"]);
@@ -111,13 +123,35 @@ describe("action queue", () => {
     expect(t.queue.interrupt()).toBeNull(); // nothing left to cut
   });
 
-  it("interrupt() returns null while the turn id is still unknown (before script_done)", async () => {
+  it("interrupt() returns null before the first script_done of the session (no turn id known)", async () => {
     const t = setup();
     t.queue.beginTurn();
     for (const m of intro.slice(0, 3)) t.queue.push(m);
     await flush();
     expect(t.queue.interrupt()).toBeNull();
     expect(t.queue.getState()).toBe("idle");
+  });
+
+  it("interrupt() before script_done uses the previous turn's id", async () => {
+    const t = setup();
+    t.queue.beginTurn();
+    for (const m of intro) t.queue.push(m);
+    await vi.runAllTimersAsync();
+    expect(t.queue.getLastTurnId()).toBe("turn_1");
+    t.queue.beginTurn();
+    const click = messagesOf("click-and-ask");
+    t.queue.push(click[0]!); // the first speak, no script_done yet
+    await vi.advanceTimersByTimeAsync(500);
+    expect(t.queue.interrupt()).toMatchObject({ turn_id: "turn_1", action_id: "act_11", spoken_ms: 500 });
+  });
+
+  it("setLastTurnId() seeds the id of a reopened session", async () => {
+    const t = setup();
+    t.queue.setLastTurnId("turn_7");
+    t.queue.beginTurn();
+    t.queue.push(intro[0]!);
+    await flush();
+    expect(t.queue.interrupt()).toEqual({ turn_id: "turn_7" });
   });
 
   it("uses speech_alignment for spoken_chars", async () => {
@@ -152,20 +186,19 @@ describe("action queue", () => {
     t.queue.resume();
     expect(t.queue.getState()).toBe("playing");
     await vi.runAllTimersAsync();
-    expect(t.ids()).toHaveLength(5);
+    expect(t.ids()).toHaveLength(3);
   });
 
-  it("ends idle after a turn without a question, and warns on duplicates and unknown targets", async () => {
+  it("warns on duplicate orders and unknown targets", async () => {
     const t = setup();
     t.queue.beginTurn();
-    const click = messagesOf("click-and-ask"); // circles timeline_rome, absent on an empty board
+    const click = messagesOf("click-and-ask"); // highlights tl_republica, absent on an empty board
     for (const m of click) t.queue.push(m);
     t.queue.push(click[0]!); // duplicate order 0
     await vi.runAllTimersAsync();
-    expect(t.queue.getState()).toBe("idle");
-    expect(t.ids()).toEqual(["side_27bc"]);
+    expect(t.ids()).toEqual(["nota_augusto", "q_augusto"]);
     expect(t.warnings.some((w) => w.includes("duplicate order 0"))).toBe(true);
-    expect(t.warnings.some((w) => w.includes("timeline_rome"))).toBe(true);
+    expect(t.warnings.some((w) => w.includes("tl_republica"))).toBe(true);
   });
 
   it("skips an order gap once the turn is done", async () => {
@@ -221,10 +254,47 @@ describe("action queue", () => {
   it("endTurn() finishes a stream that closed without turn_done", async () => {
     const t = setup();
     t.queue.beginTurn();
-    for (const m of messagesOf("outside-material").filter(isAction)) t.queue.push(m);
+    for (const m of intro.filter(isAction)) t.queue.push(m);
     t.queue.endTurn();
     await vi.runAllTimersAsync();
-    expect(t.ids()).toEqual(["outside_colosseum"]);
+    expect(t.ids()).toEqual(["title", "colosseum", "tl_republica"]);
     expect(t.queue.getState()).toBe("idle");
+  });
+});
+
+describe("speak with audio_url", () => {
+  const speak: Action = { id: "s1", name: "speak", args: { text: "Roma era uma república.", audio_url: "/api/tts/s1" } };
+  const next: StreamMessage = { type: "action", order: 1, action: { id: "w1", name: "write_text", args: { id: "after", column: "main", html: "<p>x</p>" } } };
+
+  function withAudio(play: SpeechPlayer["play"]) {
+    const audio: SpeechPlayer = { play: vi.fn(play), stop: vi.fn(), onWord: () => () => {}, level: () => 0 };
+    const warnings: string[] = [];
+    const store = createBoardStore();
+    const queue = createActionQueue({ store, speech: new TextSpeechPlayer(), audio, onWarning: (w) => warnings.push(w) });
+    queue.beginTurn();
+    queue.push({ type: "action", order: 0, action: speak });
+    queue.push(next);
+    queue.push({ type: "turn_done", turn_id: "turn_a" });
+    return { audio, store, warnings };
+  }
+
+  it("plays the audio as given and waits for it", async () => {
+    let finish = () => {};
+    const t = withAudio(() => new Promise<void>((r) => (finish = r)));
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(t.audio.play).toHaveBeenCalledWith("/api/tts/s1", expect.any(AbortSignal));
+    expect(t.store.getElement("after")).toBeUndefined();
+    finish();
+    await flush();
+    expect(t.store.getElement("after")).toBeDefined();
+  });
+
+  it("falls back to the text clock when the audio fails (404/503)", async () => {
+    const t = withAudio(() => Promise.reject(new Error("audio fetch failed: HTTP 404")));
+    await flush();
+    expect(t.store.getElement("after")).toBeUndefined(); // the text clock still gates the next action
+    await vi.advanceTimersByTimeAsync(readingTimeMs("Roma era uma república."));
+    expect(t.store.getElement("after")).toBeDefined();
+    expect(t.warnings.some((w) => w.includes("HTTP 404") && w.includes("text clock"))).toBe(true);
   });
 });
