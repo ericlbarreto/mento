@@ -16,12 +16,14 @@ import {
   IconClock,
   IconHistory,
   IconLandmark,
+  IconLeaf,
   IconLightbulb,
   IconMic,
   IconPlay,
   IconRotateCcw,
   IconRuler,
   IconSparkles,
+  IconZap,
   Modal,
   SimulatedDataBadge,
   Spinner,
@@ -46,7 +48,7 @@ const NAV: TopBarNavItem[] = [
 /** The tutor's class context is fixed to 8º ano on the server (plan §1); no class route yet. */
 const CLASS_LABEL = "8º ano";
 
-const SUBJECT_ICONS: Record<SubjectIconName, typeof IconBook> = { landmark: IconLandmark, ruler: IconRuler, book: IconBook };
+const SUBJECT_ICONS: Record<SubjectIconName, typeof IconBook> = { landmark: IconLandmark, ruler: IconRuler, leaf: IconLeaf, zap: IconZap, book: IconBook };
 
 const linkClasses =
   "rounded-(--radius-sm) font-bold text-(--mento-blue-strong) underline-offset-4 outline-none hover:underline focus-visible:shadow-(--focus-ring)";

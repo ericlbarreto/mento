@@ -5,7 +5,7 @@ import type { Event, SessionDetailResponse, StreamMessage, SttCaption, TurnReque
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { StreamTurn } from "@mento/board";
 import { buildAppended, describeError, makeSelection, openingDelayMs, sttSummary } from "./sessionModel";
-import { type SessionController, useSessionController } from "./useSessionController";
+import { type SessionController, type SessionVoiceOutput, useSessionController } from "./useSessionController";
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -60,12 +60,16 @@ async function mount(
   sessionId: string,
   events: Event[],
   streamTurn: StreamTurn,
-  { modality = "text", holdVoiceOpening = false }: { modality?: "text" | "voice"; holdVoiceOpening?: boolean } = {},
+  {
+    modality = "text",
+    holdVoiceOpening = false,
+    audio,
+  }: { modality?: "text" | "voice"; holdVoiceOpening?: boolean; audio?: SessionVoiceOutput } = {},
 ) {
   const ref: { current: SessionController | null } = { current: null };
   const api = { getSession: vi.fn(async (id: string) => detail(id, events, modality)), streamTurn };
   function Harness() {
-    ref.current = useSessionController({ sessionId, api, openingDelay: () => 0, holdVoiceOpening });
+    ref.current = useSessionController({ sessionId, api, audio, openingDelay: () => 0, holdVoiceOpening });
     return null;
   }
   root = createRoot(document.createElement("div"));
@@ -153,6 +157,57 @@ describe("session controller", () => {
     expect(second.interrupted).toMatchObject({ turn_id: "turn_1", action_id: "act_1" });
     expect(second.interrupted?.spoken_ms).toEqual(expect.any(Number));
     expect(ref.current?.speakingId).toBeNull();
+  });
+
+  describe("real pause", () => {
+    const longLine = "Hoje vamos ver como Roma deixou de ser uma República e virou um Império, passo a passo.";
+    const fakeAudio = () => ({ play: vi.fn(async () => undefined), stop: vi.fn(), onWord: () => () => undefined, level: () => 0, pause: vi.fn(), resume: vi.fn() });
+
+    it("freezes the line (caption progress, orb) and suspends the voice; resume continues from the same point", async () => {
+      const { streamTurn } = fakeStream((call) => (call === 0 ? [speak("act_1", longLine, 0), { type: "script_done", turn_id: "turn_1" }] : []));
+      const audio = fakeAudio();
+      const { ref } = await mount("sess_pause", [], streamTurn, { audio });
+      expect(ref.current?.canPause).toBe(true);
+      await act(async () => ref.current!.pause());
+      expect(ref.current?.paused).toBe(true);
+      expect(ref.current?.orbState).toBe("paused");
+      expect(audio.pause).toHaveBeenCalledTimes(1);
+      const frozen = ref.current!.captionProgress("act_1");
+      await settle();
+      await settle();
+      expect(ref.current!.captionProgress("act_1")).toBe(frozen);
+      expect(ref.current!.level()).toBe(0);
+      await act(async () => ref.current!.resume());
+      expect(ref.current?.paused).toBe(false);
+      expect(ref.current?.orbState).toBe("speaking");
+      expect(audio.resume).toHaveBeenCalled();
+      await settle();
+      expect(ref.current!.captionProgress("act_1")).toBeGreaterThan(frozen);
+    });
+
+    it("a message sent while paused cuts the paused reply and starts the new turn", async () => {
+      const { calls, streamTurn } = fakeStream((call) => (call === 0 ? [speak("act_1", longLine, 0), { type: "script_done", turn_id: "turn_1" }] : []));
+      const audio = fakeAudio();
+      const { ref } = await mount("sess_pause_send", [], streamTurn, { audio });
+      await act(async () => ref.current!.pause());
+      await act(async () => void ref.current!.sendMessage("Espera, o que é República?"));
+      await settle();
+      expect(calls).toHaveLength(2);
+      expect(calls[1]!.interrupted).toMatchObject({ turn_id: "turn_1", action_id: "act_1" });
+      expect(ref.current?.paused).toBe(false);
+      expect(audio.stop).toHaveBeenCalled();
+      expect(audio.resume).toHaveBeenCalled();
+    });
+
+    it("has nothing to pause once the tutor is done", async () => {
+      const { streamTurn } = fakeStream((call) => (call === 0 ? [speak("act_1", "Oi", 0), { type: "turn_done", turn_id: "turn_1" }] : []));
+      const { ref } = await mount("sess_pause_idle", [], streamTurn);
+      await act(() => new Promise<void>((r) => setTimeout(r, 1400)));
+      expect(ref.current?.player.queueState).toBe("idle");
+      expect(ref.current?.canPause).toBe(false);
+      await act(async () => ref.current!.pause());
+      expect(ref.current?.paused).toBe(false);
+    });
   });
 });
 

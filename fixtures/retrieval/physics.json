@@ -1,0 +1,24 @@
+{
+  "questions": [
+    {
+      "question": "Quais são as fontes da matriz elétrica brasileira?",
+      "expect_page": 8
+    },
+    {
+      "question": "Qual a diferença entre circuito em série e em paralelo?",
+      "expect_page": 15
+    },
+    {
+      "question": "Como calcular o consumo de um chuveiro em kWh?",
+      "expect_page": 17
+    },
+    {
+      "question": "O que são as bandeiras tarifárias da conta de luz?",
+      "expect_page": 19
+    },
+    {
+      "question": "O que diz a Primeira Lei de Newton?",
+      "expect_page": 23
+    }
+  ]
+}

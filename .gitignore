@@ -14,6 +14,9 @@ build/
 # PDFs de material (podem ter direitos autorais); a pasta e o README ficam
 materials/*
 !materials/README.md
+# Markdown sources of the demo textbooks are ours (Plan E); their PDFs, HTML and DB backups stay ignored
+!materials/src/
+materials/src/**/*.pdf
 
 # monorepo / app data
 data/

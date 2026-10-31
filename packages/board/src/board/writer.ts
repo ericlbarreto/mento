@@ -500,11 +500,21 @@ export function createBoardWriter(store: BoardStore): BoardWriter {
           queue.push(job);
         }
       });
+      // Web Animations on the board (a diagram drawn stroke by stroke) freeze with the handwriting.
+      let frozen: Animation[] = [];
       const unsubscribeBus = store.animation.subscribe((s) => {
         if (s === "settle") flush();
+        else if (s === "pause" && typeof w.getAnimations === "function") {
+          frozen = w.getAnimations({ subtree: true }).filter((a) => a.playState === "running");
+          frozen.forEach((a) => a.pause());
+        } else if (s === "resume") {
+          frozen.forEach((a) => a.playState === "paused" && a.play());
+          frozen = [];
+        }
       });
+      // A hidden tab finishes the writing at once, unless the lesson is paused: it stays where it stopped.
       const onVisibility = () => {
-        if (document.visibilityState === "hidden") flush();
+        if (document.visibilityState === "hidden" && !store.animation.isPaused()) flush();
       };
       document.addEventListener("visibilitychange", onVisibility);
       return () => {

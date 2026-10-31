@@ -47,6 +47,9 @@ export interface ChatLine extends TranscriptLine {
 
 type TurnInput = Omit<TurnRequest, "interrupted">;
 
+/** The tutor's voice, plus the AudioContext suspend / resume behind the real pause (SessionAudio). */
+export type SessionVoiceOutput = SpeechPlayer & { pause?(): void; resume?(): void };
+
 
 /**
  * Sessions whose opening turn this page already sent. Module-level so a remount (StrictMode, fast refresh,
@@ -80,7 +83,7 @@ export function useSessionController({
   sessionId: string;
   api: SessionApi;
   /** Tutor voice for `speak.audio_url` (absent in mock mode). */
-  audio?: SpeechPlayer;
+  audio?: SessionVoiceOutput;
   /** ms to wait before the opening turn, from the session's started_at (tests pass () => 0). */
   openingDelay?: (startedAt: string | undefined) => number;
   /**
@@ -144,6 +147,8 @@ export function useSessionController({
   }, []);
 
   const speakStartedAt = useRef(0);
+  /** Pause bookkeeping for the alignment clock: when the current pause began, and ms paused in this speak. */
+  const pauseClock = useRef<{ since: number | null; total: number }>({ since: null, total: 0 });
   const speakingRef = useRef<string | null>(null);
   const alignments = useRef(new Map<string, WordTiming[]>());
   const onActionStart = (action: Action) => {
@@ -151,6 +156,7 @@ export function useSessionController({
     if (action.name === "speak") {
       speakingRef.current = action.id;
       speakStartedAt.current = performance.now();
+      pauseClock.current.total = 0;
       setSpeakingId(action.id);
       const { text, sources, outside_material } = action.args;
       setLines((ls) =>
@@ -199,6 +205,14 @@ export function useSessionController({
     };
   }, []);
 
+  /** Leaves a pause: the voice output runs again (the queue resumes itself, or a cut already reset it). */
+  const endPause = useCallback(() => {
+    const clock = pauseClock.current;
+    if (clock.since !== null) clock.total += performance.now() - clock.since;
+    clock.since = null;
+    audio?.resume?.();
+  }, [audio]);
+
   const lastRequest = useRef<TurnInput | null>(null);
   const send = useCallback(
     (req: TurnInput) => {
@@ -208,9 +222,11 @@ export function useSessionController({
       setTurnOpen(true);
       setScriptDone(false);
       // sendTurn cuts a running turn first (stop speech, abort the fetch, keep the board) and adds `interrupted`.
+      // A paused reply is cut the same way; the voice output comes back for the new turn.
       void sendTurn(req);
+      endPause();
     },
-    [sendTurn],
+    [sendTurn, endPause],
   );
 
   const sendOpening = useCallback(
@@ -299,6 +315,7 @@ export function useSessionController({
    */
   const interrupt = () => {
     player.interrupt();
+    endPause();
     speakingRef.current = null;
     setSpeakingId(null);
     setTurnOpen(false);
@@ -337,7 +354,9 @@ export function useSessionController({
       if (speakingRef.current !== action_id) return 1;
       const words = alignments.current.get(action_id);
       if (words?.length) {
-        const elapsed = performance.now() - speakStartedAt.current;
+        const now = performance.now();
+        const { since, total } = pauseClock.current;
+        const elapsed = now - speakStartedAt.current - total - (since !== null ? now - since : 0);
         return words.filter((w) => w.start_ms <= elapsed).length / words.length;
       }
       return speech.progress();
@@ -345,14 +364,37 @@ export function useSessionController({
     [speech],
   );
 
+  const { queueState } = player;
   const floor = tutorHasFloor({ turnOpen, scriptDone, queueState: player.queueState });
   // Latch: once released, late drawings (draw_result after script_done) do not take the floor back.
   useEffect(() => {
     if (turnOpen && !floor) setTurnOpen(false);
   }, [turnOpen, floor]);
 
+  const paused = queueState === "paused";
+  /** Something to pause: the tutor is thinking, talking or writing (or already paused). */
+  const canPause = phase === "ready" && (paused || floor || queueState === "thinking" || queueState === "playing");
+  /**
+   * Real pause (the founder's "pausar a resposta"): the voice stops mid-word (AudioContext suspended), no new
+   * action starts, the pen and the caption freeze; the stream keeps buffering. resume() continues from there.
+   */
+  const pause = () => {
+    if (!canPause || paused) return;
+    player.pause();
+    audio?.pause?.();
+    pauseClock.current.since = performance.now();
+  };
+  const resume = () => {
+    if (!paused) return;
+    player.resume();
+    endPause();
+  };
+  // Any other way out of the pause (a cut, a new turn) also brings the voice back.
+  useEffect(() => {
+    if (!paused) endPause();
+  }, [paused, endPause]);
+
   const turnError = player.error && player.error !== dismissedError ? describeError(lastTurnError.current, player.error) : null;
-  const { queueState } = player;
   const annotating = phase === "ready" && queueState === "playing" && speakingId === null;
   const orbState: OrbState =
     phase !== "ready"
@@ -383,6 +425,11 @@ export function useSessionController({
     setSelection,
     sendMessage,
     interrupt,
+    paused,
+    canPause,
+    pause,
+    resume,
+    togglePause: () => (paused ? resume() : pause()),
     /** The tutor is talking (or about to): the mic stays muted unless the student opened it. */
     tutorHasFloor: floor,
     releaseOpening,
@@ -390,7 +437,7 @@ export function useSessionController({
     retry,
     captionProgress,
     /** Orb ring level while speaking (voice output, else the text clock's pseudo-level). */
-    level: () => (speakingRef.current ? Math.max(audio?.level() ?? 0, speech.level()) : 0),
+    level: () => (speakingRef.current && pauseClock.current.since === null ? Math.max(audio?.level() ?? 0, speech.level()) : 0),
     player,
   };
 }
