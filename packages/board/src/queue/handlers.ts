@@ -37,6 +37,9 @@ export const defaultHandlers: HandlerMap = {
     ctx.store.dispatch(action);
   },
   draw_result: applyAndReveal,
+  // The tutor reorganizes the board (the board animates the reflow). Keyed outside ActionName until
+  // `move_element` lands in @mento/contracts; then this cast goes.
+  ...({ move_element: applyAndReveal } as unknown as HandlerMap),
   // Drawn stroke by stroke by its renderer (live only: a replayed or restored diagram appears whole).
   draw_diagram: async (action, ctx) => {
     markDiagramLive(action.args.id);

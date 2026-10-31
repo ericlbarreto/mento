@@ -1,6 +1,7 @@
 // Board state shapes (docs/16 §5.1): elements keyed by id + per-column order.
 import type { z } from "zod";
 import type {
+  Action,
   AskVerificationArgs,
   Citation,
   CircleAnnotateArgs,
@@ -17,9 +18,12 @@ export type Author = "tutor" | "student";
 export type HighlightColor = z.infer<typeof HighlightArgs>["color"];
 export type CircleColor = z.infer<typeof CircleAnnotateArgs>["color"];
 
-/** `shape_id`: the annotation targets one shape of a diagram instead of the whole element / a text match. */
+/**
+ * `text_to_match` on a highlight: only that passage is marked (several passages coexist); without it the whole
+ * block is.
+ * `shape_id`: the annotation targets one shape of a diagram instead of the whole element / a text match. */
 export type Annotation =
-  | { kind: "highlight"; color: HighlightColor; action_id: string; shape_id?: string }
+  | { kind: "highlight"; color: HighlightColor; action_id: string; shape_id?: string; text_to_match?: string }
   | { kind: "circle"; color: CircleColor; text_to_match: string; action_id: string; shape_id?: string };
 
 /** `draw` placeholder and its late result share one shape; `type` is image (url) or svg (streamed). */
@@ -62,8 +66,40 @@ export type ElementOf<T extends ElementType> = ElementBase<T>;
 
 export interface BoardState {
   elements: ReadonlyMap<string, ElementState>;
-  /** Element ids per column, in insertion order. Arrays are replaced (never mutated) on change. */
+  /** Element ids per column, top to bottom (the tutor appends; the student may reorder). Arrays are replaced (never mutated) on change. */
   columns: Readonly<Record<Column, readonly string[]>>;
+  /** Ids the student deleted (plan F): tutor actions on them are dropped, a late draw_result included. */
+  removed: ReadonlySet<string>;
+}
+
+/** A student board edit (BoardEditRequest without its edit_id). A move is absolute: into `column`, right after `after_id` (null = top). */
+export type BoardEdit =
+  | { op: "remove"; element_id: string }
+  | { op: "move"; element_id: string; column: Column; after_id: string | null };
+
+/**
+ * The tutor reorganizes the board: same absolute move as the student's (after `after_id`, null = top).
+ * Local until `move_element` lands in @mento/contracts' Action; then BoardAction is just Action.
+ */
+export interface MoveElementAction {
+  id: string;
+  name: "move_element";
+  args: { id: string; column: Column; after_id: string | null };
+}
+export type BoardAction = Action | MoveElementAction;
+
+/** A layout change the board animates (FLIP reflow), announced right before the store commits it. */
+export interface LayoutChange {
+  kind: "move" | "remove" | "restore";
+  id: string;
+  by: Author;
+}
+
+/** What undo needs to put a deleted element back where it was. */
+export interface RemovedElement {
+  element: ElementState;
+  /** The element right above it in its column when it was deleted (null = it was the first). */
+  after_id: string | null;
 }
 
 export const COLUMNS: readonly Column[] = ["main", "visuals", "side"];
@@ -71,4 +107,5 @@ export const COLUMNS: readonly Column[] = ["main", "visuals", "side"];
 export const emptyBoard = (): BoardState => ({
   elements: new Map(),
   columns: { main: [], visuals: [], side: [] },
+  removed: new Set(),
 });
