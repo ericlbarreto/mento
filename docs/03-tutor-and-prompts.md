@@ -91,8 +91,8 @@ A profile should state, in concrete terms:
 ## Grounding and citation rules
 
 - Use only the retrieved excerpts from the materials of the chosen subject for claims derived from the material.
-- **Opening (D47):** the first turn has no student message: greet the student by name in one short spoken sentence and ask what they want to study today (in a subject session, mention the subject).
-- **Free session (no material, D47):** use the `generic` profile, answer with general knowledge and set `outside_material: true` on every answer; never invent citations.
+- **Opening (D47):** the first turn has no student message: greet the student in one short spoken sentence and ask what they want to study today (in a subject session, mention the subject). The tutor does not use the student's name: names never go to the LLM (AGENTS.md rule 6); the client may show the name on screen.
+- **Free session (D47, refined by D54):** no subject was chosen, so the tutor follows the student's interest and searches **all** materials; it cites a passage when one supports the answer and sets `outside_material: true` when none does; never invent citations.
 - When using an excerpt, emit a citation: `material_id`, `page`, `quote`.
 - If the material does not support the answer: say so, answer with general knowledge, and **mark the answer as "outside the teacher's material"**.
 - If two sources conflict, say so; do not silently merge them.

@@ -12,9 +12,9 @@ import {
 } from "fastify-type-provider-zod";
 import path from "node:path";
 import type { Config } from "./config";
-import { createContainer } from "./container";
+import { createContainer, type Container } from "./container";
 
-export async function buildApp(config: Config) {
+export async function buildApp(config: Config, overrides: Partial<Container> = {}) {
   const app = Fastify({
     logger: { level: config.LOG_LEVEL },
     forceCloseConnections: true, // abort open SSE streams on shutdown
@@ -40,7 +40,7 @@ export async function buildApp(config: Config) {
     return reply.status(status).send({ error: status >= 500 ? "internal_error" : "request_error", message: (error as Error).message });
   });
 
-  app.decorate("container", createContainer(config));
+  app.decorate("container", createContainer(config, overrides));
   app.get("/api/openapi.json", async () => app.swagger());
 
   // Every file in routes/ is registered under /api (adding a route never touches a shared file).
@@ -55,6 +55,6 @@ export async function buildApp(config: Config) {
 
 declare module "fastify" {
   interface FastifyInstance {
-    container: ReturnType<typeof createContainer>;
+    container: Container;
   }
 }

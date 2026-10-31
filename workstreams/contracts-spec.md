@@ -40,7 +40,7 @@ type Event = {
 
 | `type` | Written by | `payload` | Read by |
 |---|---|---|---|
-| `session_started` | Repository (`createSession`) | `{ student_id, subject: string \| null, topic?, modality, persona? }` (`subject` null = free session with no material, D47) | Analysis |
+| `session_started` | Repository (`createSession`) | `{ student_id, subject_id: string \| null, topic?, modality, persona? }` (`subject_id` null = free whiteboard, which searches all materials; D47, D54, §14) | Analysis |
 | `user_message` | Person 3 (turn handler) | `{ kind: "chat" \| "speech" \| "board_select" \| "quick_action", text, selected?: { element_id, text? }, stt?: { provider, duration_ms, confidence? } }` | Analysis, replay |
 | `tutor_action` | Person 3 (each streamed action) | `{ turn_id, action_id, order, name, args }` (`name` = a tool in `docs/16` §4, including `draw_result`) | Analysis, replay, board state |
 | `verification_asked` | Person 3 | `{ verification_id, element_id, concept, concept_key, question, kind }` | Analysis |
@@ -146,22 +146,22 @@ Analysis input (assembled by Person 1) and output (validated with Zod):
 ```ts
 interface Repository {
   // Written/read by Person 3
-  // subject: null = free session (no material). Retrieval spans all ready materials of the subject (D47)
-  createSession(i: { student_id: number; subject: string | null; topic?: string; persona?: string; modality: "text" | "voice" }): Promise<{ id: number }>;
+  // subject: the clicked subject document, null = free whiteboard (searches all materials). D47, D54; code: packages/tutor/src/repository.ts
+  createSession(i: { student_id: string; subject?: { id: string; name: string; key: string } | null; topic?: string; persona?: string; modality: "text" | "voice" }): Promise<{ id: string }>;
   appendEvent(session_id: number, e: { type: EventType; payload: unknown }): Promise<Event>;     // returns the stored event with its id
   listEvents(session_id: number, opts?: { after_id?: number }): Promise<Event[]>;
   endSession(session_id: number, reason: SessionEndReason): Promise<void>;                          // appends session_ended, publishes it on the EventBus
   insertEvidence(e: Omit<Evidence, "id">): Promise<{ id: number }>;
   getClassContext(): Promise<{ grade_level: "7º ano" | "8º ano" | "9º ano"; description: string }>;
   getLearnerSummary(student_id: number): Promise<LearnerSummary>;
-  searchChunks(subject: string, query: string, k: number): Promise<Chunk[]>; // across all ready materials of the subject; each chunk keeps material_id
+  searchChunks(q: { query: string; k: number; material_ids?: string[]; material_id?: string; subject?: string }): Promise<Chunk[]>; // §13–14: the tutor passes the subject's material ids; none = all materials
   getPages(material_id: number, pages: number[]): Promise<Chunk[]>;
   getOutline(material_id: number) /* called per material of the subject */: Promise<{ title: string; start_page: number; end_page: number }[]>;
   validateCitation(c: Citation): Promise<boolean>;
   // Read by the whiteboard start screen (through the API)
   listStudents(): Promise<{ id: number; name: string }[]>;
-  listMaterials(opts?: { ready_only?: boolean; subject?: string }): Promise<MaterialSummary[]>;
-  listSubjects(): Promise<{ subject: string; ready_materials: number }[]>; // start-screen cards (D47)
+  listMaterials(opts?: { ready_only?: boolean; subject_id?: string }): Promise<MaterialSummary[]>;
+  listSubjects(): Promise<SubjectSummary[]>; // start-screen cards (D47): { id, name, key, material_count, materials }, see §14
   // Used by Person 1 (analysis and teacher UI)
   listInsights / upsertInsight / setInsightStatus / metrics ...   // internal to Person 1's packages
 }
@@ -178,3 +178,35 @@ interface Repository {
 ## 11. Change rule
 
 This file and `packages/contracts` change **together**, additively, after a message to the other two people. Never rename a field in place; add the new one, migrate, then remove the old one.
+
+## 12. Additions of 2026-10-30 (voice-first back-end design)
+
+Source of truth in code: `packages/contracts` (`actions.ts`, `stream.ts`, `events.ts`, `speech.ts`). Design: `docs/superpowers/specs/2026-10-30-whiteboard-backend-design.md`.
+
+- **Turn stream** is a union tagged by `type`: `action`, `svg_chunk`, `speech_alignment`, `script_done`, `turn_done`, `error` (replaces the old `{order, action}` / `{done}` shape).
+- **`speak` args** gain `audio_url` and `audio_format` (voice mode only).
+- **`draw_result`** is an action (server → client) that carries `element_id` and `url`.
+- **Student captions**: `SttCaption` is produced in the browser by `useStt()`; only `user_message.text` and `stt { provider, duration_ms, confidence? }` are sent and stored.
+- **`TurnRequest`**: `appended` is a list of `user_message` or `verification_answer`; `interrupted` gains `spoken_ms`; optional `client_timing`.
+- **Sessions** are created with `student_id` only (no `material_id`): the tutor searches all materials. `session_started` loses `material_id`; citations keep `material_id`.
+- **Ids** are strings everywhere (MongoDB `_id`).
+
+## 13. Retrieval additions of 2026-10-30
+
+Source of truth in code: `packages/contracts/src/{retrieval,chunk-store}.ts`. Design: `docs/superpowers/specs/2026-10-30-whiteboard-backend-design.md` §6.1.
+
+- `Repository.searchChunks({ query, k, material_id?, subject? }) → Chunk[]` replaces the old `searchChunks(material_id, query, k)`: the tutor searches **all** materials; `material_id` and `subject` are optional filters.
+- `Chunk = { id, material_id, subject, chapter?, page, passage_idx, text, score? }` (a passage of ~400 tokens inside one page). `validateCitation(c)` is true when `c.quote` occurs on that page (whitespace- and case-insensitive).
+- Ingestion (`@mento/sources/ingest`) stores passages with a 1024-dimension `embedding`; the catalog entry of each ready material is `{ material_id, title, subject, chapters: string[] }`.
+- `createSession` no longer takes `material_id`, and `session_started` has no `material_id`.
+
+## 14. Subjects (matérias), 2026-10-30
+
+Source of truth in code: `packages/contracts/src/{subjects,sessions,retrieval,chunk-store,errors}.ts`. Front-end guide: `docs/frontend-integration.md`.
+
+- **Subject** `{ id, name, key }` (`key` is a lowercase slug such as `history`; it also selects the tutor's subject profile). `SubjectSummary` adds `material_count` and `materials: [{ id, title, pages, status }]` (ready materials only).
+- **Materials belong to a subject** (`materials.subject_id`); the ingestion script creates the subject from `--subject=<key>`.
+- **Sessions:** `CreateSessionRequest.subject_id` is optional and nullable. With a subject, the tutor's catalog and every search are limited to that subject's materials (`SearchQuery.material_ids`); without one (free whiteboard), all materials are searched. `CreateSessionResponse` is `{ id, subject_id }`; `session_started` carries `subject_id` (or null).
+- **Errors:** every error body is `ErrorResponse = { error, message? }`.
+- Endpoints: `GET /api/subjects`, `GET /api/subjects/:id`, `POST /api/subjects`.
+

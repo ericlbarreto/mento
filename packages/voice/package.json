@@ -13,10 +13,17 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@mento/contracts": "workspace:*"
+    "@mento/contracts": "workspace:*",
+    "ws": "^8.22.0"
   },
   "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/ws": "^8.18.2",
+    "react": "^19.3.1",
     "typescript": "~6.0.3",
     "vitest": "^5.0.5"
+  },
+  "peerDependencies": {
+    "react": "^19.3.1"
   }
 }

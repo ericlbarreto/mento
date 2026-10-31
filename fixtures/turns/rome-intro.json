@@ -1,0 +1,29 @@
+{
+  "description": "Opening lesson on the end of the Roman Republic: title, speech with word timings, illustration placeholder, timeline, cited remark, circle on a date, late image result.",
+  "messages": [
+    { "at_ms": 0, "message": { "type": "action", "order": 0, "action": { "id": "act_1", "name": "write_text", "args": { "id": "title", "column": "main", "html": "<h1>Da República ao Império</h1>" } } } },
+    { "at_ms": 60, "message": { "type": "action", "order": 1, "action": { "id": "act_2", "name": "speak", "args": { "text": "Hoje vamos ver como Roma deixou de ser uma República.", "style": "warm", "audio_url": "/api/tts/act_2", "audio_format": "pcm_s16le_24000" } } } },
+    { "at_ms": 120, "message": { "type": "speech_alignment", "action_id": "act_2", "words": [
+      { "word": "Hoje", "start_ms": 0, "end_ms": 260 },
+      { "word": "vamos", "start_ms": 260, "end_ms": 560 },
+      { "word": "ver", "start_ms": 560, "end_ms": 760 },
+      { "word": "como", "start_ms": 760, "end_ms": 1010 },
+      { "word": "Roma", "start_ms": 1010, "end_ms": 1330 },
+      { "word": "deixou", "start_ms": 1330, "end_ms": 1700 },
+      { "word": "de", "start_ms": 1700, "end_ms": 1810 },
+      { "word": "ser", "start_ms": 1810, "end_ms": 2010 },
+      { "word": "uma", "start_ms": 2010, "end_ms": 2180 },
+      { "word": "República.", "start_ms": 2180, "end_ms": 2900 }
+    ] } },
+    { "at_ms": 200, "message": { "type": "action", "order": 2, "action": { "id": "act_3", "name": "draw", "args": { "id": "colosseum", "column": "visuals", "prompt": "Esboço do Coliseu romano em lápis de cor", "is_structured": false, "max_dimensions": { "w": 500, "h": 400 } } } } },
+    { "at_ms": 260, "message": { "type": "action", "order": 3, "action": { "id": "act_4", "name": "write_timeline", "args": { "id": "tl_republica", "column": "main", "events": [
+      { "date": "509 a.C.", "label": "Início da República" },
+      { "date": "27 a.C.", "label": "Otávio recebe o título de Augusto" }
+    ] } } } },
+    { "at_ms": 320, "message": { "type": "action", "order": 4, "action": { "id": "act_5", "name": "speak", "args": { "text": "Repare nesta data: 27 a.C. Foi quando o Senado deu a Otávio o título de Augusto.", "audio_url": "/api/tts/act_5", "audio_format": "pcm_s16le_24000", "sources": [ { "material_id": "6650f0c2a1b2c3d4e5f60718", "page": 12, "quote": "Em 27 a.C., o Senado concedeu a Otávio o título de Augusto" } ] } } } },
+    { "at_ms": 380, "message": { "type": "action", "order": 5, "action": { "id": "act_6", "name": "circle_annotate", "args": { "target_id": "tl_republica", "text_to_match": "27 a.C.", "color": "red" } } } },
+    { "at_ms": 420, "message": { "type": "script_done", "turn_id": "turn_1" } },
+    { "at_ms": 900, "message": { "type": "action", "order": 6, "action": { "id": "act_7", "name": "draw_result", "args": { "element_id": "colosseum", "url": "/files/gen/colosseum.jpg" } } } },
+    { "at_ms": 940, "message": { "type": "turn_done", "turn_id": "turn_1", "timing": { "first_action_ms": 1380, "script_done_ms": 4100, "image_ready_ms": 8700 } } }
+  ]
+}

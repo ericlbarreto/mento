@@ -10,7 +10,7 @@ The tutor answers from what the teacher actually uses, and the student can **see
 
 - A **material** is an uploaded PDF (typically a book or chapter): `title`, `subject` (História, Matemática, Ciências, Português, Geografia, Outro), `profile_key` (selects the subject profile in `prompts/subjects/`, `generic` if unknown), `status`, `page_count`, `outline`.
 - There is **one teacher workspace**: all materials belong to it (no per-class or per-teacher scoping).
-- At session start the student **picks a subject** (D47). The conversation is scoped to **all `ready` materials of that subject**: the subject profile, retrieval across those materials (each chunk keeps its `material_id`) and their citations. A **free session** (Mento button) has no material: no retrieval, every answer marked outside the material.
+- At session start the student **picks a subject** (D47). The conversation is scoped to **all `ready` materials of that subject**: the subject profile, retrieval across those materials (each chunk keeps its `material_id`) and their citations. A **free whiteboard** (Mento button, `subject_id` null) searches **all** materials and flags answers no passage supports as `outside_material` (D54).
 - A question outside the material gets a general-knowledge answer, visibly marked **"outside the teacher's material"**.
 - Retrieval across several materials of one subject is in scope (D47); across subjects is future.
 

@@ -65,19 +65,21 @@ The server keeps the authoritative log; the client sends only what is new (Studd
 
 ### 3.2 Response (SSE)
 
-Each SSE message is one JSON object:
+Each SSE message is `event: <type>` + `data: <JSON>`, and the JSON always has a `type` (the union is `StreamMessage` in `@mento/contracts`; full list in `docs/frontend-contract.md`):
 
 ```json
-{ "order": 0, "action": { "id": "a1", "name": "write_text", "args": { ... } } }
-{ "order": 1, "action": { "id": "a2", "name": "speak",      "args": { ... } } }
-{ "stream": "svg", "element_id": "timeline_1", "chunk": "<svg ..." }
-{ "order": 7, "action": { "id": "a8", "name": "draw_result", "args": { "element_id": "colosseum", "url": "/files/gen/colosseum.png" } } }
-{ "done": true }
+{ "type": "action", "order": 0, "action": { "id": "act_1", "name": "write_text", "args": { "id": "title", "column": "main", "html": "<h1>…</h1>" } } }
+{ "type": "action", "order": 1, "action": { "id": "act_2", "name": "speak", "args": { "text": "…", "audio_url": "/api/tts/act_2", "audio_format": "pcm_s16le_24000" } } }
+{ "type": "speech_alignment", "action_id": "act_2", "words": [ { "word": "Hoje", "start_ms": 0, "end_ms": 260 } ] }
+{ "type": "svg_chunk", "element_id": "diagram", "chunk": "<svg …" }
+{ "type": "script_done", "turn_id": "turn_1" }
+{ "type": "action", "order": 6, "action": { "id": "act_7", "name": "draw_result", "args": { "element_id": "colosseum", "url": "/files/gen/colosseum.jpg" } } }
+{ "type": "turn_done", "turn_id": "turn_1", "timing": { "first_action_ms": 1380 } }
 ```
 
-- `order` defines playback order (Studdy: `turnIndex.orderIndex.subOrderIndex`).
-- Late results (`draw_result`) arrive after the script and update an existing element (placeholder → final), like Studdy's `added` then `edited` events.
-- A turn is **one script**, generated in one LLM call (target: first action ≤ ~1.5 s, whole script in 2–8 s; Studdy measured 1.4–1.7 s and 2–8 s).
+- `order` defines playback order; `speak` is the clock.
+- `script_done` means every action of the script was emitted: the client opens the microphone after the last `speak`, without waiting for images. `turn_done` comes when pending images finished or timed out.
+- Late results (`draw_result`) arrive after `script_done` and update an existing element.
 
 ### 3.3 Playback on the client
 
@@ -213,7 +215,7 @@ Handwriting font; pencil icon trailing the text being "written"; yellow blob **m
 
 The data model is defined in `07-architecture-and-data.md` (9 tables: `class_context`, `materials`, `chunks`, `students`, `sessions`, `events`, `evidence`, `analyses`, `insights`). Notes for the build:
 
-- `sessions` carries `student_id`, `subject` (null = free session), `topic` (filled when the student says it by voice), `persona`, `modality` (D47).
+- `sessions` carries `student_id`, `subject_id` (null = free whiteboard, which searches all materials), `topic` (filled when the student says it by voice), `persona`, `modality` (D47, D54).
 - `events.payload` stores tool args and results (`url` of generated assets); assets live on disk, referenced by path.
 - `evidence.rationale` (short text from the judge) feeds the teacher's "examples of reasoning".
 - `insights` (`gap | progress | suggestion`) are written by the post-session analysis and read by the Students tab and by the learner summary of the next conversation.
@@ -226,7 +228,7 @@ Served by the **Fastify API** (`apps/api`, prefix `/api`; the browser calls `NEX
 |---|---|
 | `GET /api/students` | Student list (with counts for the teacher; the whiteboard uses the pre-set demo student, D47) |
 | `GET /api/subjects` | Start-screen cards: subjects with their count of `ready` materials (D47) |
-| `POST /api/sessions` | Create a conversation (`student_id`, `subject` or null for a free session, `persona?`, `modality`); the tutor opens with a greeting asking what to study (D47) |
+| `POST /api/sessions` | Create a conversation (`student_id`, `subject_id` or null for a free whiteboard, `modality`); the tutor opens with a greeting asking what to study (D47, D54; contract in `docs/frontend-integration.md` §3) |
 | `POST /api/sessions/:id/turn` | Turn request → SSE script |
 | `GET /api/sessions/:id/events` | Event log (replay, resume, teacher view) |
 | `POST /api/voice/token` | Ephemeral Deepgram token |
