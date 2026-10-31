@@ -28,6 +28,38 @@ describe("prepareAction", () => {
     }
   });
 
+  it("resolves draw_diagram into absolute geometry and drops an empty one", async () => {
+    const input = {
+      id: "forcas",
+      column: "visuals",
+      title: "Forças no bloco",
+      frame: "wide",
+      shapes: [
+        { id: "chao", kind: "line", from: [10, 70], to: [150, 70], ground: true },
+        { id: "bloco", kind: "rect", on: { ref: "chao" }, w: 30, h: 20, label: "2 kg" },
+        { id: "forca", kind: "arrow", from: { ref: "bloco", side: "right" }, dir: "right", magnitude: 10, label: "F" },
+        { id: "fantasma", kind: "arrow", from: { ref: "nada" }, dir: "up" },
+      ],
+    };
+    const out = await prepareAction(block("draw_diagram", input), ctx());
+    expect(out.kind).toBe("ok");
+    if (out.kind !== "ok" || out.action.name !== "draw_diagram") throw new Error("expected a draw_diagram");
+    expect(out.action.args.view).toEqual({ w: 160, h: 100 });
+    expect(out.action.args.shapes.map((s) => s.id)).toEqual(["chao", "bloco", "forca"]);
+    expect(out.action.args.shapes[2]).toMatchObject({ kind: "arrow", x1: 95, color: "ink", label: { text: "F" } });
+    expect(out.notes?.[0]).toMatch(/fantasma/);
+
+    const empty = await prepareAction(block("draw_diagram", { ...input, shapes: [{ id: "x", kind: "cloud" }] }), ctx());
+    expect(empty).toMatchObject({ kind: "dropped", reason: "draw_diagram: empty diagram: no valid shape" });
+  });
+
+  it("forces draw to the image pipeline (is_structured = false)", async () => {
+    const out = await prepareAction(block("draw", { id: "coliseu", column: "visuals", prompt: "Coliseu", is_structured: true, max_dimensions: { w: 500, h: 400 } }), ctx());
+    expect(out).toMatchObject({ kind: "ok", action: { args: { is_structured: false } } });
+    const omitted = await prepareAction(block("draw", { id: "coliseu", column: "visuals", prompt: "Coliseu", max_dimensions: { w: 500, h: 400 } }), ctx());
+    expect(omitted).toMatchObject({ kind: "ok", action: { args: { is_structured: false } } });
+  });
+
   it("fills verification_id and concept_key for ask_verification", async () => {
     const out = await prepareAction(
       block("ask_verification", { id: "q1", column: "main", concept: "Fim da República", question: "Por que mudou?", kind: "explain" }),

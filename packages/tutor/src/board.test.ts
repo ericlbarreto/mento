@@ -64,3 +64,38 @@ describe("Board.apply, snapshot and fromActions", () => {
     expect(board.snapshot(20)).toBe(`a | text | main | ${"x".repeat(19)}…`);
   });
 });
+
+describe("Board: diagrams", () => {
+  const diagram = {
+    id: "act_d",
+    name: "draw_diagram" as const,
+    args: {
+      id: "forcas",
+      column: "visuals" as const,
+      title: "Forças no bloco",
+      frame: "wide" as const,
+      view: { w: 160, h: 100 },
+      shapes: [
+        { id: "bloco", kind: "rect" as const, x: 50, y: 40, w: 30, h: 20, angle: 0, fill: "soft" as const, color: "ink" as const, label: { text: "2 kg", x: 65, y: 50, size: "m" as const } },
+        { id: "peso", kind: "arrow" as const, x1: 65, y1: 50, x2: 65, y2: 84, color: "blue" as const, label: { text: "P = 20 N", x: 78, y: 84, size: "m" as const } },
+        { id: "chao", kind: "line" as const, x1: 10, y1: 60, x2: 150, y2: 60, dashed: false, ground: true, color: "ink" as const },
+      ],
+    },
+  };
+
+  it("lists shape ids and labels in the snapshot", () => {
+    const board = Board.fromActions([diagram]);
+    expect(board.snapshot()).toBe('forcas | diagram | visuals | Forças no bloco | shapes: bloco (rect "2 kg"), peso (arrow "P = 20 N"), chao (line)');
+  });
+
+  it("validates shape_id targets and label matches", () => {
+    const board = Board.fromActions([diagram, writeText("t", "<p>Peso</p>")]);
+    expect(board.validate({ id: "c", name: "circle_annotate", args: { target_id: "forcas", text_to_match: "P", color: "red", shape_id: "peso" } }).ok).toBe(true);
+    expect(board.validate({ id: "c", name: "circle_annotate", args: { target_id: "forcas", text_to_match: "P", color: "red", shape_id: "normal" } })).toMatchObject({ ok: false, reason: "unknown shape normal in forcas" });
+    expect(board.validate({ id: "c", name: "circle_annotate", args: { target_id: "forcas", text_to_match: "20 N", color: "red" } }).ok).toBe(true);
+    expect(board.validate({ id: "h", name: "highlight", args: { target_id: "forcas", color: "yellow", shape_id: "bloco" } }).ok).toBe(true);
+    expect(board.validate({ id: "h", name: "highlight", args: { target_id: "t", color: "yellow", shape_id: "bloco" } })).toMatchObject({ ok: false });
+    expect(board.validate(diagram)).toMatchObject({ ok: false, reason: "duplicate element id: forcas" });
+    expect(board.validate({ id: "u", name: "update_element", args: { id: "forcas", html: "<p>x</p>" } }).ok).toBe(false);
+  });
+});

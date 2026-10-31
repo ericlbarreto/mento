@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   AskVerificationBase,
   CircleAnnotateArgs,
+  DiagramBase,
   DrawArgs,
   HighlightArgs,
   RemoveElementArgs,
@@ -59,20 +60,33 @@ export function modelTools(): ToolDef[] {
     },
     {
       name: "highlight",
-      description: "Highlight an element that already exists on the board. target_id must be an id listed in the Board section of the input.",
+      description:
+        "Highlight an element that already exists on the board. target_id must be an id listed in the Board section of the input. For a diagram, set shape_id to highlight one of its shapes.",
       input_schema: jsonSchema(HighlightArgs),
     },
     {
       name: "circle_annotate",
       description:
-        "Circle a piece of text inside an element that already exists. target_id must be an existing element id and text_to_match must occur in that element's text.",
+        "Circle a piece of text inside an element that already exists. target_id must be an existing element id and text_to_match must occur in that element's text. For a diagram, set shape_id to circle one shape (an arrow, a box, a point) and put its label in text_to_match.",
       input_schema: jsonSchema(CircleAnnotateArgs),
     },
     {
       name: "draw",
       description:
-        "Add an illustration to the board. With is_structured=false it is an artistic colored-pencil image; describe only the picture and never ask for text, labels or dates inside it (use write_text for labels). The id must be new and unique.",
-      input_schema: jsonSchema(DrawArgs),
+        "Add an artistic colored-pencil illustration to the board (a scene, a person, a place, an object). Describe only the picture and never ask for text, labels, numbers or dates inside it (use write_text for labels). For exact figures (forces, graphs, geometry) use draw_diagram instead. The id must be new and unique.",
+      input_schema: jsonSchema(DrawArgs.omit({ is_structured: true })),
+      eager_input_streaming: true,
+    },
+    {
+      name: "draw_diagram",
+      description: [
+        "Draw an exact, labeled diagram on the board, drawn stroke by stroke: forces on a block, a block on a ramp, vectors, a function graph, a number line, a triangle. Use it whenever the figure needs exact shapes, arrows, numbers or labels; use draw for scenes.",
+        "Pick a frame (wide 160x100, square 100x100, tall 100x160); coordinates are grid units, x to the right, y DOWN, inside the frame. Up to 24 shapes, each with a short snake_case id and plain-text pt-BR labels (at most 40 characters).",
+        "rect: a box (x, y = top-left, w, h); to sit it on a floor or ramp give on: {ref: <line or polyline id>} instead of x, y and the server places and tilts it. line: from, to (ground: true for a floor). arrow: start at a shape with from: {ref, side: top|bottom|left|right|center} (or from: {at: [x, y]}), point it with dir (up, down, left, right, or normal = out of the box side) or deg (counter-clockwise from right), and give magnitude (e.g. the force in N; lengths are proportional) or length s|m|l. Never compute arrow end points yourself.",
+        "With an axes shape (x_range, y_range, ticks, labels), every [x, y] in the diagram is in DATA units: a polyline with smooth: true through computed points draws a function, point marks a value.",
+        "highlight and circle_annotate can target one shape later with shape_id. The id must be new and unique.",
+      ].join(" "),
+      input_schema: jsonSchema(DiagramBase),
       eager_input_streaming: true,
     },
     {
