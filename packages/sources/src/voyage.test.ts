@@ -41,3 +41,33 @@ describe("embedWithVoyage", () => {
     await expect(embedWithVoyage({ apiKey: "k", fetchImpl: failing })(["a"], "query")).rejects.toThrow("401");
   });
 });
+
+describe("embedWithVoyage retries", () => {
+  it("retries a rate-limited or failing request, honoring Retry-After, then succeeds", async () => {
+    let calls = 0;
+    const waits: number[] = [];
+    const impl = (async (_url: string, init: RequestInit) => {
+      calls++;
+      if (calls === 1) return new Response("slow down", { status: 429, headers: { "retry-after": "2" } });
+      if (calls === 2) return new Response("oops", { status: 503 });
+      const body = JSON.parse(String(init.body));
+      return new Response(JSON.stringify({ data: body.input.map((_: string, index: number) => ({ index, embedding: [index] })) }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const embed = embedWithVoyage({ apiKey: "k", fetchImpl: impl, sleep: async (ms) => void waits.push(ms) });
+    expect(await embed(["a"], "query")).toEqual([[0]]);
+    expect(calls).toBe(3);
+    expect(waits).toEqual([2000, 2000]);
+  });
+
+  it("gives up after the last retry and does not retry client errors", async () => {
+    let calls = 0;
+    const limited = (async () => (calls++, new Response("no", { status: 429 }))) as unknown as typeof fetch;
+    await expect(embedWithVoyage({ apiKey: "k", fetchImpl: limited, sleep: async () => undefined, maxRetries: 2 })(["a"], "query")).rejects.toThrow("429");
+    expect(calls).toBe(3);
+    calls = 0;
+    const bad = (async () => (calls++, new Response("bad", { status: 400 }))) as unknown as typeof fetch;
+    await expect(embedWithVoyage({ apiKey: "k", fetchImpl: bad, sleep: async () => undefined })(["a"], "query")).rejects.toThrow("400");
+    expect(calls).toBe(1);
+  });
+});
+
