@@ -12,3 +12,4 @@
 | 2026-10-30 | Branch, commit style and prompt log | process | [2026-10-30-06-branch-commit-style-and-prompt-log.md](2026-10-30-06-branch-commit-style-and-prompt-log.md) | see git log |
 | 2026-10-30 | Implementation plans 3 to 5 written and verified | plans 1–5 | [2026-10-30-07-plans-3-to-5.md](2026-10-30-07-plans-3-to-5.md) | e8fc375, ccffa15, see git log |
 | 2026-10-30 | Pull request and prompt-log check | process | [2026-10-30-08-pull-request-and-log-check.md](2026-10-30-08-pull-request-and-log-check.md) | PR #5 |
+| 2026-10-30 | Executing plans 1 to 4 | plans 1–4 | [2026-10-30-09-executing-plans-1-to-4.md](2026-10-30-09-executing-plans-1-to-4.md) | 5c2d09e…2e7a445 |
