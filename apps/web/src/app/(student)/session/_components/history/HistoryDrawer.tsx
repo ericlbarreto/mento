@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { SessionSummary } from "@mento/contracts";
-import { Button, Chip, Drawer, IconArrowRight, IconClock, IconEye, IconMessage, IconPlus, IconSearch, IconVolume, cx } from "@mento/ui";
+import { Button, Chip, Drawer, IconArrowRight, IconClock, IconEye, IconMessage, IconPlus, IconSearch, cx } from "@mento/ui";
 import { createSession, listSessions } from "@/lib/api";
 import {
   FILTERS,
@@ -216,12 +216,6 @@ function HistoryCard({ session, current, onOpen }: { session: SessionSummary; cu
         </span>
       </p>
       <div className="flex flex-wrap justify-end gap-2">
-        {!current && (
-          <Button size="sm" variant="ghost" inert>
-            <IconVolume className="size-4" aria-hidden="true" />
-            Ouvir resumo em áudio
-          </Button>
-        )}
         {current || !ended ? (
           <Button size="sm" onClick={onOpen}>
             <IconArrowRight className="size-4" aria-hidden="true" />

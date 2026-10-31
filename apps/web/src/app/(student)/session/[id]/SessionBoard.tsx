@@ -5,18 +5,22 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { Board, MOCK_STUDENTS, type StudentSummary } from "@mento/board";
 import { Footer, Orb, SimulatedDataBadge, TopBar, type TopBarNavItem } from "@mento/ui";
-import { API_URL, MOCK_API, apiUrl, getSession, listSessions, listStudents, streamTurn } from "@/lib/api";
+import { API_URL, MOCK_API, apiUrl, getSession, getVoiceToken, listSessions, listStudents, streamTurn } from "@/lib/api";
 import { CaptionBar } from "../_components/caption/CaptionBar";
 import { ChatPanel } from "../_components/chat/ChatPanel";
 import { InputControls, PlaybackControls } from "../_components/controls/SessionControls";
 import { SessionHeader } from "../_components/header/SessionHeader";
 import { HistoryDrawer } from "../_components/history/HistoryDrawer";
 import { SessionErrorCard, SessionLoading } from "../_components/loading/SessionLoading";
-import { SessionOptions } from "../_components/menu/SessionOptions";
+import { SessionPauseModal } from "../_components/pause/SessionPauseModal";
+import { type SessionStats, sessionStats } from "../_components/pause/sessionStats";
 import { createSessionAudio } from "../_components/sessionAudio";
 import { makeSelection, readStudentId } from "../_components/sessionModel";
 import { useEndSession } from "../_components/useEndSession";
 import { useSessionController } from "../_components/useSessionController";
+import { voiceOrbState } from "../_components/voice/turnTaking";
+import { useSessionVoice } from "../_components/voice/useSessionVoice";
+import { InterimCaption, MicIndicator, VoiceNotice, VoiceStartGate } from "../_components/voice/VoiceUi";
 
 const NAV: TopBarNavItem[] = [
   { label: "Estudos", href: "/", active: true },
@@ -27,17 +31,49 @@ const NAV: TopBarNavItem[] = [
 
 const API = { getSession, streamTurn };
 
+const EMPTY_STATS: SessionStats = { elapsed: null, items: null, reference: null };
+
 /** Stitch's dotted notebook paper. */
 const dotted = "bg-[radial-gradient(color-mix(in_srgb,var(--ink-soft)_45%,transparent)_1.2px,transparent_1.2px)] bg-size-[24px_24px]";
 
 export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; onOpenHistory?: () => void }) {
   // Tutor voice when the API serves `speak.audio_url` (none in mock mode).
   const [audio] = useState(() => (MOCK_API ? undefined : createSessionAudio(apiUrl)));
-  const c = useSessionController({ sessionId, api: API, audio });
-  const { player, session, setSelection } = c;
+  // Voice sessions hold the opening turn until the audio is unlocked (or the student picks text only).
+  const c = useSessionController({ sessionId, api: API, audio, holdVoiceOpening: !MOCK_API });
+  const { player, session, setSelection, releaseOpening } = c;
 
-  // Tab close / reload ends the lesson (keepalive, reason "beacon"). The options menu ends it explicitly (endNow).
-  const { endNow } = useEndSession({ sessionId, onEnded: () => undefined });
+  // The spoken conversation: mic + STT, turn-taking, barge-in. Final captions go out like typed messages, so a
+  // board selection ("Sobre: …" chip) turns the spoken question into click-and-ask.
+  const voice = useSessionVoice({
+    enabled: !MOCK_API && session?.modality === "voice",
+    audio,
+    getToken: getVoiceToken,
+    floor: c.tutorHasFloor,
+    speakingId: c.speakingId,
+    onFinal: (caption) => c.sendMessage(caption.text, "speech", caption),
+    onBargeIn: c.interrupt,
+  });
+  const canOpen = !!session && voice.canOpen;
+  useEffect(() => {
+    if (canOpen) releaseOpening();
+  }, [canOpen, releaseOpening]);
+  const voiceOn = !MOCK_API && session?.modality === "voice";
+  const micUsable = voiceOn && voice.status !== "denied" && voice.status !== "unavailable";
+  // "Continuar por texto" closes the mic notice and opens the chat (the notice comes back if the mic state changes).
+  const [noticeClosedFor, setNoticeClosedFor] = useState<string | null>(null);
+
+  // Leaving the page (tab close / reload) ends the lesson (keepalive, reason "beacon"): that is what sends the
+  // conversation to the teacher-side analysis. Coming back reopens it paused (below); there is no end button.
+  useEndSession({ sessionId, onEnded: () => undefined });
+
+  // A reopened lesson starts paused: "Retomar conversa" is the click that unlocks the audio and the mic.
+  const [resumeDismissed, setResumeDismissed] = useState(false);
+  const resumeOpen = c.restored && !resumeDismissed && c.phase === "ready";
+  const resume = () => {
+    setResumeDismissed(true);
+    if (voiceOn) void voice.start();
+  };
 
   // Generated images come from the API; in mock mode the fixtures point at this app's own origin.
   const [assetBaseUrl, setAssetBaseUrl] = useState(MOCK_API ? "" : API_URL);
@@ -45,8 +81,10 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
     if (MOCK_API) setAssetBaseUrl(window.location.origin);
   }, []);
 
-  const [studentId, setStudentId] = useState<string | null>(null);
-  useEffect(() => setStudentId(readStudentId()), []);
+  // The lesson's own student wins (a direct link or another tab has no stored id); storage is the fallback.
+  const [storedStudentId, setStoredStudentId] = useState<string | null>(null);
+  useEffect(() => setStoredStudentId(readStudentId()), []);
+  const studentId = session?.student_id ?? storedStudentId;
   // Names come from the students route; without it (404), from the mock list. Simulated students carry the badge.
   const [students, setStudents] = useState<{ list: StudentSummary[]; mock: boolean } | null>(null);
   useEffect(() => {
@@ -133,7 +171,6 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
               onOpenHistory={onOpenHistory ?? (() => setHistoryOpen(true))}
               chatOpen={chatOpen}
               onOpenChat={focusChat}
-              options={<SessionOptions controller={c} endNow={endNow} topic={`${subjectName}: ${title}`} />}
             />
           </div>
           {/* Click-and-ask listens here (bubbling from the board elements); Enter on a focused element does the same. */}
@@ -146,9 +183,19 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
               className={`min-h-0 [&_[data-element-id]]:cursor-pointer [&>section]:pb-72 [&>section]:scroll-pb-72 ${dotted}`}
             />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 px-6 pb-5">
+              {voiceOn && noticeClosedFor !== voice.status && (
+                <VoiceNotice
+                  status={voice.status}
+                  onText={() => {
+                    setNoticeClosedFor(voice.status);
+                    focusChat();
+                  }}
+                />
+              )}
               {captionsOn && caption && (
                 <CaptionBar caption={caption} speaking={c.speakingId === caption.action_id} progress={c.captionProgress} />
               )}
+              {voiceOn && <InterimCaption text={voice.interim} />}
               <div className="flex w-full items-end justify-between gap-4">
                 <PlaybackControls
                   paused={paused}
@@ -158,15 +205,19 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
                   captionsOn={captionsOn}
                   onToggleCaptions={() => setCaptionsOn((on) => !on)}
                 />
+                {/* In voice sessions the orb mutes / unmutes the mic; otherwise it opens the chat. */}
                 <button
                   type="button"
-                  onClick={focusChat}
-                  aria-label="Escrever para o Mento"
+                  onClick={micUsable ? voice.toggleMic : focusChat}
+                  aria-label={micUsable ? (voice.status === "listening" ? "Silenciar o microfone" : "Falar com o Mento") : "Escrever para o Mento"}
                   className="pointer-events-auto rounded-full outline-none focus-visible:shadow-(--focus-ring)"
                 >
-                  <Orb state={c.orbState} size={120} getLevel={c.level} perkKey={c.selection?.element_id} />
+                  <Orb state={voiceOn ? voiceOrbState(c.orbState, voice.status) : c.orbState} size={120} getLevel={c.level} perkKey={c.selection?.element_id} />
                 </button>
-                <InputControls onKeyboard={focusChat} />
+                <div className="flex items-center gap-3">
+                  {voiceOn && <MicIndicator status={voice.status} onToggle={micUsable ? voice.toggleMic : focusChat} />}
+                  <InputControls onKeyboard={focusChat} />
+                </div>
               </div>
             </div>
           </div>
@@ -195,6 +246,17 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
         ) : c.phase !== "ready" ? (
           <SessionLoading stage={c.phase === "loading" ? "opening" : "preparing"} />
         ) : null}
+        <SessionPauseModal
+          view={resumeOpen ? "paused" : null}
+          topic={`${subjectName}: ${title}`}
+          stats={resumeOpen ? sessionStats(session?.started_at, player.store.getState(), Date.now(), c.lines) : EMPTY_STATS}
+          onResume={resume}
+          onRetryEnd={resume}
+          onHome={() => (window.location.href = "/")}
+          starting={false}
+          startError={false}
+        />
+        {voice.needsTap && !resumeOpen && <VoiceStartGate onStart={() => void voice.start()} onTextOnly={voice.continueWithText} busy={voice.gate === "unlocking"} />}
       </div>
       <Footer />
       <HistoryDrawer

@@ -1,9 +1,11 @@
 // Owner: Person 2. Pure pieces of the session page (no React, no DOM globals): what a student message turns into,
 // how an error reads on screen, and small display helpers. Unit-tested in sessionController.test.tsx.
-import type { Citation, TurnRequest } from "@mento/contracts";
+import type { Citation, SttCaption, TurnRequest } from "@mento/contracts";
 import { DEMO_STUDENT_ID } from "@mento/board";
 
 export type Appended = TurnRequest["appended"][number];
+type UserMessage = Extract<Appended, { name: "user_message" }>;
+export type SttInfo = NonNullable<UserMessage["stt"]>;
 
 /** Click-and-ask: the board element (and text selection inside it) the next message is about. */
 export interface BoardSelection {
@@ -31,17 +33,32 @@ const LABEL_CHARS = 60;
  */
 export function buildAppended(
   text: string,
-  { selection, openQuestion, kind = "chat" }: { selection?: BoardSelection | null; openQuestion?: OpenQuestion | null; kind?: "chat" | "speech" },
+  {
+    selection,
+    openQuestion,
+    kind = "chat",
+    stt,
+  }: { selection?: BoardSelection | null; openQuestion?: OpenQuestion | null; kind?: "chat" | "speech"; stt?: SttInfo },
 ): Appended {
   const body = text.trim().slice(0, MAX_MESSAGE_CHARS);
+  const sttField = stt ? { stt } : {};
   if (selection) {
     const selected = selection.text ? { element_id: selection.element_id, text: selection.text } : { element_id: selection.element_id };
-    return { name: "user_message", kind: "board_select", text: body, selected };
+    return { name: "user_message", kind: "board_select", text: body, selected, ...sttField };
   }
   if (openQuestion) {
     return { name: "verification_answer", verification_id: openQuestion.verification_id, element_id: openQuestion.element_id, answer: body };
   }
-  return { name: "user_message", kind, text: body };
+  return { name: "user_message", kind, text: body, ...sttField };
+}
+
+/** What a final STT caption tells the tutor about itself: provider, spoken duration and mean word confidence. */
+export function sttSummary(caption: SttCaption): SttInfo {
+  const { words } = caption;
+  if (words.length === 0) return { provider: "deepgram", duration_ms: 0 };
+  const duration_ms = Math.max(0, Math.round(words[words.length - 1]!.end_ms - words[0]!.start_ms));
+  const confidence = words.reduce((sum, w) => sum + w.confidence, 0) / words.length;
+  return { provider: "deepgram", duration_ms, confidence: Math.round(Math.min(1, Math.max(0, confidence)) * 100) / 100 };
 }
 
 /** Collapses whitespace and cuts to `max` chars with an ellipsis. */

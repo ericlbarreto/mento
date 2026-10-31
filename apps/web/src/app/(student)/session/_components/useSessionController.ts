@@ -6,7 +6,7 @@
 // line, open question, orb state). The API calls are injected, like useTurnPlayer's streamTurn, so tests and
 // the mock mode use the same code.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Action, SessionDetailResponse, SessionSummary, SpeechPlayer, TurnRequest, WordTiming } from "@mento/contracts";
+import type { Action, SessionDetailResponse, SessionSummary, SpeechPlayer, SttCaption, TurnRequest, WordTiming } from "@mento/contracts";
 import {
   type ActionHandler,
   type HandlerMap,
@@ -26,7 +26,9 @@ import {
   buildAppended,
   describeError,
   openingDelayMs,
+  sttSummary,
 } from "./sessionModel";
+import { tutorHasFloor } from "./voice/turnTaking";
 
 export interface SessionApi {
   getSession(id: string): Promise<SessionDetailResponse>;
@@ -73,6 +75,7 @@ export function useSessionController({
   api,
   audio,
   openingDelay = openingDelayMs,
+  holdVoiceOpening = false,
 }: {
   sessionId: string;
   api: SessionApi;
@@ -80,8 +83,15 @@ export function useSessionController({
   audio?: SpeechPlayer;
   /** ms to wait before the opening turn, from the session's started_at (tests pass () => 0). */
   openingDelay?: (startedAt: string | undefined) => number;
+  /**
+   * Voice sessions wait for `releaseOpening()` before the opening turn (audio unlocked by a gesture, or the
+   * student chose text only), so the greeting is heard instead of falling back to captions.
+   */
+  holdVoiceOpening?: boolean;
 }) {
   const [phase, setPhase] = useState<SessionPhase>("loading");
+  /** The lesson was reopened with board content: the page shows it paused until the student resumes. */
+  const [restored, setRestored] = useState(false);
   const [loadError, setLoadError] = useState<SessionErrorView | null>(null);
   const [session, setSession] = useState<SessionSummary | null>(null);
   // Turns use the session's modality: a voice session gets tutor audio (`audio_url`) on every speak.
@@ -101,13 +111,35 @@ export function useSessionController({
 
   /** The error thrown by the last turn request (ApiError before the stream), to tell 503 from 404 on screen. */
   const lastTurnError = useRef<unknown>(undefined);
+  /**
+   * Turn-taking (docs/frontend-rendering-guide.md §6): the tutor holds the floor from a sent turn until its
+   * script is done (script_done, turn_done, a fatal error or the stream closing) and the queue played it all.
+   * Only the latest stream counts; a superseded one still delivering late drawings does not.
+   */
+  const [turnOpen, setTurnOpen] = useState(false);
+  const [scriptDone, setScriptDone] = useState(false);
+  const streamSeq = useRef(0);
   const streamTurn = useCallback<StreamTurn>(async (id, req, onMessage, opts) => {
     lastTurnError.current = undefined;
+    const seq = ++streamSeq.current;
+    const markDone = () => {
+      if (seq === streamSeq.current) setScriptDone(true);
+    };
     try {
-      await apiRef.current.streamTurn(id, req, onMessage, opts);
+      await apiRef.current.streamTurn(
+        id,
+        req,
+        (msg) => {
+          if (msg.type === "script_done" || msg.type === "turn_done" || (msg.type === "error" && !msg.recoverable)) markDone();
+          onMessage(msg);
+        },
+        opts,
+      );
     } catch (err) {
       lastTurnError.current = err;
       throw err;
+    } finally {
+      markDone();
     }
   }, []);
 
@@ -158,12 +190,23 @@ export function useSessionController({
   });
   const { sendTurn, restore, store } = player;
 
+  // Survives StrictMode's simulated unmount (the cleanup runs, then the effect again, synchronously).
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
   const lastRequest = useRef<TurnInput | null>(null);
   const send = useCallback(
     (req: TurnInput) => {
       lastRequest.current = req;
       speakingRef.current = null;
       setSpeakingId(null);
+      setTurnOpen(true);
+      setScriptDone(false);
       // sendTurn cuts a running turn first (stop speech, abort the fetch, keep the board) and adds `interrupted`.
       void sendTurn(req);
     },
@@ -179,14 +222,17 @@ export function useSessionController({
     [send, sessionId],
   );
 
-  // Survives StrictMode's simulated unmount (the cleanup runs, then the effect again, synchronously).
-  const mounted = useRef(true);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
+  /** The opening turn is due (pre-warm delay over) but a voice session still waits for releaseOpening(). */
+  const openingDue = useRef(false);
+  const openingReleased = useRef(!holdVoiceOpening);
+  const sendOpeningWhenReleased = useCallback(() => {
+    openingDue.current = true;
+    if (openingReleased.current || modalityRef.current !== "voice") sendOpening();
+  }, [sendOpening]);
+  const releaseOpening = useCallback(() => {
+    openingReleased.current = true;
+    if (openingDue.current && mounted.current) sendOpening();
+  }, [sendOpening]);
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -209,14 +255,15 @@ export function useSessionController({
     // `session_started` always exists, so "no events" is the wrong test: only a session the tutor never spoke in
     // gets the opening turn. Ended sessions stay continuable (draft D62): the next turn reopens them.
     if (replay.tutorActionCount > 0) {
+      setRestored(true);
       setPhase("ready");
       return;
     }
     setPhase("preparing");
     setTimeout(() => {
-      if (mounted.current) sendOpening();
+      if (mounted.current) sendOpeningWhenReleased();
     }, openingDelay(detail.session.started_at));
-  }, [openingDelay, restore, sendOpening, sessionId]);
+  }, [openingDelay, restore, sendOpeningWhenReleased, sessionId]);
 
   const loadStarted = useRef(false);
   useEffect(() => {
@@ -237,11 +284,24 @@ export function useSessionController({
     send({ modality: modalityRef.current, appended: [appended] });
   };
 
-  const sendMessage = (text: string, kind: "chat" | "speech" = "chat"): boolean => {
+  /** A typed message (kind "chat") or the student's final spoken caption (kind "speech", with its STT summary). */
+  const sendMessage = (text: string, kind: "chat" | "speech" = "chat", caption?: SttCaption): boolean => {
     const body = text.trim();
     if (!body) return false;
-    commit(buildAppended(body, { selection, openQuestion, kind }), body, kind === "speech" ? "voice" : "text");
+    const stt = kind === "speech" && caption ? sttSummary(caption) : undefined;
+    commit(buildAppended(body, { selection, openQuestion, kind, stt }), body, kind === "speech" ? "voice" : "text");
     return true;
+  };
+
+  /**
+   * Barge-in: the student started talking over the tutor. Stops the audio, aborts the turn and clears the queue
+   * (the board stays); the next turn carries `interrupted`.
+   */
+  const interrupt = () => {
+    player.interrupt();
+    speakingRef.current = null;
+    setSpeakingId(null);
+    setTurnOpen(false);
   };
 
   const answerQuestion = (a: { element_id: string; verification_id: string; answer: string }) => {
@@ -285,6 +345,12 @@ export function useSessionController({
     [speech],
   );
 
+  const floor = tutorHasFloor({ turnOpen, scriptDone, queueState: player.queueState });
+  // Latch: once released, late drawings (draw_result after script_done) do not take the floor back.
+  useEffect(() => {
+    if (turnOpen && !floor) setTurnOpen(false);
+  }, [turnOpen, floor]);
+
   const turnError = player.error && player.error !== dismissedError ? describeError(lastTurnError.current, player.error) : null;
   const { queueState } = player;
   const annotating = phase === "ready" && queueState === "playing" && speakingId === null;
@@ -302,6 +368,7 @@ export function useSessionController({
               : "idle";
 
   return {
+    restored,
     phase,
     loadError,
     turnError,
@@ -315,6 +382,10 @@ export function useSessionController({
     selection,
     setSelection,
     sendMessage,
+    interrupt,
+    /** The tutor is talking (or about to): the mic stays muted unless the student opened it. */
+    tutorHasFloor: floor,
+    releaseOpening,
     answerQuestion,
     retry,
     captionProgress,
