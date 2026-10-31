@@ -11,6 +11,7 @@ import {
   type TurnRequest,
   type WordTiming,
 } from "@mento/contracts";
+import { DiagramRenderer } from "@mento/board";
 import { PcmPlayer, useStt } from "@mento/voice/client";
 
 // Dev page (owner: Person 3): talk to the tutor end to end (subjects, voice or text, board actions, citations,
@@ -23,7 +24,8 @@ type Column = "main" | "visuals" | "side";
 interface BoardItem {
   id: string;
   column: Column;
-  kind: "text" | "timeline" | "image" | "question";
+  kind: "text" | "timeline" | "image" | "question" | "diagram";
+  diagram?: Extract<Action, { name: "draw_diagram" }>["args"];
   html?: string;
   events?: { date: string; label: string }[];
   prompt?: string;
@@ -117,6 +119,9 @@ export default function ConversationLab() {
         break;
       case "draw_result":
         setBoard((b) => b.map((e) => (e.id === action.args.element_id ? { ...e, url: `${API}${action.args.url}` } : e)));
+        break;
+      case "draw_diagram":
+        setBoard((b) => [...b, { id: action.args.id, column: action.args.column, kind: "diagram", diagram: action.args, circles: [] }]);
         break;
       case "ask_verification":
         openQuestion.current = { verification_id: action.args.verification_id, element_id: action.args.id };
@@ -354,6 +359,9 @@ export default function ConversationLab() {
             ) : (
               <div style={{ height: 160, display: "grid", placeItems: "center", background: "#f4eddc", borderRadius: 8, fontSize: 13 }}>desenhando… {e.prompt?.slice(0, 60)}</div>
             ))}
+          {e.kind === "diagram" && e.diagram && (
+            <DiagramRenderer element={{ id: e.id, type: "diagram", author: "tutor", column: e.column, created_at: 0, data: e.diagram, annotations: [] }} />
+          )}
           {e.kind === "question" && (
             <div>
               <b>Pergunta:</b> {e.question}
