@@ -1,0 +1,234 @@
+{
+ "description": "Newton's second law (Matemática): the tutor draws a free-body diagram with draw_diagram (resolved args, same as fixtures/diagrams/examples.json free_body), circles the force F and highlights the weight by shape_id, then asks for the acceleration.",
+ "messages": [
+  {
+   "at_ms": 0,
+   "message": {
+    "type": "action",
+    "order": 0,
+    "action": {
+     "id": "act_n0",
+     "name": "speak",
+     "args": {
+      "text": "Imagina empurrar uma caixa no chão: quanto mais forte você empurra, mais rápido ela acelera.",
+      "purpose": "explain",
+      "outside_material": true
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 60,
+   "message": {
+    "type": "action",
+    "order": 1,
+    "action": {
+     "id": "act_n1",
+     "name": "draw_diagram",
+     "args": {
+      "id": "bloco_forcas",
+      "column": "visuals",
+      "title": "Forças no bloco",
+      "frame": "wide",
+      "view": {
+       "w": 160,
+       "h": 100
+      },
+      "shapes": [
+       {
+        "id": "chao",
+        "kind": "line",
+        "x1": 10,
+        "y1": 71.3,
+        "x2": 150,
+        "y2": 71.3,
+        "dashed": false,
+        "ground": true,
+        "color": "ink"
+       },
+       {
+        "id": "bloco",
+        "kind": "rect",
+        "x": 53.8,
+        "y": 49,
+        "w": 30,
+        "h": 22,
+        "angle": 0,
+        "fill": "soft",
+        "color": "ink",
+        "label": {
+         "text": "2 kg",
+         "x": 68.8,
+         "y": 60,
+         "size": "m"
+        }
+       },
+       {
+        "id": "forca",
+        "kind": "arrow",
+        "x1": 83.8,
+        "y1": 60,
+        "x2": 100.8,
+        "y2": 60,
+        "color": "red",
+        "label": {
+         "text": "F = 10 N",
+         "x": 113.3,
+         "y": 60,
+         "size": "m"
+        }
+       },
+       {
+        "id": "peso",
+        "kind": "arrow",
+        "x1": 68.8,
+        "y1": 60,
+        "x2": 68.8,
+        "y2": 94,
+        "color": "blue",
+        "label": {
+         "text": "P = 20 N",
+         "x": 81.3,
+         "y": 94,
+         "size": "m"
+        }
+       },
+       {
+        "id": "normal",
+        "kind": "arrow",
+        "x1": 68.8,
+        "y1": 49,
+        "x2": 68.8,
+        "y2": 15,
+        "color": "green",
+        "label": {
+         "text": "N = 20 N",
+         "x": 68.8,
+         "y": 10.4,
+         "size": "m"
+        }
+       }
+      ]
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 120,
+   "message": {
+    "type": "action",
+    "order": 2,
+    "action": {
+     "id": "act_n2",
+     "name": "speak",
+     "args": {
+      "text": "Esse é um bloco de 2 kg. A seta vermelha é a força F que você faz: 10 newtons para a direita.",
+      "purpose": "explain",
+      "outside_material": true
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 180,
+   "message": {
+    "type": "action",
+    "order": 3,
+    "action": {
+     "id": "act_n3",
+     "name": "circle_annotate",
+     "args": {
+      "target_id": "bloco_forcas",
+      "text_to_match": "F = 10 N",
+      "color": "red",
+      "shape_id": "forca"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 240,
+   "message": {
+    "type": "action",
+    "order": 4,
+    "action": {
+     "id": "act_n4",
+     "name": "speak",
+     "args": {
+      "text": "O peso P puxa o bloco para baixo, e o chão empurra de volta com a normal N, do mesmo tamanho.",
+      "purpose": "explain",
+      "outside_material": true
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 300,
+   "message": {
+    "type": "action",
+    "order": 5,
+    "action": {
+     "id": "act_n5",
+     "name": "highlight",
+     "args": {
+      "target_id": "bloco_forcas",
+      "color": "blue",
+      "shape_id": "peso"
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 360,
+   "message": {
+    "type": "action",
+    "order": 6,
+    "action": {
+     "id": "act_n6",
+     "name": "write_text",
+     "args": {
+      "id": "segunda_lei",
+      "column": "side",
+      "html": "<h2>2ª lei de Newton</h2><p><b>F = m · a</b></p>",
+      "purpose": "explain",
+      "outside_material": true
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 420,
+   "message": {
+    "type": "action",
+    "order": 7,
+    "action": {
+     "id": "act_n7",
+     "name": "speak",
+     "args": {
+      "text": "Agora é com você: se F vale 10 N e a massa é 2 kg, qual é a aceleração do bloco?",
+      "purpose": "question",
+      "outside_material": true
+     }
+    }
+   }
+  },
+  {
+   "at_ms": 480,
+   "message": {
+    "type": "script_done",
+    "turn_id": "turn_newton"
+   }
+  },
+  {
+   "at_ms": 500,
+   "message": {
+    "type": "turn_done",
+    "turn_id": "turn_newton",
+    "timing": {
+     "first_action_ms": 900,
+     "script_done_ms": 3100
+    }
+   }
+  }
+ ]
+}

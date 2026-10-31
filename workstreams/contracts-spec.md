@@ -249,3 +249,14 @@ Additive. Source of truth: `packages/contracts/src/exercises.ts`.
 - `TeacherEvent` gains `{ type: "exercise_list_status", list_id, status }`.
 - Routes: `GET /api/exercise-lists`, `GET /api/exercise-lists/:id`, `POST /api/exercise-lists` (202 generating; 400 `invalid_gaps`; 503 `generator_unavailable` | `database_unavailable`), `DELETE /api/exercise-lists/:id` (204).
 
+
+## 17. Structured diagrams: `draw_diagram` (2026-10-31, D75)
+
+Additive. Source of truth: `packages/contracts/src/{diagram,actions}.ts`; resolver `packages/tutor/src/diagram/resolve.ts`; renderer `packages/board/src/renderers/diagram/`.
+
+- **New action `draw_diagram`.** The model sends `DiagramBase` = `{ id, column, title (≤ 80), frame: "wide" | "square" | "tall", shapes (1..24) }`. Frames are grid presets (`wide` 160×100, `square` 100×100, `tall` 100×160; 100 on the short side, y down); the model never picks a viewBox.
+- **Model shapes** (`DiagramShapeBase`, each with a snake_case `id`, plain-text labels ≤ 40 chars, `color?: ink | red | blue | green`): `rect { x?, y?, w, h, angle?, on?: { ref, segment?, t? }, label?, fill? }`, `line { from, to, dashed?, ground?, label? }`, `arrow { from: { ref, side? } | { at }, dir? (up | down | left | right | normal) | deg? | to?, magnitude? | length? (s | m | l), label? }`, `text { at, text, size? }`, `axes { x_range, y_range, x_ticks?, y_ticks?, x_label?, y_label? }`, `polyline { points (2..64), closed?, smooth?, fill?, label? }`, `point { at, label? }`. With an `axes` shape every `[x, y]` is in data units.
+- **The server resolves it** (anchors → points, magnitudes → proportional lengths, labels past arrow tips and off boxes, uniform fit-to-frame, invalid shapes dropped, an empty diagram drops the action) into `DiagramArgs` = `{ id, column, title, frame, view: { w, h }, shapes }` with absolute geometry only: `rect { x, y, w, h, angle, fill, color, label? }`, `line`/`arrow { x1, y1, x2, y2, … }`, `text { x, y, text, size, color }`, `axes { x_axis, y_axis, ticks[], x_label?, y_label? }`, `polyline { points, closed, smooth, fill, color, label? }`, `point { x, y, color, label? }`; a label is `{ text, x, y (center), size }`. Only `DiagramArgs` is streamed, stored in `tutor_action` and replayed.
+- **`highlight` and `circle_annotate` gain an optional `shape_id`** that targets one shape of a diagram (validated by the server). `circle_annotate.text_to_match` still works on a diagram's labels.
+- **`draw.is_structured` is always `false`** (forced by the server, hidden from the model); `svg_chunk` stays unused.
+- Fixtures: `fixtures/turns/newton-blocks.json` (a turn) and `fixtures/diagrams/examples.json` (model input → resolved output pairs, `pnpm diagrams:golden` regenerates the outputs); both checked by `pnpm fixtures:check`.

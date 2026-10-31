@@ -1,0 +1,2367 @@
+{
+ "description": "Golden draw_diagram examples: model input → resolved args (packages/tutor/src/diagram). Regenerate outputs with `pnpm diagrams:golden`.",
+ "examples": [
+  {
+   "name": "free_body",
+   "description": "Bloco de 2 kg no chão empurrado para a direita: F, P e N (2ª lei de Newton).",
+   "input": {
+    "id": "bloco_forcas",
+    "column": "visuals",
+    "title": "Forças no bloco",
+    "frame": "wide",
+    "shapes": [
+     {
+      "id": "chao",
+      "kind": "line",
+      "from": [
+       10,
+       72
+      ],
+      "to": [
+       150,
+       72
+      ],
+      "ground": true
+     },
+     {
+      "id": "bloco",
+      "kind": "rect",
+      "on": {
+       "ref": "chao",
+       "t": 0.42
+      },
+      "w": 30,
+      "h": 22,
+      "label": "2 kg",
+      "fill": "soft"
+     },
+     {
+      "id": "forca",
+      "kind": "arrow",
+      "from": {
+       "ref": "bloco",
+       "side": "right"
+      },
+      "dir": "right",
+      "magnitude": 10,
+      "label": "F = 10 N",
+      "color": "red"
+     },
+     {
+      "id": "peso",
+      "kind": "arrow",
+      "from": {
+       "ref": "bloco",
+       "side": "center"
+      },
+      "dir": "down",
+      "magnitude": 20,
+      "label": "P = 20 N",
+      "color": "blue"
+     },
+     {
+      "id": "normal",
+      "kind": "arrow",
+      "from": {
+       "ref": "bloco",
+       "side": "top"
+      },
+      "dir": "up",
+      "magnitude": 20,
+      "label": "N = 20 N",
+      "color": "green"
+     }
+    ]
+   },
+   "output": {
+    "id": "bloco_forcas",
+    "column": "visuals",
+    "title": "Forças no bloco",
+    "frame": "wide",
+    "view": {
+     "w": 160,
+     "h": 100
+    },
+    "shapes": [
+     {
+      "id": "chao",
+      "kind": "line",
+      "x1": 10,
+      "y1": 71.3,
+      "x2": 150,
+      "y2": 71.3,
+      "dashed": false,
+      "ground": true,
+      "color": "ink"
+     },
+     {
+      "id": "bloco",
+      "kind": "rect",
+      "x": 53.8,
+      "y": 49,
+      "w": 30,
+      "h": 22,
+      "angle": 0,
+      "fill": "soft",
+      "color": "ink",
+      "label": {
+       "text": "2 kg",
+       "x": 68.8,
+       "y": 60,
+       "size": "m"
+      }
+     },
+     {
+      "id": "forca",
+      "kind": "arrow",
+      "x1": 83.8,
+      "y1": 60,
+      "x2": 100.8,
+      "y2": 60,
+      "color": "red",
+      "label": {
+       "text": "F = 10 N",
+       "x": 113.3,
+       "y": 60,
+       "size": "m"
+      }
+     },
+     {
+      "id": "peso",
+      "kind": "arrow",
+      "x1": 68.8,
+      "y1": 60,
+      "x2": 68.8,
+      "y2": 94,
+      "color": "blue",
+      "label": {
+       "text": "P = 20 N",
+       "x": 81.3,
+       "y": 94,
+       "size": "m"
+      }
+     },
+     {
+      "id": "normal",
+      "kind": "arrow",
+      "x1": 68.8,
+      "y1": 49,
+      "x2": 68.8,
+      "y2": 15,
+      "color": "green",
+      "label": {
+       "text": "N = 20 N",
+       "x": 68.8,
+       "y": 10.4,
+       "size": "m"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "incline",
+   "description": "Bloco num plano inclinado: peso, normal e atrito.",
+   "input": {
+    "id": "plano_inclinado",
+    "column": "visuals",
+    "title": "Bloco no plano inclinado",
+    "frame": "wide",
+    "shapes": [
+     {
+      "id": "rampa",
+      "kind": "polyline",
+      "points": [
+       [
+        15,
+        85
+       ],
+       [
+        145,
+        85
+       ],
+       [
+        15,
+        30
+       ]
+      ],
+      "closed": true,
+      "fill": "soft"
+     },
+     {
+      "id": "bloco",
+      "kind": "rect",
+      "on": {
+       "ref": "rampa",
+       "t": 0.45
+      },
+      "w": 22,
+      "h": 16,
+      "label": "m"
+     },
+     {
+      "id": "peso",
+      "kind": "arrow",
+      "from": {
+       "ref": "bloco",
+       "side": "center"
+      },
+      "dir": "down",
+      "magnitude": 30,
+      "label": "P",
+      "color": "blue"
+     },
+     {
+      "id": "normal",
+      "kind": "arrow",
+      "from": {
+       "ref": "bloco",
+       "side": "top"
+      },
+      "dir": "normal",
+      "magnitude": 26,
+      "label": "N",
+      "color": "green"
+     },
+     {
+      "id": "atrito",
+      "kind": "arrow",
+      "from": {
+       "ref": "bloco",
+       "side": "left"
+      },
+      "deg": 157,
+      "magnitude": 12,
+      "label": "Fat",
+      "color": "red"
+     },
+     {
+      "id": "angulo",
+      "kind": "text",
+      "at": [
+       124,
+       80
+      ],
+      "text": "θ",
+      "size": "s"
+     }
+    ]
+   },
+   "output": {
+    "id": "plano_inclinado",
+    "column": "visuals",
+    "title": "Bloco no plano inclinado",
+    "frame": "wide",
+    "view": {
+     "w": 160,
+     "h": 100
+    },
+    "shapes": [
+     {
+      "id": "rampa",
+      "kind": "polyline",
+      "points": [
+       [
+        15,
+        85
+       ],
+       [
+        145,
+        85
+       ],
+       [
+        15,
+        30
+       ]
+      ],
+      "closed": true,
+      "smooth": false,
+      "fill": "soft",
+      "color": "ink"
+     },
+     {
+      "id": "bloco",
+      "kind": "rect",
+      "x": 65.7,
+      "y": 39.1,
+      "w": 22,
+      "h": 16,
+      "angle": -22.9,
+      "fill": "none",
+      "color": "ink",
+      "label": {
+       "text": "m",
+       "x": 76.7,
+       "y": 47.1,
+       "size": "m"
+      }
+     },
+     {
+      "id": "peso",
+      "kind": "arrow",
+      "x1": 76.7,
+      "y1": 47.1,
+      "x2": 76.7,
+      "y2": 81.1,
+      "color": "blue",
+      "label": {
+       "text": "P",
+       "x": 76.7,
+       "y": 88.6,
+       "size": "m"
+      }
+     },
+     {
+      "id": "normal",
+      "kind": "arrow",
+      "x1": 79.9,
+      "y1": 39.7,
+      "x2": 91.3,
+      "y2": 12.6,
+      "color": "green",
+      "label": {
+       "text": "N",
+       "x": 93.3,
+       "y": 7.9,
+       "size": "m"
+      }
+     },
+     {
+      "id": "atrito",
+      "kind": "arrow",
+      "x1": 66.6,
+      "y1": 42.8,
+      "x2": 54.1,
+      "y2": 37.5,
+      "color": "red",
+      "label": {
+       "text": "Fat",
+       "x": 48.1,
+       "y": 35,
+       "size": "m"
+      }
+     },
+     {
+      "id": "angulo",
+      "kind": "text",
+      "x": 124,
+      "y": 80,
+      "text": "θ",
+      "size": "s",
+      "color": "ink"
+     }
+    ]
+   }
+  },
+  {
+   "name": "two_blocks_rope",
+   "description": "Dois blocos ligados por uma corda, puxados por F.",
+   "input": {
+    "id": "blocos_corda",
+    "column": "visuals",
+    "title": "Dois blocos e uma corda",
+    "frame": "wide",
+    "shapes": [
+     {
+      "id": "chao",
+      "kind": "line",
+      "from": [
+       5,
+       70
+      ],
+      "to": [
+       155,
+       70
+      ],
+      "ground": true
+     },
+     {
+      "id": "bloco_a",
+      "kind": "rect",
+      "on": {
+       "ref": "chao",
+       "t": 0.25
+      },
+      "w": 24,
+      "h": 18,
+      "label": "A"
+     },
+     {
+      "id": "bloco_b",
+      "kind": "rect",
+      "on": {
+       "ref": "chao",
+       "t": 0.6
+      },
+      "w": 24,
+      "h": 18,
+      "label": "B"
+     },
+     {
+      "id": "corda",
+      "kind": "line",
+      "from": [
+       54.5,
+       61
+      ],
+      "to": [
+       83,
+       61
+      ]
+     },
+     {
+      "id": "forca",
+      "kind": "arrow",
+      "from": {
+       "ref": "bloco_b",
+       "side": "right"
+      },
+      "dir": "right",
+      "magnitude": 12,
+      "label": "F",
+      "color": "red"
+     },
+     {
+      "id": "tracao_a",
+      "kind": "arrow",
+      "from": {
+       "ref": "bloco_a",
+       "side": "top"
+      },
+      "dir": "right",
+      "magnitude": 6,
+      "label": "T",
+      "color": "blue"
+     },
+     {
+      "id": "tracao_b",
+      "kind": "arrow",
+      "from": {
+       "ref": "bloco_b",
+       "side": "top"
+      },
+      "dir": "left",
+      "magnitude": 6,
+      "label": "T",
+      "color": "blue"
+     }
+    ]
+   },
+   "output": {
+    "id": "blocos_corda",
+    "column": "visuals",
+    "title": "Dois blocos e uma corda",
+    "frame": "wide",
+    "view": {
+     "w": 160,
+     "h": 100
+    },
+    "shapes": [
+     {
+      "id": "chao",
+      "kind": "line",
+      "x1": 5,
+      "y1": 70,
+      "x2": 155,
+      "y2": 70,
+      "dashed": false,
+      "ground": true,
+      "color": "ink"
+     },
+     {
+      "id": "bloco_a",
+      "kind": "rect",
+      "x": 30.5,
+      "y": 51.7,
+      "w": 24,
+      "h": 18,
+      "angle": 0,
+      "fill": "none",
+      "color": "ink",
+      "label": {
+       "text": "A",
+       "x": 42.5,
+       "y": 60.7,
+       "size": "m"
+      }
+     },
+     {
+      "id": "bloco_b",
+      "kind": "rect",
+      "x": 83,
+      "y": 51.7,
+      "w": 24,
+      "h": 18,
+      "angle": 0,
+      "fill": "none",
+      "color": "ink",
+      "label": {
+       "text": "B",
+       "x": 95,
+       "y": 60.7,
+       "size": "m"
+      }
+     },
+     {
+      "id": "corda",
+      "kind": "line",
+      "x1": 54.5,
+      "y1": 61,
+      "x2": 83,
+      "y2": 61,
+      "dashed": false,
+      "ground": false,
+      "color": "ink"
+     },
+     {
+      "id": "forca",
+      "kind": "arrow",
+      "x1": 107,
+      "y1": 60.7,
+      "x2": 141,
+      "y2": 60.7,
+      "color": "red",
+      "label": {
+       "text": "F",
+       "x": 144.7,
+       "y": 60.7,
+       "size": "m"
+      }
+     },
+     {
+      "id": "tracao_a",
+      "kind": "arrow",
+      "x1": 42.5,
+      "y1": 51.7,
+      "x2": 59.5,
+      "y2": 51.7,
+      "color": "blue",
+      "label": {
+       "text": "T",
+       "x": 63.2,
+       "y": 51.7,
+       "size": "m"
+      }
+     },
+     {
+      "id": "tracao_b",
+      "kind": "arrow",
+      "x1": 95,
+      "y1": 51.7,
+      "x2": 78,
+      "y2": 51.7,
+      "color": "blue",
+      "label": {
+       "text": "T",
+       "x": 74.3,
+       "y": 51.7,
+       "size": "m"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "function_square",
+   "description": "Gráfico de f(x) = x² com o ponto (2, 4).",
+   "input": {
+    "id": "grafico_x2",
+    "column": "visuals",
+    "title": "Gráfico de f(x) = x²",
+    "frame": "wide",
+    "shapes": [
+     {
+      "id": "eixos",
+      "kind": "axes",
+      "x_range": [
+       -3,
+       3
+      ],
+      "y_range": [
+       -1,
+       9
+      ],
+      "x_ticks": [
+       -3,
+       -2,
+       -1,
+       1,
+       2,
+       3
+      ],
+      "y_ticks": [
+       2,
+       4,
+       6,
+       8
+      ],
+      "x_label": "x",
+      "y_label": "f(x)"
+     },
+     {
+      "id": "curva",
+      "kind": "polyline",
+      "points": [
+       [
+        -3,
+        9
+       ],
+       [
+        -2.5,
+        6.25
+       ],
+       [
+        -2,
+        4
+       ],
+       [
+        -1.5,
+        2.25
+       ],
+       [
+        -1,
+        1
+       ],
+       [
+        -0.5,
+        0.25
+       ],
+       [
+        0,
+        0
+       ],
+       [
+        0.5,
+        0.25
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1.5,
+        2.25
+       ],
+       [
+        2,
+        4
+       ],
+       [
+        2.5,
+        6.25
+       ],
+       [
+        3,
+        9
+       ]
+      ],
+      "smooth": true,
+      "label": "f(x) = x²",
+      "color": "blue"
+     },
+     {
+      "id": "ponto",
+      "kind": "point",
+      "at": [
+       2,
+       4
+      ],
+      "label": "(2, 4)",
+      "color": "red"
+     }
+    ]
+   },
+   "output": {
+    "id": "grafico_x2",
+    "column": "visuals",
+    "title": "Gráfico de f(x) = x²",
+    "frame": "wide",
+    "view": {
+     "w": 160,
+     "h": 100
+    },
+    "shapes": [
+     {
+      "id": "eixos",
+      "kind": "axes",
+      "x_axis": {
+       "x1": 14,
+       "y1": 80,
+       "x2": 152,
+       "y2": 80
+      },
+      "y_axis": {
+       "x1": 83,
+       "y1": 88,
+       "x2": 83,
+       "y2": 8
+      },
+      "ticks": [
+       {
+        "axis": "x",
+        "x": 14,
+        "y": 80,
+        "label": {
+         "text": "−3",
+         "x": 14,
+         "y": 85.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 37,
+        "y": 80,
+        "label": {
+         "text": "−2",
+         "x": 37,
+         "y": 85.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 60,
+        "y": 80,
+        "label": {
+         "text": "−1",
+         "x": 60,
+         "y": 85.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 106,
+        "y": 80,
+        "label": {
+         "text": "1",
+         "x": 106,
+         "y": 85.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 129,
+        "y": 80,
+        "label": {
+         "text": "2",
+         "x": 129,
+         "y": 85.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 152,
+        "y": 80,
+        "label": {
+         "text": "3",
+         "x": 152,
+         "y": 85.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "y",
+        "x": 83,
+        "y": 64,
+        "label": {
+         "text": "2",
+         "x": 79.2,
+         "y": 64,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "y",
+        "x": 83,
+        "y": 48,
+        "label": {
+         "text": "4",
+         "x": 79.2,
+         "y": 48,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "y",
+        "x": 83,
+        "y": 32,
+        "label": {
+         "text": "6",
+         "x": 79.2,
+         "y": 32,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "y",
+        "x": 83,
+        "y": 16,
+        "label": {
+         "text": "8",
+         "x": 79.2,
+         "y": 16,
+         "size": "s"
+        }
+       }
+      ],
+      "x_label": {
+       "text": "x",
+       "size": "m",
+       "x": 149.8,
+       "y": 75.5
+      },
+      "y_label": {
+       "text": "f(x)",
+       "size": "m",
+       "x": 91,
+       "y": 9
+      }
+     },
+     {
+      "id": "curva",
+      "kind": "polyline",
+      "points": [
+       [
+        14,
+        8
+       ],
+       [
+        25.5,
+        30
+       ],
+       [
+        37,
+        48
+       ],
+       [
+        48.5,
+        62
+       ],
+       [
+        60,
+        72
+       ],
+       [
+        71.5,
+        78
+       ],
+       [
+        83,
+        80
+       ],
+       [
+        94.5,
+        78
+       ],
+       [
+        106,
+        72
+       ],
+       [
+        117.5,
+        62
+       ],
+       [
+        129,
+        48
+       ],
+       [
+        140.5,
+        30
+       ],
+       [
+        152,
+        8
+       ]
+      ],
+      "closed": false,
+      "smooth": true,
+      "fill": "none",
+      "color": "blue",
+      "label": {
+       "text": "f(x) = x²",
+       "x": 135.1,
+       "y": 8,
+       "size": "m"
+      }
+     },
+     {
+      "id": "ponto",
+      "kind": "point",
+      "x": 129,
+      "y": 48,
+      "color": "red",
+      "label": {
+       "text": "(2, 4)",
+       "x": 141.9,
+       "y": 46.9,
+       "size": "m"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "function_linear",
+   "description": "Reta y = 2x + 1 e onde ela corta o eixo y.",
+   "input": {
+    "id": "grafico_reta",
+    "column": "visuals",
+    "title": "Função afim y = 2x + 1",
+    "frame": "square",
+    "shapes": [
+     {
+      "id": "eixos",
+      "kind": "axes",
+      "x_range": [
+       -2,
+       3
+      ],
+      "y_range": [
+       -3,
+       7
+      ],
+      "x_ticks": [
+       -2,
+       -1,
+       1,
+       2,
+       3
+      ],
+      "y_ticks": [
+       -2,
+       2,
+       4,
+       6
+      ],
+      "x_label": "x",
+      "y_label": "y"
+     },
+     {
+      "id": "reta",
+      "kind": "polyline",
+      "points": [
+       [
+        -2,
+        -3
+       ],
+       [
+        3,
+        7
+       ]
+      ],
+      "label": "y = 2x + 1",
+      "color": "blue"
+     },
+     {
+      "id": "corte",
+      "kind": "point",
+      "at": [
+       0,
+       1
+      ],
+      "label": "(0, 1)",
+      "color": "red"
+     }
+    ]
+   },
+   "output": {
+    "id": "grafico_reta",
+    "column": "visuals",
+    "title": "Função afim y = 2x + 1",
+    "frame": "square",
+    "view": {
+     "w": 100,
+     "h": 100
+    },
+    "shapes": [
+     {
+      "id": "eixos",
+      "kind": "axes",
+      "x_axis": {
+       "x1": 14,
+       "y1": 64,
+       "x2": 92,
+       "y2": 64
+      },
+      "y_axis": {
+       "x1": 45.2,
+       "y1": 88,
+       "x2": 45.2,
+       "y2": 8
+      },
+      "ticks": [
+       {
+        "axis": "x",
+        "x": 14,
+        "y": 64,
+        "label": {
+         "text": "−2",
+         "x": 14,
+         "y": 69.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 29.6,
+        "y": 64,
+        "label": {
+         "text": "−1",
+         "x": 29.6,
+         "y": 69.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 60.8,
+        "y": 64,
+        "label": {
+         "text": "1",
+         "x": 60.8,
+         "y": 69.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 76.4,
+        "y": 64,
+        "label": {
+         "text": "2",
+         "x": 76.4,
+         "y": 69.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 92,
+        "y": 64,
+        "label": {
+         "text": "3",
+         "x": 92,
+         "y": 69.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "y",
+        "x": 45.2,
+        "y": 80,
+        "label": {
+         "text": "−2",
+         "x": 41,
+         "y": 80,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "y",
+        "x": 45.2,
+        "y": 48,
+        "label": {
+         "text": "2",
+         "x": 41.4,
+         "y": 48,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "y",
+        "x": 45.2,
+        "y": 32,
+        "label": {
+         "text": "4",
+         "x": 41.4,
+         "y": 32,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "y",
+        "x": 45.2,
+        "y": 16,
+        "label": {
+         "text": "6",
+         "x": 41.4,
+         "y": 16,
+         "size": "s"
+        }
+       }
+      ],
+      "x_label": {
+       "text": "x",
+       "size": "m",
+       "x": 89.8,
+       "y": 59.5
+      },
+      "y_label": {
+       "text": "y",
+       "size": "m",
+       "x": 49.9,
+       "y": 9
+      }
+     },
+     {
+      "id": "reta",
+      "kind": "polyline",
+      "points": [
+       [
+        14,
+        88
+       ],
+       [
+        92,
+        8
+       ]
+      ],
+      "closed": false,
+      "smooth": false,
+      "fill": "none",
+      "color": "blue",
+      "label": {
+       "text": "y = 2x + 1",
+       "x": 73.8,
+       "y": 8,
+       "size": "m"
+      }
+     },
+     {
+      "id": "corte",
+      "kind": "point",
+      "x": 45.2,
+      "y": 56,
+      "color": "red",
+      "label": {
+       "text": "(0, 1)",
+       "x": 58.1,
+       "y": 54.9,
+       "size": "m"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "number_line",
+   "description": "Reta numérica de −3 a 3 com A = −2 e B = 2,5.",
+   "input": {
+    "id": "reta_numerica",
+    "column": "main",
+    "title": "Reta numérica",
+    "frame": "wide",
+    "shapes": [
+     {
+      "id": "reta",
+      "kind": "line",
+      "from": [
+       8,
+       50
+      ],
+      "to": [
+       152,
+       50
+      ]
+     },
+     {
+      "id": "n_m3",
+      "kind": "text",
+      "at": [
+       20,
+       60
+      ],
+      "text": "−3",
+      "size": "s"
+     },
+     {
+      "id": "n_m2",
+      "kind": "text",
+      "at": [
+       40,
+       60
+      ],
+      "text": "−2",
+      "size": "s"
+     },
+     {
+      "id": "n_m1",
+      "kind": "text",
+      "at": [
+       60,
+       60
+      ],
+      "text": "−1",
+      "size": "s"
+     },
+     {
+      "id": "n_0",
+      "kind": "text",
+      "at": [
+       80,
+       60
+      ],
+      "text": "0",
+      "size": "s"
+     },
+     {
+      "id": "n_1",
+      "kind": "text",
+      "at": [
+       100,
+       60
+      ],
+      "text": "1",
+      "size": "s"
+     },
+     {
+      "id": "n_2",
+      "kind": "text",
+      "at": [
+       120,
+       60
+      ],
+      "text": "2",
+      "size": "s"
+     },
+     {
+      "id": "n_3",
+      "kind": "text",
+      "at": [
+       140,
+       60
+      ],
+      "text": "3",
+      "size": "s"
+     },
+     {
+      "id": "ponto_a",
+      "kind": "point",
+      "at": [
+       40,
+       50
+      ],
+      "label": "A",
+      "color": "red"
+     },
+     {
+      "id": "ponto_b",
+      "kind": "point",
+      "at": [
+       130,
+       50
+      ],
+      "label": "B",
+      "color": "blue"
+     }
+    ]
+   },
+   "output": {
+    "id": "reta_numerica",
+    "column": "main",
+    "title": "Reta numérica",
+    "frame": "wide",
+    "view": {
+     "w": 160,
+     "h": 100
+    },
+    "shapes": [
+     {
+      "id": "reta",
+      "kind": "line",
+      "x1": 8,
+      "y1": 50,
+      "x2": 152,
+      "y2": 50,
+      "dashed": false,
+      "ground": false,
+      "color": "ink"
+     },
+     {
+      "id": "n_m3",
+      "kind": "text",
+      "x": 20,
+      "y": 60,
+      "text": "−3",
+      "size": "s",
+      "color": "ink"
+     },
+     {
+      "id": "n_m2",
+      "kind": "text",
+      "x": 40,
+      "y": 60,
+      "text": "−2",
+      "size": "s",
+      "color": "ink"
+     },
+     {
+      "id": "n_m1",
+      "kind": "text",
+      "x": 60,
+      "y": 60,
+      "text": "−1",
+      "size": "s",
+      "color": "ink"
+     },
+     {
+      "id": "n_0",
+      "kind": "text",
+      "x": 80,
+      "y": 60,
+      "text": "0",
+      "size": "s",
+      "color": "ink"
+     },
+     {
+      "id": "n_1",
+      "kind": "text",
+      "x": 100,
+      "y": 60,
+      "text": "1",
+      "size": "s",
+      "color": "ink"
+     },
+     {
+      "id": "n_2",
+      "kind": "text",
+      "x": 120,
+      "y": 60,
+      "text": "2",
+      "size": "s",
+      "color": "ink"
+     },
+     {
+      "id": "n_3",
+      "kind": "text",
+      "x": 140,
+      "y": 60,
+      "text": "3",
+      "size": "s",
+      "color": "ink"
+     },
+     {
+      "id": "ponto_a",
+      "kind": "point",
+      "x": 40,
+      "y": 50,
+      "color": "red",
+      "label": {
+       "text": "A",
+       "x": 43.7,
+       "y": 46.3,
+       "size": "m"
+      }
+     },
+     {
+      "id": "ponto_b",
+      "kind": "point",
+      "x": 130,
+      "y": 50,
+      "color": "blue",
+      "label": {
+       "text": "B",
+       "x": 133.7,
+       "y": 46.3,
+       "size": "m"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "right_triangle",
+   "description": "Triângulo retângulo com catetos a, b e hipotenusa c.",
+   "input": {
+    "id": "triangulo",
+    "column": "visuals",
+    "title": "Teorema de Pitágoras",
+    "frame": "square",
+    "shapes": [
+     {
+      "id": "tri",
+      "kind": "polyline",
+      "points": [
+       [
+        15,
+        85
+       ],
+       [
+        85,
+        85
+       ],
+       [
+        15,
+        25
+       ]
+      ],
+      "closed": true,
+      "fill": "soft"
+     },
+     {
+      "id": "angulo_reto",
+      "kind": "polyline",
+      "points": [
+       [
+        15,
+        77
+       ],
+       [
+        23,
+        77
+       ],
+       [
+        23,
+        85
+       ]
+      ]
+     },
+     {
+      "id": "lado_a",
+      "kind": "text",
+      "at": [
+       8,
+       55
+      ],
+      "text": "a"
+     },
+     {
+      "id": "lado_b",
+      "kind": "text",
+      "at": [
+       50,
+       93
+      ],
+      "text": "b"
+     },
+     {
+      "id": "lado_c",
+      "kind": "text",
+      "at": [
+       55,
+       50
+      ],
+      "text": "c"
+     },
+     {
+      "id": "formula",
+      "kind": "text",
+      "at": [
+       65,
+       18
+      ],
+      "text": "a² + b² = c²",
+      "color": "red"
+     }
+    ]
+   },
+   "output": {
+    "id": "triangulo",
+    "column": "visuals",
+    "title": "Teorema de Pitágoras",
+    "frame": "square",
+    "view": {
+     "w": 100,
+     "h": 100
+    },
+    "shapes": [
+     {
+      "id": "tri",
+      "kind": "polyline",
+      "points": [
+       [
+        15,
+        85
+       ],
+       [
+        85,
+        85
+       ],
+       [
+        15,
+        25
+       ]
+      ],
+      "closed": true,
+      "smooth": false,
+      "fill": "soft",
+      "color": "ink"
+     },
+     {
+      "id": "angulo_reto",
+      "kind": "polyline",
+      "points": [
+       [
+        15,
+        77
+       ],
+       [
+        23,
+        77
+       ],
+       [
+        23,
+        85
+       ]
+      ],
+      "closed": false,
+      "smooth": false,
+      "fill": "none",
+      "color": "ink"
+     },
+     {
+      "id": "lado_a",
+      "kind": "text",
+      "x": 8,
+      "y": 55,
+      "text": "a",
+      "size": "m",
+      "color": "ink"
+     },
+     {
+      "id": "lado_b",
+      "kind": "text",
+      "x": 50,
+      "y": 93,
+      "text": "b",
+      "size": "m",
+      "color": "ink"
+     },
+     {
+      "id": "lado_c",
+      "kind": "text",
+      "x": 55,
+      "y": 50,
+      "text": "c",
+      "size": "m",
+      "color": "ink"
+     },
+     {
+      "id": "formula",
+      "kind": "text",
+      "x": 65,
+      "y": 18,
+      "text": "a² + b² = c²",
+      "size": "m",
+      "color": "red"
+     }
+    ]
+   }
+  },
+  {
+   "name": "vectors",
+   "description": "Soma de vetores u + v no plano.",
+   "input": {
+    "id": "soma_vetores",
+    "column": "visuals",
+    "title": "Soma de vetores",
+    "frame": "square",
+    "shapes": [
+     {
+      "id": "eixos",
+      "kind": "axes",
+      "x_range": [
+       0,
+       5
+      ],
+      "y_range": [
+       0,
+       5
+      ],
+      "x_ticks": [
+       1,
+       2,
+       3,
+       4,
+       5
+      ],
+      "y_ticks": [
+       1,
+       2,
+       3,
+       4,
+       5
+      ],
+      "x_label": "x",
+      "y_label": "y"
+     },
+     {
+      "id": "vetor_v",
+      "kind": "arrow",
+      "from": {
+       "at": [
+        0,
+        0
+       ]
+      },
+      "to": [
+       3,
+       1
+      ],
+      "label": "v",
+      "color": "red"
+     },
+     {
+      "id": "vetor_u",
+      "kind": "arrow",
+      "from": {
+       "at": [
+        0,
+        0
+       ]
+      },
+      "to": [
+       1,
+       3
+      ],
+      "label": "u",
+      "color": "blue"
+     },
+     {
+      "id": "soma",
+      "kind": "arrow",
+      "from": {
+       "at": [
+        0,
+        0
+       ]
+      },
+      "to": [
+       4,
+       4
+      ],
+      "label": "u + v",
+      "color": "green"
+     },
+     {
+      "id": "guia_1",
+      "kind": "line",
+      "from": [
+       3,
+       1
+      ],
+      "to": [
+       4,
+       4
+      ],
+      "dashed": true
+     },
+     {
+      "id": "guia_2",
+      "kind": "line",
+      "from": [
+       1,
+       3
+      ],
+      "to": [
+       4,
+       4
+      ],
+      "dashed": true
+     }
+    ]
+   },
+   "output": {
+    "id": "soma_vetores",
+    "column": "visuals",
+    "title": "Soma de vetores",
+    "frame": "square",
+    "view": {
+     "w": 100,
+     "h": 100
+    },
+    "shapes": [
+     {
+      "id": "eixos",
+      "kind": "axes",
+      "x_axis": {
+       "x1": 14,
+       "y1": 88,
+       "x2": 92,
+       "y2": 88
+      },
+      "y_axis": {
+       "x1": 14,
+       "y1": 88,
+       "x2": 14,
+       "y2": 8
+      },
+      "ticks": [
+       {
+        "axis": "x",
+        "x": 29.6,
+        "y": 88,
+        "label": {
+         "text": "1",
+         "x": 29.6,
+         "y": 93.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 45.2,
+        "y": 88,
+        "label": {
+         "text": "2",
+         "x": 45.2,
+         "y": 93.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 60.8,
+        "y": 88,
+        "label": {
+         "text": "3",
+         "x": 60.8,
+         "y": 93.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 76.4,
+        "y": 88,
+        "label": {
+         "text": "4",
+         "x": 76.4,
+         "y": 93.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 92,
+        "y": 88,
+        "label": {
+         "text": "5",
+         "x": 92,
+         "y": 93.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "y",
+        "x": 14,
+        "y": 72,
+        "label": {
+         "text": "1",
+         "x": 10.2,
+         "y": 72,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "y",
+        "x": 14,
+        "y": 56,
+        "label": {
+         "text": "2",
+         "x": 10.2,
+         "y": 56,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "y",
+        "x": 14,
+        "y": 40,
+        "label": {
+         "text": "3",
+         "x": 10.2,
+         "y": 40,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "y",
+        "x": 14,
+        "y": 24,
+        "label": {
+         "text": "4",
+         "x": 10.2,
+         "y": 24,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "y",
+        "x": 14,
+        "y": 8,
+        "label": {
+         "text": "5",
+         "x": 10.2,
+         "y": 8,
+         "size": "s"
+        }
+       }
+      ],
+      "x_label": {
+       "text": "x",
+       "size": "m",
+       "x": 89.8,
+       "y": 83.5
+      },
+      "y_label": {
+       "text": "y",
+       "size": "m",
+       "x": 18.7,
+       "y": 9
+      }
+     },
+     {
+      "id": "vetor_v",
+      "kind": "arrow",
+      "x1": 14,
+      "y1": 88,
+      "x2": 60.8,
+      "y2": 72,
+      "color": "red",
+      "label": {
+       "text": "v",
+       "x": 65.1,
+       "y": 70.5,
+       "size": "m"
+      }
+     },
+     {
+      "id": "vetor_u",
+      "kind": "arrow",
+      "x1": 14,
+      "y1": 88,
+      "x2": 29.6,
+      "y2": 40,
+      "color": "blue",
+      "label": {
+       "text": "u",
+       "x": 31.2,
+       "y": 35.2,
+       "size": "m"
+      }
+     },
+     {
+      "id": "soma",
+      "kind": "arrow",
+      "x1": 14,
+      "y1": 88,
+      "x2": 76.4,
+      "y2": 24,
+      "color": "green",
+      "label": {
+       "text": "u + v",
+       "x": 82.3,
+       "y": 17.9,
+       "size": "m"
+      }
+     },
+     {
+      "id": "guia_1",
+      "kind": "line",
+      "x1": 60.8,
+      "y1": 72,
+      "x2": 76.4,
+      "y2": 24,
+      "dashed": true,
+      "ground": false,
+      "color": "ink"
+     },
+     {
+      "id": "guia_2",
+      "kind": "line",
+      "x1": 29.6,
+      "y1": 40,
+      "x2": 76.4,
+      "y2": 24,
+      "dashed": true,
+      "ground": false,
+      "color": "ink"
+     }
+    ]
+   }
+  },
+  {
+   "name": "hanging_block",
+   "description": "Bloco pendurado por uma corda: tração e peso se equilibram.",
+   "input": {
+    "id": "bloco_pendurado",
+    "column": "visuals",
+    "title": "Bloco pendurado",
+    "frame": "tall",
+    "shapes": [
+     {
+      "id": "teto",
+      "kind": "line",
+      "from": [
+       20,
+       15
+      ],
+      "to": [
+       80,
+       15
+      ]
+     },
+     {
+      "id": "corda",
+      "kind": "line",
+      "from": [
+       50,
+       15
+      ],
+      "to": [
+       50,
+       70
+      ]
+     },
+     {
+      "id": "bloco",
+      "kind": "rect",
+      "x": 38,
+      "y": 70,
+      "w": 24,
+      "h": 24,
+      "label": "5 kg",
+      "fill": "soft"
+     },
+     {
+      "id": "tracao",
+      "kind": "arrow",
+      "from": {
+       "ref": "bloco",
+       "side": "top"
+      },
+      "dir": "up",
+      "magnitude": 50,
+      "label": "T = 50 N",
+      "color": "green"
+     },
+     {
+      "id": "peso",
+      "kind": "arrow",
+      "from": {
+       "ref": "bloco",
+       "side": "bottom"
+      },
+      "dir": "down",
+      "magnitude": 50,
+      "label": "P = 50 N",
+      "color": "blue"
+     }
+    ]
+   },
+   "output": {
+    "id": "bloco_pendurado",
+    "column": "visuals",
+    "title": "Bloco pendurado",
+    "frame": "tall",
+    "view": {
+     "w": 100,
+     "h": 160
+    },
+    "shapes": [
+     {
+      "id": "teto",
+      "kind": "line",
+      "x1": 20,
+      "y1": 15,
+      "x2": 80,
+      "y2": 15,
+      "dashed": false,
+      "ground": false,
+      "color": "ink"
+     },
+     {
+      "id": "corda",
+      "kind": "line",
+      "x1": 50,
+      "y1": 15,
+      "x2": 50,
+      "y2": 70,
+      "dashed": false,
+      "ground": false,
+      "color": "ink"
+     },
+     {
+      "id": "bloco",
+      "kind": "rect",
+      "x": 38,
+      "y": 70,
+      "w": 24,
+      "h": 24,
+      "angle": 0,
+      "fill": "soft",
+      "color": "ink",
+      "label": {
+       "text": "5 kg",
+       "x": 50,
+       "y": 82,
+       "size": "m"
+      }
+     },
+     {
+      "id": "tracao",
+      "kind": "arrow",
+      "x1": 50,
+      "y1": 70,
+      "x2": 50,
+      "y2": 36,
+      "color": "green",
+      "label": {
+       "text": "T = 50 N",
+       "x": 37.5,
+       "y": 36,
+       "size": "m"
+      }
+     },
+     {
+      "id": "peso",
+      "kind": "arrow",
+      "x1": 50,
+      "y1": 94,
+      "x2": 50,
+      "y2": 128,
+      "color": "blue",
+      "label": {
+       "text": "P = 50 N",
+       "x": 50,
+       "y": 132.5,
+       "size": "m"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "name": "projectile",
+   "description": "Lançamento oblíquo: trajetória, velocidade inicial e altura máxima.",
+   "input": {
+    "id": "lancamento",
+    "column": "visuals",
+    "title": "Lançamento oblíquo",
+    "frame": "wide",
+    "shapes": [
+     {
+      "id": "eixos",
+      "kind": "axes",
+      "x_range": [
+       0,
+       10
+      ],
+      "y_range": [
+       0,
+       6
+      ],
+      "x_ticks": [
+       2,
+       4,
+       6,
+       8,
+       10
+      ],
+      "y_ticks": [
+       2,
+       4,
+       6
+      ],
+      "x_label": "distância (m)",
+      "y_label": "altura (m)"
+     },
+     {
+      "id": "trajetoria",
+      "kind": "polyline",
+      "points": [
+       [
+        0,
+        0
+       ],
+       [
+        1,
+        1.98
+       ],
+       [
+        2,
+        3.52
+       ],
+       [
+        3,
+        4.62
+       ],
+       [
+        4,
+        5.28
+       ],
+       [
+        5,
+        5.5
+       ],
+       [
+        6,
+        5.28
+       ],
+       [
+        7,
+        4.62
+       ],
+       [
+        8,
+        3.52
+       ],
+       [
+        9,
+        1.98
+       ],
+       [
+        10,
+        0
+       ]
+      ],
+      "smooth": true,
+      "color": "blue"
+     },
+     {
+      "id": "velocidade",
+      "kind": "arrow",
+      "from": {
+       "at": [
+        0,
+        0
+       ]
+      },
+      "deg": 50,
+      "length": "l",
+      "label": "v₀",
+      "color": "red"
+     },
+     {
+      "id": "topo",
+      "kind": "point",
+      "at": [
+       5,
+       5.5
+      ],
+      "label": "altura máxima",
+      "color": "green"
+     }
+    ]
+   },
+   "output": {
+    "id": "lancamento",
+    "column": "visuals",
+    "title": "Lançamento oblíquo",
+    "frame": "wide",
+    "view": {
+     "w": 160,
+     "h": 100
+    },
+    "shapes": [
+     {
+      "id": "eixos",
+      "kind": "axes",
+      "x_axis": {
+       "x1": 14,
+       "y1": 89.1,
+       "x2": 149.3,
+       "y2": 89.1
+      },
+      "y_axis": {
+       "x1": 14,
+       "y1": 89.1,
+       "x2": 14,
+       "y2": 10.7
+      },
+      "ticks": [
+       {
+        "axis": "x",
+        "x": 41.1,
+        "y": 89.1,
+        "label": {
+         "text": "2",
+         "x": 41.1,
+         "y": 94.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 68.1,
+        "y": 89.1,
+        "label": {
+         "text": "4",
+         "x": 68.1,
+         "y": 94.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 95.2,
+        "y": 89.1,
+        "label": {
+         "text": "6",
+         "x": 95.2,
+         "y": 94.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 122.2,
+        "y": 89.1,
+        "label": {
+         "text": "8",
+         "x": 122.2,
+         "y": 94.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "x",
+        "x": 149.3,
+        "y": 89.1,
+        "label": {
+         "text": "10",
+         "x": 149.3,
+         "y": 94.6,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "y",
+        "x": 14,
+        "y": 63,
+        "label": {
+         "text": "2",
+         "x": 10.3,
+         "y": 63,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "y",
+        "x": 14,
+        "y": 36.9,
+        "label": {
+         "text": "4",
+         "x": 10.3,
+         "y": 36.9,
+         "size": "s"
+        }
+       },
+       {
+        "axis": "y",
+        "x": 14,
+        "y": 10.7,
+        "label": {
+         "text": "6",
+         "x": 10.3,
+         "y": 10.7,
+         "size": "s"
+        }
+       }
+      ],
+      "x_label": {
+       "text": "distância (m)",
+       "size": "m",
+       "x": 131.8,
+       "y": 84.7
+      },
+      "y_label": {
+       "text": "altura (m)",
+       "size": "m",
+       "x": 29.9,
+       "y": 11.7
+      }
+     },
+     {
+      "id": "trajetoria",
+      "kind": "polyline",
+      "points": [
+       [
+        14,
+        89.1
+       ],
+       [
+        27.5,
+        63.3
+       ],
+       [
+        41.1,
+        43.1
+       ],
+       [
+        54.6,
+        28.8
+       ],
+       [
+        68.1,
+        20.1
+       ],
+       [
+        81.6,
+        17.2
+       ],
+       [
+        95.2,
+        20.1
+       ],
+       [
+        108.7,
+        28.8
+       ],
+       [
+        122.2,
+        43.1
+       ],
+       [
+        135.8,
+        63.3
+       ],
+       [
+        149.3,
+        89.1
+       ]
+      ],
+      "closed": false,
+      "smooth": true,
+      "fill": "none",
+      "color": "blue"
+     },
+     {
+      "id": "velocidade",
+      "kind": "arrow",
+      "x1": 14,
+      "y1": 89.1,
+      "x2": 32.9,
+      "y2": 66.6,
+      "color": "red",
+      "label": {
+       "text": "v₀",
+       "x": 36.4,
+       "y": 62.4,
+       "size": "m"
+      }
+     },
+     {
+      "id": "topo",
+      "kind": "point",
+      "x": 81.6,
+      "y": 17.2,
+      "color": "green",
+      "label": {
+       "text": "altura máxima",
+       "x": 92.9,
+       "y": 6,
+       "size": "m"
+      }
+     }
+    ]
+   }
+  }
+ ]
+}

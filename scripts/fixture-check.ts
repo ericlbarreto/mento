@@ -3,7 +3,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
-import { ClassContext, ConversationFile, FixtureTurn, Lesson, StudentInput } from "@mento/contracts";
+import { ClassContext, ConversationFile, DiagramArgs, DiagramBase, FixtureTurn, Lesson, StudentInput } from "@mento/contracts";
 
 let failed = false;
 
@@ -22,6 +22,21 @@ for (const file of files) {
     failed = true;
     console.error(`FAIL ${file}`);
     for (const issue of result.error.issues) console.error(`     ${issue.path.join(".")}: ${issue.message}`);
+  }
+}
+
+// ---- Diagram examples (draw_diagram model input → resolved args) ----
+const diagrams = JSON.parse(readFileSync(join(dir, "..", "diagrams", "examples.json"), "utf8")) as { examples: { name: string; input: unknown; output: unknown }[] };
+for (const ex of diagrams.examples) {
+  const issues = [
+    ...(DiagramBase.safeParse(ex.input).error?.issues.map((i) => `input.${i.path.join(".")}: ${i.message}`) ?? []),
+    ...(DiagramArgs.safeParse(ex.output).error?.issues.map((i) => `output.${i.path.join(".")}: ${i.message}`) ?? []),
+  ];
+  if (issues.length === 0) console.log(`ok   diagrams/${ex.name}`);
+  else {
+    failed = true;
+    console.error(`FAIL diagrams/${ex.name}`);
+    for (const issue of issues) console.error(`     ${issue}`);
   }
 }
 
