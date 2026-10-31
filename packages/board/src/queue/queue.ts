@@ -81,6 +81,8 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
   let paused = false;
   let running = false;
   let current: Action | null = null;
+  // The script is played; waiting for the board to finish writing before the turn ends.
+  let draining = false;
   let nextOrder = 0;
   const pending = new Map<number, Action>();
   const completedOutOfBand = new Set<number>();
@@ -96,7 +98,7 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
   let lastState: QueueState = "idle";
   const derive = (): QueueState => {
     if (paused) return "paused";
-    if (current) return "playing";
+    if (current || draining) return "playing";
     if (turnActive && !scriptDone) return playedAny ? "playing" : "thinking";
     if (pending.size > 0) return "playing";
     return waitingAnswer ? "waiting_answer" : "idle";
@@ -114,6 +116,10 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
     abort = new AbortController();
     speech.stop();
     audio?.stop();
+    // Nothing stays half-written: the board finishes its writing at once.
+    store.animation.settle();
+    store.animation.setPaused(false);
+    draining = false;
     pending.clear();
     completedOutOfBand.clear();
     deferredDrawResults.clear();
@@ -209,6 +215,14 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
       }
       if (!paused && turnDone && pending.size === 0) {
         flushSvg();
+        // The turn ends (orb listens, mic opens) only once the board has written everything.
+        if (store.animation.isBusy()) {
+          draining = true;
+          emit();
+          await store.animation.whenIdle();
+          if (gen !== generation) return;
+          draining = false;
+        }
         turnActive = false;
       }
     } finally {
@@ -324,6 +338,7 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
       paused = true;
       pausedAt = Date.now();
       speech.pause?.();
+      store.animation.setPaused(true);
       emit();
     },
 
@@ -332,6 +347,7 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
       paused = false;
       pausedTotal += Date.now() - pausedAt;
       speech.resume?.();
+      store.animation.setPaused(false);
       emit();
       void pump();
     },

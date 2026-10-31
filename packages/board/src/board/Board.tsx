@@ -1,12 +1,14 @@
 "use client";
 
-import { useId, useMemo } from "react";
+import { useEffect, useId, useMemo, useRef } from "react";
 import type { Column } from "@mento/contracts";
 import { type RendererMap, basicRenderers } from "../renderers";
 import { type BoardStore, useBoardColumn } from "../store";
-import { type BoardEnv, BoardEnvProvider, type VerificationEnv } from "./context";
+import { type BoardEnv, BoardEnvProvider, BoardWriterProvider, type VerificationEnv } from "./context";
 import { ElementFrame } from "./ElementFrame";
+import { Pen } from "./Pen";
 import { PAPER_TILE_PX, useCanvasCamera } from "./useCanvasCamera";
+import { createBoardWriter } from "./writer";
 
 // Fixed widths: on the canvas the world has no width to be a percentage of.
 const COLUMN_PX: Record<Column, number> = { main: 680, visuals: 560, side: 400 };
@@ -42,78 +44,91 @@ export interface BoardProps {
  * The whiteboard as a pannable canvas: a clipped viewport and a "world" (the three columns side by side, natural
  * height) moved with a transform. Drag the background, scroll or use the arrows to pan; ctrl/⌘ + wheel or pinch to
  * zoom. The camera follows the tutor's newest element unless the student just moved it (docs/16 §5.1).
+ * Live tutor text is written by a pen, one element after another (writer.ts); restored boards appear at once.
  */
 export function Board({ store, renderers, className, assetBaseUrl, onWarning, verification }: BoardProps) {
   const hintId = useId();
   const map = useMemo(() => ({ ...basicRenderers, ...renderers }), [renderers]);
   const env = useMemo<BoardEnv>(() => ({ assetBaseUrl, onWarning, verification }), [assetBaseUrl, onWarning, verification]);
+  const writer = useMemo(() => createBoardWriter(store), [store]);
+  const penRef = useRef<HTMLDivElement>(null);
   const { viewportRef, worldRef, paperRef, following, controls } = useCanvasCamera(
     store,
     COLUMN_PX.main + 2 * WORLD_PAD_PX,
+    writer,
   );
+  useEffect(() => {
+    const world = worldRef.current;
+    const pen = penRef.current;
+    if (!world || !pen) return;
+    return writer.attach(world, pen);
+  }, [writer, worldRef]);
 
   return (
     <BoardEnvProvider value={env}>
-      <div
-        ref={viewportRef}
-        tabIndex={0}
-        aria-label="Quadro"
-        aria-describedby={hintId}
-        role="region"
-        className={`relative h-full touch-none overflow-clip outline-none cursor-grab focus-visible:shadow-(--focus-ring) data-panning:cursor-grabbing data-panning:select-none [&[data-panning]_*]:cursor-grabbing! [&[data-space]_*]:cursor-grab! ${className ?? ""}`}
-      >
+      <BoardWriterProvider value={writer}>
         <div
-          ref={paperRef}
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-(--paper)"
-          style={{ backgroundImage: paperDots, backgroundSize: `${PAPER_TILE_PX}px ${PAPER_TILE_PX}px` }}
-        />
-        <div
-          ref={worldRef}
-          data-board-world
-          className="absolute top-0 left-0 flex w-max origin-top-left items-start gap-10 p-8 pb-16 will-change-transform [&_:where([data-element-id])]:cursor-auto"
+          ref={viewportRef}
+          tabIndex={0}
+          aria-label="Quadro"
+          aria-describedby={hintId}
+          role="region"
+          className={`relative h-full touch-none overflow-clip outline-none cursor-grab focus-visible:shadow-(--focus-ring) data-panning:cursor-grabbing data-panning:select-none [&[data-panning]_*]:cursor-grabbing! [&[data-space]_*]:cursor-grab! ${className ?? ""}`}
         >
-          <BoardColumn store={store} column="main" renderers={map} />
-          <BoardColumn store={store} column="visuals" renderers={map} />
-          <BoardColumn store={store} column="side" renderers={map} />
-        </div>
-        <p id={hintId} className="sr-only">
-          Arraste o fundo ou use as setas para mover o quadro; mais e menos mudam o zoom.
-        </p>
-        <div className="absolute top-3 right-3 flex flex-col items-end gap-2">
           <div
-            data-board-control
-            role="toolbar"
-            aria-label="Zoom do quadro"
-            className="flex items-center gap-0.5 rounded-(--radius-pill) bg-(--card) p-1 shadow-(--shadow-card)"
+            ref={paperRef}
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-(--paper)"
+            style={{ backgroundImage: paperDots, backgroundSize: `${PAPER_TILE_PX}px ${PAPER_TILE_PX}px` }}
+          />
+          <div
+            ref={worldRef}
+            data-board-world
+            className="absolute top-0 left-0 flex w-max origin-top-left items-start gap-10 p-8 pb-16 will-change-transform [&_:where([data-element-id])]:cursor-auto"
           >
-            <button type="button" className={controlButton} onClick={controls.zoomOut} aria-label="Diminuir zoom">
-              −
-            </button>
-            <button type="button" className={controlButton} onClick={controls.zoomIn} aria-label="Aumentar zoom">
-              +
-            </button>
-            <button
-              type="button"
-              className={controlButton}
-              onClick={controls.recenter}
-              aria-label="Centralizar no conteúdo mais recente"
-            >
-              Centralizar
-            </button>
+            <BoardColumn store={store} column="main" renderers={map} />
+            <BoardColumn store={store} column="visuals" renderers={map} />
+            <BoardColumn store={store} column="side" renderers={map} />
+            <Pen ref={penRef} />
           </div>
-          {!following && (
-            <button
-              type="button"
+          <p id={hintId} className="sr-only">
+            Arraste o fundo ou use as setas para mover o quadro; mais e menos mudam o zoom.
+          </p>
+          <div className="absolute top-3 right-3 flex flex-col items-end gap-2">
+            <div
               data-board-control
-              onClick={controls.resume}
-              className="rounded-(--radius-pill) bg-(--mento-blue) px-4 py-1.5 text-sm font-bold text-white shadow-(--shadow-float) outline-none transition-colors duration-(--dur-fast) hover:bg-(--mento-blue-hover) focus-visible:shadow-(--focus-ring)"
+              role="toolbar"
+              aria-label="Zoom do quadro"
+              className="flex items-center gap-0.5 rounded-(--radius-pill) bg-(--card) p-1 shadow-(--shadow-card)"
             >
-              Voltar para a aula
-            </button>
-          )}
+              <button type="button" className={controlButton} onClick={controls.zoomOut} aria-label="Diminuir zoom">
+                −
+              </button>
+              <button type="button" className={controlButton} onClick={controls.zoomIn} aria-label="Aumentar zoom">
+                +
+              </button>
+              <button
+                type="button"
+                className={controlButton}
+                onClick={controls.recenter}
+                aria-label="Centralizar no conteúdo mais recente"
+              >
+                Centralizar
+              </button>
+            </div>
+            {!following && (
+              <button
+                type="button"
+                data-board-control
+                onClick={controls.resume}
+                className="rounded-(--radius-pill) bg-(--mento-blue) px-4 py-1.5 text-sm font-bold text-white shadow-(--shadow-float) outline-none transition-colors duration-(--dur-fast) hover:bg-(--mento-blue-hover) focus-visible:shadow-(--focus-ring)"
+              >
+                Voltar para a aula
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      </BoardWriterProvider>
     </BoardEnvProvider>
   );
 }

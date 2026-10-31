@@ -4,6 +4,7 @@
 // looks where the tutor draws. The camera lives in refs and is written straight to the DOM (no React render per move).
 import { useEffect, useRef, useState } from "react";
 import type { BoardStore, ElementState } from "../store";
+import type { BoardWriter } from "./writer";
 import {
   type Camera,
   type Inset,
@@ -48,7 +49,8 @@ type Engine = CanvasControls;
 const isEditable = (t: EventTarget | null) =>
   t instanceof Element && !!t.closest("input, textarea, select, button, a, [contenteditable]");
 
-export function useCanvasCamera(store: BoardStore, mainWidth: number) {
+/** With a `writer`, the camera looks at the element being written instead of jumping to the newest one. */
+export function useCanvasCamera(store: BoardStore, mainWidth: number, writer?: BoardWriter) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const paperRef = useRef<HTMLDivElement>(null);
@@ -136,6 +138,8 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number) {
     const follow = (id: string) => {
       lastId = id;
       if (performance.now() - manualAt < MANUAL_IDLE_MS) return;
+      // Still waiting for the pen: the writer focuses it when it starts.
+      if (writer?.isQueued(id)) return;
       const el = elementById(id);
       if (!el) return;
       setFollowingOnce(true);
@@ -414,6 +418,17 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number) {
       prevElements = next;
     });
 
+    // The pen starts an element (frame it once) or its caret's line leaves the safe area (bring that line in).
+    const unsubscribeFocus = writer?.subscribeFocus(({ id, rect }) => {
+      lastId = id;
+      if (performance.now() - manualAt < MANUAL_IDLE_MS) return;
+      const el = rect ? null : elementById(id);
+      if (!rect && !el) return;
+      setFollowingOnce(true);
+      const target = followTarget(cam, vp(), rect ?? rectOf(el as Element), inset());
+      if (target) animateTo(target);
+    });
+
     const resize = new ResizeObserver(() => set(cam));
     cam = initialCamera(vp(), mainWidth);
     set(cam);
@@ -442,6 +457,7 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number) {
       clearTimeout(followTimer);
       unsubscribeAdded();
       unsubscribeAll();
+      unsubscribeFocus?.();
       resize.disconnect();
       engine.current = null;
       viewport.removeEventListener("pointerdown", onPointerDown);
@@ -461,7 +477,7 @@ export function useCanvasCamera(store: BoardStore, mainWidth: number) {
       window.removeEventListener("keyup", onWindowKeyUp);
       window.removeEventListener("blur", releaseSpace);
     };
-  }, [store, mainWidth]);
+  }, [store, mainWidth, writer]);
 
   const controls: CanvasControls = {
     zoomIn: () => engine.current?.zoomIn(),

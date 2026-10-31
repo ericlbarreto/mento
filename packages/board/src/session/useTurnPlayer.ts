@@ -174,7 +174,9 @@ export function useTurnPlayer({ sessionId, streamTurn, speech, audio, handlers, 
 
   const restore = useCallback(
     (actions: readonly Action[], lastTurnId: string | null) => {
-      for (const action of actions) store.dispatch(action);
+      store.instant(() => {
+        for (const action of actions) store.dispatch(action);
+      });
       queue.setLastTurnId(lastTurnId);
     },
     [queue, store],
