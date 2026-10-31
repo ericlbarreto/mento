@@ -133,7 +133,7 @@ export function toSpokenWords(text: string): SpokenWord[] {
       continue;
     }
     if (afterIntegral && /^dx([,;:!?).]*)$/.test(w)) {
-      out.push({ written: w, spoken: w.replace(/^dx/, "d x") });
+      out.push({ written: w, spoken: w.replace(/^dx/, "dê xis") });
       afterIntegral = false;
       continue;
     }
@@ -143,14 +143,129 @@ export function toSpokenWords(text: string): SpokenWord[] {
 
     out.push({ written: w, spoken });
   }
+  applyMath(out);
   return out;
 }
+
+// ---------------------------------------------------------------- math read aloud
+// "x + y = 10" is read by the TTS as letters and symbols ("i", silence for "="). Inside a *math run* (a sequence
+// of words made only of numbers, single-letter variables, operators and powers that contains an operator) every
+// word is spoken: "xis mais ípsilon igual a 10". Outside math runs only the safe cases change: the letters x and
+// y on their own (never Portuguese words) and units right after a number ("10 N" → "10 newtons").
+
+const LETTER_NAMES: Record<string, string> = {
+  a: "a", b: "bê", c: "cê", d: "dê", e: "e", f: "éfe", g: "gê", h: "agá", i: "i", j: "jota", k: "cá", l: "ele",
+  m: "eme", n: "ene", o: "o", p: "pê", q: "quê", r: "erre", s: "esse", t: "tê", u: "u", v: "vê", w: "dáblio",
+  x: "xis", y: "ípsilon", z: "zê",
+};
+const OPERATORS: Record<string, string> = {
+  "=": "igual a", "+": "mais", "−": "menos", "-": "menos", "×": "vezes", "·": "vezes", "*": "vezes",
+  "/": "dividido por", "÷": "dividido por", "≈": "aproximadamente", "≠": "diferente de", "≤": "menor ou igual a",
+  "≥": "maior ou igual a", "<": "menor que", ">": "maior que",
+};
+const UNITS: Record<string, [string, string]> = {
+  "m/s²": ["metro por segundo ao quadrado", "metros por segundo ao quadrado"],
+  "m/s": ["metro por segundo", "metros por segundo"],
+  "km/h": ["quilômetro por hora", "quilômetros por hora"],
+  kWh: ["quilowatt-hora", "quilowatts-hora"],
+  kW: ["quilowatt", "quilowatts"],
+  W: ["watt", "watts"],
+  V: ["volt", "volts"],
+  N: ["newton", "newtons"],
+  kg: ["quilograma", "quilogramas"],
+};
+
+const OP_CHARS = "=+−×·*/÷≈≠≤≥<>";
+const NUM = String.raw`[−-]?\d+(?:[.,]\d+)?`;
+// One math atom: a number, a coefficient with a variable (2x, 3y²), a single letter (with an optional power), or a
+// function call such as f(x), f(−2), f'(x).
+const ATOM = String.raw`(?:${NUM}[a-zA-Z]?|[a-zA-Z]'?\([^()\s]{1,6}\)|[a-zA-Z])[⁻⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ⁺]*`;
+const MATH_WORD = new RegExp(String.raw`^\(?(?:${ATOM}|[${OP_CHARS}])(?:[${OP_CHARS}](?:${ATOM}))*\)?$`);
+const SPLIT_RE = /^(\(?)(.*?)([,;:!?.)]*)$/;
+/** [open "(", core, trailing punctuation]; a ")" that closes a "(" inside the core stays in the core ("f(x)"). */
+function splitPunct(word: string): [string, string, string] {
+  const [, open = "", core0 = "", tail0 = ""] = SPLIT_RE.exec(word) ?? [];
+  let core = core0;
+  let tail = tail0;
+  while (tail.startsWith(")") && (core.match(/\(/g)?.length ?? 0) > (core.match(/\)/g)?.length ?? 0)) {
+    core += ")";
+    tail = tail.slice(1);
+  }
+  return [open, core, tail];
+}
+
+const isOperatorWord = (core: string) => core.length === 1 && OP_CHARS.includes(core);
+// "/" between digits is a date or a ratio ("30/10/2026", "24/7"), never an operator on its own.
+const hasInnerOperator = (core: string) => [...core.slice(1)].some((c) => OP_CHARS.includes(c) && c !== "-" && c !== "/");
+
+/** Mark math runs and give their words a spoken form; then the safe single-word cases. */
+function applyMath(words: SpokenWord[]): void {
+  const cores = words.map((w) => splitPunct(w.written)[1]);
+  // A unit right after a number ("10 N", "5 m/s²") is read as a unit, not as letters, so it ends the math run.
+  const isUnit = cores.map((c, k) => k > 0 && UNITS[c] !== undefined && /^\d[\d.,]*$/.test(cores[k - 1]!));
+  const isMath = cores.map((c, k) => c !== "" && !isUnit[k] && MATH_WORD.test(c));
+  let i = 0;
+  while (i < words.length) {
+    if (!isMath[i]) {
+      i++;
+      continue;
+    }
+    let j = i;
+    // A run stops after a word ending in sentence punctuation ("= 10." ends the run; "x + y = 10 e" too).
+    while (j < words.length && isMath[j] && (j === i || !/[.;:!?]$/.test(words[j - 1]!.written))) j++;
+    const run = cores.slice(i, j);
+    const hasOperator = run.some((c, k) => (isOperatorWord(c) && k > 0 && k < run.length - 1) || hasInnerOperator(c));
+    if (hasOperator) for (let k = i; k < j; k++) words[k]!.spoken = speakMathWord(words[k]!.written);
+    i = j;
+  }
+  for (let k = 0; k < words.length; k++) {
+    const w = words[k]!;
+    const [open, core, tail] = splitPunct(w.written);
+    // "10 N", "2 kg", "5 m/s²", "200 kWh" (wins over the power rule for "m/s²").
+    if (isUnit[k]) {
+      const unit = UNITS[core]!;
+      w.spoken = open + (splitPunct(words[k - 1]!.written)[1] === "1" ? unit[0] : unit[1]) + tail;
+      continue;
+    }
+    if (w.spoken !== w.written) continue;
+    // "quanto vale y", "quando x é 2": x and y are never Portuguese words.
+    if (core === "y" || core === "x") w.spoken = open + LETTER_NAMES[core]! + tail;
+  }
+}
+
+/** "x" → "xis", "2x" → "2 xis", "f(−2)" → "éfe de menos 2", "m·a" → "eme vezes a", "y²" → "ípsilon ao quadrado". */
+function speakMathWord(written: string): string {
+  const [, core, tail] = splitPunct(written);
+  const parts: string[] = [];
+  // Drop only wrapping parentheses: "(x+1)" → "x+1", but "f(x)" keeps its call.
+  let rest = /^\(.*\)$/.test(core) ? core.slice(1, -1) : core;
+  while (rest.length) {
+    const op = OPERATORS[rest[0]!];
+    if (op) {
+      parts.push(op);
+      rest = rest.slice(1);
+      continue;
+    }
+    const m = new RegExp(String.raw`^(?:(\d+(?:[.,]\d+)?)([a-zA-Z])?|([a-zA-Z])'?\(([^()\s]{1,6})\)|([a-zA-Z]))([⁻⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ⁺]*)`).exec(rest);
+    if (!m) return written; // something unexpected: leave the word as written
+    const [all, num, coefVar, fn, arg, letter, sup] = m;
+    if (num) parts.push(coefVar ? `${num} ${LETTER_NAMES[coefVar.toLowerCase()] ?? coefVar}` : num);
+    else if (fn) parts.push(`${LETTER_NAMES[fn.toLowerCase()] ?? fn}${all!.includes("'") ? " linha" : ""} de ${speakMathWord(arg!)}`);
+    else if (letter) parts.push(LETTER_NAMES[letter.toLowerCase()] ?? letter);
+    if (sup) parts.push(powerWords(sup));
+    rest = rest.slice(all!.length);
+  }
+  return parts.join(" ").replace(/\s+/g, " ").trim() + tail;
+}
+
 
 /** "x²" → "x ao quadrado", "x⁵," → "x elevado à quinta,". Only the first power of a word is read. */
 function spokenPowers(w: string): string {
   const m = SUP_RE.exec(w);
   if (!m) return w;
-  const before = w.slice(0, m.index);
+  const raw = w.slice(0, m.index);
+  // A single-letter base is said by its name: "x²" → "xis ao quadrado".
+  const before = /^\(?[a-zA-Z]$/.test(raw) ? raw.replace(/[a-zA-Z]$/, (c) => LETTER_NAMES[c.toLowerCase()] ?? c) : raw;
   const after = w.slice(m.index + m[1]!.length);
   const words = powerWords(m[1]!);
   if (!words) return w;
