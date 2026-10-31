@@ -57,12 +57,19 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
 
   // The spoken conversation: mic + STT, turn-taking, barge-in. Final captions go out like typed messages, so a
   // board selection ("Sobre: …" chip) turns the spoken question into click-and-ask.
+  // The echo reference: the tutor's last two lines (the previous one can still be leaking into the mic).
+  const tutorText = c.lines
+    .filter((l) => l.role === "tutor")
+    .slice(-2)
+    .map((l) => l.text)
+    .join(" ");
   const voice = useSessionVoice({
     enabled: !MOCK_API && session?.modality === "voice",
     audio,
     getToken: getVoiceToken,
     floor: c.tutorHasFloor,
     speakingId: c.speakingId,
+    tutorText,
     onFinal: (caption) => c.sendMessage(caption.text, "speech", caption),
     onBargeIn: c.interrupt,
   });

@@ -91,7 +91,7 @@ describe("action queue", () => {
     await vi.runAllTimersAsync();
     expect(t.store.getElement("colosseum")?.status).toBe("ready");
     expect(t.queue.getState()).toBe("idle");
-    expect(t.states).toEqual(["thinking", "playing", "idle", "playing", "idle"]);
+    expect(t.states).toEqual(["thinking", "playing", "idle"]); // the late render does not restart the pedagogical action queue
   });
 
   it("a script that ends on ask_verification waits for the answer", async () => {
@@ -287,6 +287,41 @@ describe("speak with audio_url", () => {
     finish();
     await flush();
     expect(t.store.getElement("after")).toBeDefined();
+  });
+
+  it("applies draw_result immediately while a later tutor line is still playing", async () => {
+    let finish = () => {};
+    const audio: SpeechPlayer = {
+      play: vi.fn(() => new Promise<void>((resolve) => (finish = resolve))),
+      stop: vi.fn(),
+      onWord: () => () => {},
+      level: () => 0,
+    };
+    const store = createBoardStore();
+    const queue = createActionQueue({ store, audio });
+    const draw: Action = {
+      id: "draw_1",
+      name: "draw",
+      args: { id: "rome", column: "visuals", prompt: "Roma", is_structured: false, max_dimensions: { w: 500, h: 400 } },
+    };
+
+    queue.beginTurn();
+    queue.push({ type: "action", order: 0, action: draw });
+    queue.push({ type: "action", order: 1, action: speak });
+    await flush();
+    expect(store.getElement("rome")?.status).toBe("placeholder");
+    expect(audio.play).toHaveBeenCalledOnce();
+
+    queue.push({
+      type: "action",
+      order: 2,
+      action: { id: "draw_1_result", name: "draw_result", args: { element_id: "rome", url: "/api/gen/rome.jpg" } },
+    });
+    await flush();
+
+    expect(store.getElement("rome")).toMatchObject({ status: "ready", data: { url: "/api/gen/rome.jpg" } });
+    finish();
+    await flush();
   });
 
   it("falls back to the text clock when the audio fails (404/503)", async () => {

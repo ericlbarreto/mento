@@ -36,7 +36,6 @@ const DOT: Record<MicStatus, string> = {
   asking: "bg-(--mento-blue) animate-pulse",
   connecting: "bg-(--mento-blue) animate-pulse",
   listening: "bg-[#16a34a] animate-pulse",
-  held: "bg-(--ink-soft)",
   muted: "bg-(--ink-soft)",
   denied: "bg-[#dc2626]",
   unavailable: "bg-[#dc2626]",

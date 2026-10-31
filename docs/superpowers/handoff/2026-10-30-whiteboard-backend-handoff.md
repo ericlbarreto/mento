@@ -89,3 +89,9 @@ Measured result: see §6.
 4. Keep the rules of this lane: repo files in English, product text in pt-BR; commits `feat(whiteboard): …` with no co-author lines; log every founder prompt verbatim in `prompts/sessions/03-whiteboard-backend/` (new numbered entry + a row in `log.md`); update `docs/10-decisions.md` when a decision changes.
 5. Where to change the tutor: behaviour in `prompts/base.md` and `prompts/subjects/*.md` (loaded at API start: restart the API after editing); reply continuation and validation in `packages/tutor/src/turn-engine.ts`; model settings in `.env` (`TUTOR_MODEL`, `TUTOR_THINKING`, `TUTOR_EFFORT`).
 
+## 9. Update 2026-10-31: images, speakers and a visual tutor (D60)
+
+- **Async images:** `draw_result` is applied as soon as it arrives (`packages/board/src/queue/queue.ts`, test "applies draw_result immediately while a later tutor line is still playing"). Started in Codex (`codex/async-images-echo-barge-in`), finished here.
+- **Speakers without headphones:** `packages/voice/src/client/barge-in.ts` (`classifyBargeIn`, from the Codex proof of concept) and `judgeCaption` in `apps/web/.../voice/turnTaking.ts`; `useSessionVoice` keeps the mic open and decides on captions. Not tested with a real mic and speakers yet: **do it first** (§3 of this file, no headphones; tune `echoThreshold` / `ECHO_TAIL_MS` if the tutor cuts itself or ignores you).
+- **Visual tutor:** `prompts/base.md` rule 8 and `prompts/subjects/history.md`. Scripted lesson (3 topic changes): every reply that introduced a new person or place started with a `draw`, and each reply circled a word in the block being explained.
+

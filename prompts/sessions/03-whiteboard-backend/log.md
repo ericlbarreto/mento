@@ -26,3 +26,6 @@
 | 2026-10-30 | Export every prompt, merge PR #8, hand-off for another tool | handoff | [2026-10-30-20-export-prompts-and-merge.md](2026-10-30-20-export-prompts-and-merge.md) · [all-prompts.md](all-prompts.md) | see git log |
 | 2026-10-30 | Front-end rendering guide | handoff, front-end | [2026-10-30-21-frontend-rendering-guide.md](2026-10-30-21-frontend-rendering-guide.md) | see git log |
 | 2026-10-30 | Idempotent session finish and resume | lifecycle, insights handoff | [2026-10-30-22-session-finish-and-resume.md](2026-10-30-22-session-finish-and-resume.md) | this PR |
+| 2026-10-31 | Async images, speakers without headphones, visual tutor | images, voice, prompts | [2026-10-31-22-async-images-speakers-visual-tutor.md](2026-10-31-22-async-images-speakers-visual-tutor.md) | see git log |
+| 2026-10-31 | Illustrate on your own (more images) | prompts | [2026-10-31-23-illustrate-on-your-own.md](2026-10-31-23-illustrate-on-your-own.md) | see git log |
+| 2026-10-31 | More images, correct circles, merge main | prompts, merge | [2026-10-31-24-more-images-correct-circles-merge-main.md](2026-10-31-24-more-images-correct-circles-merge-main.md) | see git log |
