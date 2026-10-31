@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { connectMongo, disconnectMongo } from "./connection";
 import { EventModel } from "./models/event.model";
@@ -27,13 +28,14 @@ describe.skipIf(!uri)("MongoTurnRepository on Atlas", () => {
 
   it("stores a session with its subject, events in order, title, turn count and end", async () => {
     const { id } = await repo.createSession({ student_id, modality: "voice", subject });
-    expect(await repo.getSession(id)).toEqual({ id, student_id, modality: "voice", subject });
+    expect(await repo.getSession(id)).toEqual({ id, student_id, modality: "voice", subject, ended_at: null });
     await repo.appendEvent(id, { type: "tutor_action", payload: { turn_id: "turn_1", name: "speak", args: { text: "Oi!" } } });
     await repo.appendEvent(id, { type: "turn_timing", payload: { turn_id: "turn_1", first_action_ms: 900 } });
     await repo.appendEvent(id, { type: "user_message", payload: { kind: "speech", text: "Quero estudar os irmãos Graco e a reforma agrária na República romana, por favor" } });
     await repo.appendEvent(id, { type: "user_message", payload: { kind: "chat", text: "segunda mensagem" } });
     await repo.appendEvent(id, { type: "turn_timing", payload: { turn_id: "turn_2" } });
-    await repo.endSession(id, "user_left");
+    expect(await repo.finishSession(id, "user_left")).toBe("finished");
+    expect(await repo.finishSession(id, "user_left")).toBe("already_finished");
 
     const events = await repo.listEvents(id);
     expect(events.map((e) => e.type)).toEqual(["session_started", "tutor_action", "turn_timing", "user_message", "user_message", "turn_timing", "session_ended"]);
@@ -43,6 +45,30 @@ describe.skipIf(!uri)("MongoTurnRepository on Atlas", () => {
     const summary = await repo.getSessionSummary(id);
     expect(summary).toMatchObject({ id, student_id, subject, title: "Quero estudar os irmãos Graco e a reforma agrária na República romana, por favor".slice(0, 80), turn_count: 2, end_reason: "user_left" });
     expect(summary?.ended_at).not.toBeNull();
+
+    const previousEndedAt = (await repo.getSession(id))?.ended_at;
+    expect(await repo.resumeSession(id)).toBe("resumed");
+    expect(await repo.resumeSession(id)).toBe("already_active");
+    expect(await repo.getSession(id)).toMatchObject({ ended_at: null });
+    expect((await repo.listEvents(id)).at(-1)).toMatchObject({
+      type: "session_resumed",
+      payload: { previous_ended_at: previousEndedAt },
+    });
+  }, 60_000);
+
+  it("allows only one concurrent finish and reports missing sessions", async () => {
+    const { id } = await repo.createSession({ student_id, modality: "text" });
+    const transitions = await Promise.all([
+      repo.finishSession(id, "manual"),
+      repo.finishSession(id, "manual"),
+    ]);
+
+    expect(transitions.sort()).toEqual(["already_finished", "finished"]);
+    expect((await repo.listEvents(id)).filter((event) => event.type === "session_ended")).toHaveLength(1);
+
+    const missing = new mongoose.Types.ObjectId().toString();
+    expect(await repo.finishSession(missing, "manual")).toBe("not_found");
+    expect(await repo.resumeSession(missing)).toBe("not_found");
   }, 60_000);
 
   it("lists sessions newest first, filtered by student and subject", async () => {
