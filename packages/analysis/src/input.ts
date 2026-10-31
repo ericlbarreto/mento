@@ -12,6 +12,13 @@ import {
   type Turn,
 } from "@mento/contracts";
 
+/**
+ * The student's board edits (plan F, D79): deleting or moving a block is not educational evidence, so the analysis and
+ * every teacher view never see them, not even as counts (AGENTS.md rule 6).
+ */
+const BOARD_EDIT_EVENTS: ReadonlySet<string> = new Set(["board_element_removed", "board_element_moved"]);
+export const withoutBoardEdits = <E extends { type: string }>(events: E[]): E[] => events.filter((e) => !BOARD_EDIT_EVENTS.has(e.type));
+
 const stripHtml = (html: string) => html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
 /** contracts-spec §8: student turns from user messages and verification answers; tutor turns from `speak` / `write_text`. */
@@ -51,7 +58,7 @@ export function countersOf(events: SessionEvent[], evidence: Pick<Evidence, "res
 }
 
 function toInputSession(bundle: SessionBundle): InputSession {
-  const events = [...bundle.events].sort((a, b) => a.seq - b.seq);
+  const events = withoutBoardEdits(bundle.events).sort((a, b) => a.seq - b.seq);
   const verificationOf = new Map<string, string>(); // evidence_id → verification_id
   const answerOf = new Map<string, { event_id: string; answer: string }>(); // verification_id → answer
   for (const e of events) {

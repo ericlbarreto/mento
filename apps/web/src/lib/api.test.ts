@@ -252,3 +252,64 @@ describe("NEXT_PUBLIC_MOCK_API=1", () => {
     await expect(api.getVoiceToken()).rejects.toMatchObject({ status: 503, error: "voice_unavailable" });
   });
 });
+
+describe("editBoard (plan F)", () => {
+  const remove = { op: "remove" as const, edit_id: "e1", element_id: "titulo" };
+
+  it("posts the edit and parses the answer; 404 is an ApiError; keepalive never throws", async () => {
+    const api = await load();
+    fetchMock
+      .mockResolvedValueOnce(json({ ok: true, result: "applied" }))
+      .mockResolvedValueOnce(json({ error: "element_not_found" }, 404))
+      .mockRejectedValueOnce(new TypeError("offline"));
+    expect(await api.editBoard("s1", remove)).toEqual({ ok: true, result: "applied" });
+    await expect(api.editBoard("s1", { ...remove, element_id: "ghost" })).rejects.toMatchObject({ status: 404, error: "element_not_found" });
+    await expect(api.editBoard("s1", remove, { keepalive: true })).resolves.toBeNull();
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe("http://api.test/api/sessions/s1/board");
+    expect(JSON.parse(init.body)).toEqual(remove);
+    expect(fetchMock.mock.calls[2]![1]).toMatchObject({ method: "POST", keepalive: true });
+  });
+
+  it("rejects an invalid edit before sending it", async () => {
+    const api = await load();
+    await expect(api.editBoard("s1", { op: "move", edit_id: "e1", element_id: "titulo" } as never)).rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("mock mode stores the edit in the session (reopen sees it) with the server's answers", async () => {
+    vi.useFakeTimers();
+    const api = await load({ NEXT_PUBLIC_MOCK_API: "1" });
+    const createP = api.createSession({ student_id: "demo-ana", modality: "text" });
+    await vi.advanceTimersByTimeAsync(1000);
+    const { id } = await createP;
+    const turn = api.streamTurn(id, { modality: "text", appended: [] }, () => undefined);
+    await vi.advanceTimersByTimeAsync(5000);
+    await turn;
+
+    const detailP = api.getSession(id);
+    await vi.advanceTimersByTimeAsync(1000);
+    const written = (await detailP).events.flatMap((e) => {
+      const p = e.payload as { name?: string; args?: { id?: string } };
+      return e.type === "tutor_action" && p.name !== "update_element" && p.name !== "remove_element" && p.args?.id ? [p.args.id] : [];
+    });
+    const [first, second] = written;
+    expect(first && second).toBeTruthy();
+
+    expect(await api.editBoard(id, { op: "remove", edit_id: "e1", element_id: first! })).toEqual({ ok: true, result: "applied" });
+    expect(await api.editBoard(id, { op: "remove", edit_id: "e1", element_id: first! })).toEqual({ ok: true, result: "already_applied" });
+    expect(await api.editBoard(id, { op: "remove", edit_id: "e2", element_id: first! })).toEqual({ ok: true, result: "already_removed" });
+    expect(await api.editBoard(id, { op: "move", edit_id: "e3", element_id: second!, column: "side", after_id: null })).toEqual({ ok: true, result: "applied" });
+    await expect(api.editBoard(id, { op: "remove", edit_id: "e4", element_id: "ghost" })).rejects.toMatchObject({ status: 404, error: "element_not_found" });
+    await expect(api.editBoard("nope", remove)).rejects.toMatchObject({ status: 404, error: "session_not_found" });
+
+    const againP = api.getSession(id);
+    await vi.advanceTimersByTimeAsync(1000);
+    const edits = (await againP).events.filter((e) => e.type.startsWith("board_element"));
+    expect(edits.map((e) => [e.type, e.payload])).toEqual([
+      ["board_element_removed", { element_id: first, edit_id: "e1" }],
+      ["board_element_moved", { element_id: second, column: "side", after_id: null, edit_id: "e3" }],
+    ]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

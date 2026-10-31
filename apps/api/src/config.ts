@@ -39,6 +39,8 @@ const schema = z.object({
   CONVERSATIONS_FILE: z.string().optional(),
   /** How long (ms) the analysis waits after a conversation ends for the judge to finish before running anyway. */
   ANALYSIS_MAX_WAIT_MS: z.coerce.number().int().min(0).default(15_000),
+  /** The one subject the teacher follows (D78): other subjects and the free whiteboard stay out of the teacher side. */
+  TEACHER_SUBJECT_KEY: z.string().default("history"),
   /** Where uploaded PDFs are stored. Default: data/uploads at the repo root (git-ignored). */
   UPLOAD_DIR: z.string().optional(),
   UPLOAD_MAX_MB: z.coerce.number().positive().default(200),

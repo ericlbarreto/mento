@@ -5,6 +5,7 @@ import {
   DiagramBase,
   DrawArgs,
   HighlightArgs,
+  MoveElementArgs,
   RemoveElementArgs,
   SpeakBase,
   UpdateElementArgs,
@@ -61,13 +62,13 @@ export function modelTools(): ToolDef[] {
     {
       name: "highlight",
       description:
-        "Highlight an element that already exists on the board. target_id must be an id listed in the Board section of the input. For a diagram, set shape_id to highlight one of its shapes.",
+        "Highlight (like a highlighter pen) an element that already exists on the board, while you explain it. target_id must be an id listed in the Board section of the input. Set text_to_match to mark only a passage (it must occur in that element's text); omit it to mark the whole element. Vary the color by meaning: yellow = key idea, green = result or consequence, blue = cause or context, pink = attention or exception. For a diagram, set shape_id to highlight one of its shapes. Prefer this to circle_annotate for phrases.",
       input_schema: jsonSchema(HighlightArgs),
     },
     {
       name: "circle_annotate",
       description:
-        "Circle a piece of text inside an element that already exists. target_id must be an existing element id and text_to_match must occur in that element's text. For a diagram, set shape_id to circle one shape (an arrow, a box, a point) and put its label in text_to_match.",
+        "Circle one key word, date or number inside an element that already exists (at most about two circles per reply; mark phrases with highlight). target_id must be an existing element id and text_to_match must occur in that element's text. For a diagram, set shape_id to circle one shape (an arrow, a box, a point) and put its label in text_to_match.",
       input_schema: jsonSchema(CircleAnnotateArgs),
     },
     {
@@ -96,8 +97,14 @@ export function modelTools(): ToolDef[] {
     },
     {
       name: "remove_element",
-      description: "Remove an existing element from the board by id.",
+      description: "Remove an existing element from the board by id (an outdated or wrong block). Never one the student is asking about.",
       input_schema: jsonSchema(RemoveElementArgs),
+    },
+    {
+      name: "move_element",
+      description:
+        "Tidy the board: move an existing element to a column, right after after_id (an element already in that column), or to the top with after_id null. Use it sparingly, e.g. to put a block next to the one it extends or a side note in side, and say it aloud.",
+      input_schema: jsonSchema(MoveElementArgs),
     },
     {
       name: "ask_verification",

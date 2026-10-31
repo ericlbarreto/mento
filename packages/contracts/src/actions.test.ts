@@ -49,8 +49,15 @@ describe("Action", () => {
   it("lists every tool name", () => {
     expect(ActionName.options).toEqual([
       "speak", "write_text", "write_timeline", "highlight", "circle_annotate",
-      "draw", "draw_result", "update_element", "remove_element", "ask_verification", "draw_diagram",
+      "draw", "draw_result", "update_element", "remove_element", "ask_verification", "draw_diagram", "move_element",
     ]);
+  });
+
+  it("accepts move_element (after_id null = top) and an optional highlight passage", () => {
+    expect(Action.safeParse({ id: "a", name: "move_element", args: { id: "nota", column: "side", after_id: null } }).success).toBe(true);
+    expect(Action.safeParse({ id: "a", name: "move_element", args: { id: "nota", column: "side" } }).success).toBe(false);
+    expect(Action.safeParse({ id: "h", name: "highlight", args: { target_id: "t", color: "green", text_to_match: "o Senado" } }).success).toBe(true);
+    expect(Action.safeParse({ id: "h", name: "highlight", args: { target_id: "t", color: "green", text_to_match: "" } }).success).toBe(false);
   });
 });
 

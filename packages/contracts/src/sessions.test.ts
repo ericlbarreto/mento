@@ -76,3 +76,12 @@ describe("session history", () => {
     expect(ListSessionsQuery.safeParse({ limit: "500" }).success).toBe(false);
   });
 });
+
+describe("BoardEditRequest", () => {
+  it("accepts a remove and an absolute move", async () => {
+    const { BoardEditRequest } = await import("./sessions");
+    expect(BoardEditRequest.parse({ op: "remove", edit_id: "e1", element_id: "titulo" }).op).toBe("remove");
+    expect(BoardEditRequest.parse({ op: "move", edit_id: "e2", element_id: "titulo", column: "side", after_id: null }).op).toBe("move");
+    expect(BoardEditRequest.safeParse({ op: "move", edit_id: "e3", element_id: "titulo" }).success).toBe(false);
+  });
+});

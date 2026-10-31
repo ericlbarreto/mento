@@ -8,7 +8,7 @@ describe("modelTools", () => {
   it("lists the tutor tools in a fixed order (prompt-cache stability)", () => {
     expect(tools.map((t) => t.name)).toEqual([
       "speak", "write_text", "write_timeline", "highlight", "circle_annotate",
-      "draw", "draw_diagram", "update_element", "remove_element", "ask_verification", "search_materials",
+      "draw", "draw_diagram", "update_element", "remove_element", "move_element", "ask_verification", "search_materials",
     ]);
     expect(JSON.stringify(modelTools())).toBe(JSON.stringify(tools));
   });

@@ -6,6 +6,8 @@ export interface StoredSession {
   id: string;
   student_id: string;
   modality: "text" | "voice";
+  /** `null` = free whiteboard. */
+  subject_id?: string | null;
   topic?: string | null;
   title?: string | null;
   started_at: Date | string;

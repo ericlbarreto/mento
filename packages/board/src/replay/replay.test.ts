@@ -1,7 +1,7 @@
 import { Event, SessionDetailResponse } from "@mento/contracts";
 import { describe, expect, it } from "vitest";
 import { replayEvents } from ".";
-import { applyActions, emptyBoard } from "../store";
+import { applyActions, applyEdit, applyAction, emptyBoard, type BoardState } from "../store";
 
 const SID = "6ae54382ce3782e0372b0bb6";
 let seq = 0;
@@ -95,7 +95,7 @@ describe("replayEvents", () => {
 
   it("a fresh session has nothing to replay", () => {
     const fresh = replayEvents(detail.events.slice(0, 1));
-    expect(fresh).toEqual({ actions: [], transcript: [], openVerification: null, lastTurnId: null, tutorActionCount: 0 });
+    expect(fresh).toEqual({ actions: [], steps: [], transcript: [], openVerification: null, lastTurnId: null, tutorActionCount: 0 });
   });
   it("keeps a stored circle_annotate on its timeline after replay", () => {
     // Stored shape of the live turn's actions (tutor_action payloads, same session).
@@ -111,5 +111,30 @@ describe("replayEvents", () => {
     expect(board.elements.get("linha_republica")?.annotations).toEqual([
       { kind: "circle", color: "red", text_to_match: "509 a.C.", action_id: "act_9_2" },
     ]);
+  });
+
+  it("interleaves the student's board edits with the actions, in event order", () => {
+    const events = [
+      act("turn_1", 0, "a1", "write_text", { id: "titulo", column: "main", html: "<h1>Roma</h1>" }),
+      act("turn_1", 1, "a2", "write_text", { id: "nota", column: "main", html: "<p>Nota</p>" }),
+      act("turn_1", 2, "a3", "draw", { id: "coliseu", column: "visuals", prompt: "Coliseu", is_structured: false, max_dimensions: { w: 500, h: 400 } }),
+      ev("board_element_moved", { element_id: "nota", column: "side", after_id: null, edit_id: "e1" }),
+      ev("board_element_removed", { element_id: "coliseu", edit_id: "e2" }),
+      ev("board_element_moved", { element_id: "nota", column: "nowhere", after_id: null, edit_id: "e3" }), // invalid: skipped
+      act("turn_1", 3, "a4", "draw_result", { element_id: "coliseu", url: "/api/gen/0123456789abcdef0123456789abcdef.jpg" }),
+      act("turn_2", 0, "a5", "write_text", { id: "fim", column: "main", html: "<p>Fim</p>" }),
+    ].map((e) => Event.parse(e));
+    const { steps, actions } = replayEvents(events);
+    expect(actions).toHaveLength(5);
+    expect(steps.map((s) => (s.kind === "action" ? s.action.id : `${s.edit.op}:${s.edit.element_id}`))).toEqual([
+      "a1", "a2", "a3", "move:nota", "remove:coliseu", "a4", "a5",
+    ]);
+    expect(steps[3]).toEqual({ kind: "edit", edit: { op: "move", element_id: "nota", column: "side", after_id: null } });
+    const board = steps.reduce<BoardState>(
+      (b, s) => (s.kind === "action" ? applyAction(b, s.action) : applyEdit(b, s.edit)),
+      emptyBoard(),
+    );
+    expect(board.columns).toEqual({ main: ["titulo", "fim"], visuals: [], side: ["nota"] });
+    expect(board.elements.has("coliseu")).toBe(false);
   });
 });

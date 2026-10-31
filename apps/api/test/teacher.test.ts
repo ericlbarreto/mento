@@ -444,7 +444,7 @@ describe("fixtures stay out of the tutor's way (BR-26)", () => {
 });
 
 /** A conversation as the whiteboard stores it (no material, no lesson): the student answers one question wrongly. */
-function storedBundle(id: string, studentId: string): SessionBundle {
+function storedBundle(id: string, studentId: string, subjectId?: string | null): SessionBundle {
   const t = (n: number) => new Date(Date.parse("2026-11-02T10:00:00Z") + n * 1000).toISOString();
   const payloads: [string, Record<string, unknown>][] = [
     ["session_started", { student_id: studentId, modality: "text" }],
@@ -455,7 +455,7 @@ function storedBundle(id: string, studentId: string): SessionBundle {
     ["evidence_recorded", { evidence_id: "ev1", verification_id: "v1", concept: "Formas de governo", concept_key: "formas de governo", result: "incorrect", independent: true, hints_used: 0, rationale: "r" }],
     ["session_ended", { reason: "user_left" }],
   ];
-  const session: Session = { id, student_id: studentId, material_id: null, lesson_id: null, modality: "text", status: "ended", started_at: t(0), ended_at: t(9), end_reason: "user_left", is_simulated: false };
+  const session: Session = { id, student_id: studentId, material_id: null, lesson_id: null, modality: "text", status: "ended", started_at: t(0), ended_at: t(9), end_reason: "user_left", is_simulated: false, ...(subjectId !== undefined ? { subject_id: subjectId } : {}) };
   return {
     session,
     events: payloads.map(([type, payload], i) => ({ id: `e${i}`, session_id: id, seq: i + 1, ts: t(i), type, payload }) as SessionBundle["events"][number]),
@@ -481,13 +481,15 @@ function storedSource() {
 
 describe("the analysis runs when the conversation ends (BR-29)", () => {
   /** Starts a conversation through the API, lets the "whiteboard" store it, and ends it. `student` is a fixture id or a stray id. */
-  const startAndEnd = async (student: string, options: { failing?: boolean } = {}) => {
+  const startAndEnd = async (student: string, options: { failing?: boolean; subject?: "history" | "math" | "free" } = {}) => {
     const source = storedSource();
     const w = await world({ conversations: source });
     const studentId = student.startsWith("stu_") ? w.studentId(student) : student;
     const created = await w.app.inject({ method: "POST", url: "/api/sessions", payload: { student_id: studentId, modality: "text" } });
     const id = created.json().id as string;
-    source.add(storedBundle(id, studentId));
+    const math = await w.subjects.create({ name: "Matemática", key: "math" });
+    const subjectId = { history: w.history.id, math: math.id, free: null }[options.subject ?? "history"];
+    source.add(storedBundle(id, studentId, options.subject ? subjectId : undefined));
     source.failing = options.failing ?? false;
     const end = await w.app.inject({ method: "POST", url: `/api/sessions/${id}/end`, payload: { reason: "user_left" } });
     await w.app.container.sessionEnded.idle();
@@ -516,6 +518,17 @@ describe("the analysis runs when the conversation ends (BR-29)", () => {
     expect(end.statusCode).toBe(200);
     expect((await app.inject(`/api/sessions/${id}/analysis`)).statusCode).toBe(404);
     expect((await app.inject("/api/overview")).json().insights.total).toBe(0);
+  });
+
+  it("D78 only conversations of the teacher's subject are analysed: math and the free whiteboard are not", async () => {
+    for (const subject of ["math", "free"] as const) {
+      const { app, id, end } = await startAndEnd("stu_01", { subject });
+      expect(end.statusCode).toBe(200);
+      expect((await app.inject(`/api/sessions/${id}/analysis`)).statusCode).toBe(404);
+      expect((await app.inject("/api/overview")).json().insights.total).toBe(0);
+    }
+    const { app, id } = await startAndEnd("stu_01", { subject: "history" });
+    expect((await app.inject(`/api/sessions/${id}/analysis`)).json()).toMatchObject({ status: "done", session_id: id });
   });
 
   it("BR-29 a failing analysis (the conversation cannot be read) never fails the end of the conversation", async () => {

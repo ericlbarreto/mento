@@ -10,6 +10,8 @@ export const Session = z.object({
   material_id: z.string().nullable(),
   /** The lesson being studied (derived from the cited pages); `null` when unknown. */
   lesson_id: z.string().nullable().default(null),
+  /** The subject the student started it from (`null` = free whiteboard). Absent when the source does not record it (lab fixtures). */
+  subject_id: z.string().nullable().optional(),
   topic: z.string().optional(),
   persona: z.string().optional(),
   modality: z.enum(["text", "voice"]),
