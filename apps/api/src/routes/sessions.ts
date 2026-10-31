@@ -12,7 +12,7 @@ const plugin: FastifyPluginAsyncZod = async (app) => {
       const { repo, engine } = request.server.container;
       const { id } = await repo.createSession(request.body);
       engine?.prewarm(id).catch((err) => request.log.warn({ err }, "prompt cache pre-warm failed"));
-      return reply.status(201).send({ id });
+      return reply.status(201).send({ id, subject_id: request.body.subject_id ?? null });
     },
   );
 

@@ -13,12 +13,16 @@ export interface PassageRecord {
 
 export interface ChunkFilter {
   material_id?: string;
+  /** Any of these materials (the books of one subject). An empty list matches nothing. */
+  material_ids?: string[];
   subject?: string;
 }
 
 export interface MaterialRecord {
   title: string;
   subject: string;
+  /** The subject (matéria) this material belongs to. */
+  subject_id?: string;
   chapters: { title: string; start_page: number; end_page: number }[];
   pages: number;
   status: "processing" | "ready" | "failed";
@@ -29,6 +33,7 @@ export interface CatalogRecord {
   material_id: string;
   title: string;
   subject: string;
+  subject_id?: string;
   chapters: string[];
 }
 
@@ -40,5 +45,6 @@ export interface ChunkStore {
   insertPassages(passages: PassageRecord[]): Promise<void>;
   createMaterial(material: MaterialRecord): Promise<{ id: string }>;
   updateMaterial(id: string, patch: Partial<MaterialRecord>): Promise<void>;
-  listCatalog(): Promise<CatalogRecord[]>;
+  /** Ready materials, only those of `subject_id` when it is given. */
+  listCatalog(subject_id?: string): Promise<CatalogRecord[]>;
 }

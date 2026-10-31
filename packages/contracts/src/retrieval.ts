@@ -18,6 +18,8 @@ export const SearchQuery = z.object({
   query: z.string().min(1).max(500),
   k: z.number().int().min(1).max(12),
   material_id: z.string().min(1).optional(),
+  /** Restrict the search to these materials (the books of the session's subject). */
+  material_ids: z.array(z.string().min(1)).max(100).optional(),
   subject: z.string().min(1).optional(),
 });
 export type SearchQuery = z.infer<typeof SearchQuery>;
