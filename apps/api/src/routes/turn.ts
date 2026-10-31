@@ -12,7 +12,9 @@ const plugin: FastifyPluginAsyncZod = async (app) => {
       const { repo, engine } = request.server.container;
       if (!engine) return reply.status(503).send({ error: "tutor_unavailable", message: "ANTHROPIC_API_KEY is not set" });
       const { id } = request.params;
-      if (!(await repo.getSession(id))) return reply.status(404).send({ error: "session_not_found" });
+      const session = await repo.getSession(id);
+      if (!session) return reply.status(404).send({ error: "session_not_found" });
+      if (session.ended_at) return reply.status(409).send({ error: "session_ended" });
 
       const sse = openSse(request, reply);
       try {
