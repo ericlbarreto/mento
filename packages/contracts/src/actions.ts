@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Citation } from "./citation";
+import { DiagramBody, DiagramBodyBase, ShapeId } from "./diagram";
 
 export const Column = z.enum(["main", "visuals", "side"]);
 export type Column = z.infer<typeof Column>;
@@ -52,12 +53,16 @@ export const WriteTimelineArgs = z.object({
 export const HighlightArgs = z.object({
   target_id: ElementId,
   color: z.enum(["yellow", "green", "pink", "blue"]),
+  /** Only one shape of a `draw_diagram` element. */
+  shape_id: ShapeId.optional(),
 });
 
 export const CircleAnnotateArgs = z.object({
   target_id: ElementId,
   text_to_match: z.string().min(1).max(120),
   color: z.enum(["red", "blue", "green"]),
+  /** Circle one shape of a `draw_diagram` element instead of matching text. */
+  shape_id: ShapeId.optional(),
 });
 
 export const DrawArgs = z.object({
@@ -70,6 +75,12 @@ export const DrawArgs = z.object({
 
 /** Server → client only: the finished image replaces the placeholder of element `element_id`. */
 export const DrawResultArgs = z.object({ element_id: ElementId, url: z.string().min(1) });
+
+/** What the model may send for `draw_diagram`: primitives with anchors and data units (see diagram.ts). */
+export const DiagramBase = z.object({ id: ElementId, column: Column, ...DiagramBodyBase.shape });
+/** What the client receives: the server-resolved diagram (absolute geometry). */
+export const DiagramArgs = z.object({ id: ElementId, column: Column, ...DiagramBody.shape });
+export type DiagramArgs = z.infer<typeof DiagramArgs>;
 
 export const UpdateElementArgs = z.object({ id: ElementId, html: z.string().min(1).max(4000) });
 export const RemoveElementArgs = z.object({ id: ElementId });
@@ -89,7 +100,7 @@ export const AskVerificationArgs = AskVerificationBase.extend({
 
 export const ActionName = z.enum([
   "speak", "write_text", "write_timeline", "highlight", "circle_annotate",
-  "draw", "draw_result", "update_element", "remove_element", "ask_verification",
+  "draw", "draw_result", "update_element", "remove_element", "ask_verification", "draw_diagram",
 ]);
 export type ActionName = z.infer<typeof ActionName>;
 
@@ -107,5 +118,6 @@ export const Action = z.discriminatedUnion("name", [
   action("update_element", UpdateElementArgs),
   action("remove_element", RemoveElementArgs),
   action("ask_verification", AskVerificationArgs),
+  action("draw_diagram", DiagramArgs),
 ]);
 export type Action = z.infer<typeof Action>;

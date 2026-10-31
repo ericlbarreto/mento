@@ -71,11 +71,17 @@ export function applyAction(state: BoardState, action: Action, ctx: ApplyContext
     case "circle_annotate": {
       const el = state.elements.get(action.args.target_id);
       if (!el) return (warn(`unknown target "${action.args.target_id}"`), state);
+      const shape = action.args.shape_id ? { shape_id: action.args.shape_id } : {};
       const annotation: Annotation =
         action.name === "highlight"
-          ? { kind: "highlight", color: action.args.color, action_id: action.id }
-          : { kind: "circle", color: action.args.color, text_to_match: action.args.text_to_match, action_id: action.id };
+          ? { kind: "highlight", color: action.args.color, action_id: action.id, ...shape }
+          : { kind: "circle", color: action.args.color, text_to_match: action.args.text_to_match, action_id: action.id, ...shape };
       return replace(state, { ...el, annotations: [...el.annotations, annotation] });
+    }
+
+    case "draw_diagram": {
+      const { id, column, title, frame, view, shapes } = action.args;
+      return upsert(state, { id, type: "diagram", author: "tutor", column, created_at: now, data: { title, frame, view, shapes }, annotations: [] }, warn);
     }
 
     case "ask_verification": {

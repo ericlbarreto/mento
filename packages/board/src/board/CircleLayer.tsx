@@ -79,7 +79,8 @@ export function CircleLayer({
       const scale = frame.offsetWidth > 0 ? f.width / frame.offsetWidth : 1;
       const next: Box[] = [];
       for (const c of circles) {
-        const r = findTextRange(content, c.text_to_match)?.getBoundingClientRect();
+        const target = c.shape_id ? content.querySelector(`[data-shape-id="${c.shape_id}"]`) : findTextRange(content, c.text_to_match);
+        const r = target?.getBoundingClientRect();
         if (!r || r.width === 0) continue;
         next.push({
           action_id: c.action_id,

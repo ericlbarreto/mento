@@ -38,8 +38,8 @@ export const ElementFrame = memo(function ElementFrame({
   );
   if (!element) return null;
   const Renderer = renderers[element.type] as ComponentType<RendererProps> | undefined;
-  // The latest highlight is the marker on the element.
-  const highlight = element.annotations.findLast((a) => a.kind === "highlight");
+  // The latest highlight is the marker on the element (a shape_id highlight is drawn inside the diagram).
+  const highlight = element.annotations.findLast((a) => a.kind === "highlight" && !a.shape_id);
   // Touching a block that is being written finishes the writing (click-and-ask sees the whole text anyway).
   const finish = () => {
     if (writer?.isWriting(element.id)) writer.finishAll();

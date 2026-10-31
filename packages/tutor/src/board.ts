@@ -1,12 +1,14 @@
-import type { Action } from "@mento/contracts";
+import { diagramLabels, type Action } from "@mento/contracts";
 
-export type ElementType = "text" | "timeline" | "image" | "question";
+export type ElementType = "text" | "timeline" | "image" | "question" | "diagram";
 
 export interface BoardElement {
   id: string;
   type: ElementType;
   column: string;
   text: string;
+  /** Only diagrams: every shape id with its label (targets of highlight / circle_annotate with shape_id). */
+  shapes?: { id: string; kind: string; label?: string }[];
 }
 
 export type Validation = { ok: true } | { ok: false; reason: string };
@@ -34,6 +36,16 @@ function created(action: Action): BoardElement | null {
       return { id: action.args.id, type: "image", column: action.args.column, text: action.args.prompt };
     case "ask_verification":
       return { id: action.args.id, type: "question", column: action.args.column, text: action.args.question };
+    case "draw_diagram": {
+      const labels = diagramLabels(action.args);
+      return {
+        id: action.args.id,
+        type: "diagram",
+        column: action.args.column,
+        text: [action.args.title, ...labels.map((l) => l.text)].join(" · "),
+        shapes: action.args.shapes.map((s) => ({ id: s.id, kind: s.kind, label: labels.find((l) => l.shape_id === s.id)?.text })),
+      };
+    }
     default:
       return null;
   }
@@ -59,12 +71,17 @@ export class Board {
       case "write_timeline":
       case "draw":
       case "ask_verification":
+      case "draw_diagram":
         return this.elements.has(action.args.id) ? fail(`duplicate element id: ${action.args.id}`) : OK;
-      case "highlight":
-        return this.elements.has(action.args.target_id) ? OK : fail(`unknown target: ${action.args.target_id}`);
+      case "highlight": {
+        const target = this.elements.get(action.args.target_id);
+        if (!target) return fail(`unknown target: ${action.args.target_id}`);
+        return action.args.shape_id ? this.hasShape(target, action.args.shape_id) : OK;
+      }
       case "circle_annotate": {
         const target = this.elements.get(action.args.target_id);
         if (!target) return fail(`unknown target: ${action.args.target_id}`);
+        if (action.args.shape_id) return this.hasShape(target, action.args.shape_id);
         return norm(target.text).includes(norm(action.args.text_to_match))
           ? OK
           : fail(`text_to_match not found in ${action.args.target_id}`);
@@ -81,6 +98,11 @@ export class Board {
     }
   }
 
+  private hasShape(target: BoardElement, shape_id: string): Validation {
+    if (!target.shapes) return fail(`${target.id} is not a diagram: shape_id needs a draw_diagram element`);
+    return target.shapes.some((s) => s.id === shape_id) ? OK : fail(`unknown shape ${shape_id} in ${target.id}`);
+  }
+
   apply(action: Action): void {
     const el = created(action);
     if (el) {
@@ -93,11 +115,19 @@ export class Board {
     }
   }
 
-  /** One compact line per element: `id | type | column | text` (given to the model every turn). */
+  /**
+   * One compact line per element: `id | type | column | text` (given to the model every turn). A diagram lists its
+   * shapes instead of its text: `shapes: bloco (rect "2 kg"), seta_f (arrow "F")`.
+   */
   snapshot(maxText = 120): string {
     if (this.elements.size === 0) return "(the board is empty)";
+    const clip = (t: string) => (t.length > maxText ? `${t.slice(0, maxText - 1)}…` : t);
     return [...this.elements.values()]
-      .map((e) => `${e.id} | ${e.type} | ${e.column} | ${e.text.length > maxText ? `${e.text.slice(0, maxText - 1)}…` : e.text}`)
+      .map((e) => {
+        if (!e.shapes) return `${e.id} | ${e.type} | ${e.column} | ${clip(e.text)}`;
+        const shapes = e.shapes.map((s) => `${s.id} (${s.kind}${s.label ? ` "${s.label}"` : ""})`).join(", ");
+        return `${e.id} | ${e.type} | ${e.column} | ${clip(e.text.split(" · ")[0] ?? "")} | shapes: ${shapes}`;
+      })
       .join("\n");
   }
 

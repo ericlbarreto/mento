@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { Action, ActionName, AskVerificationArgs, AskVerificationBase, SpeakArgs, SpeakBase, WriteTextBase } from "./actions";
+import { Action, ActionName, AskVerificationArgs, AskVerificationBase, DiagramArgs, DiagramBase, SpeakArgs, SpeakBase, WriteTextBase } from "./actions";
+import { diagramLabels } from "./diagram";
 
 const speak = (args: Record<string, unknown>) => ({ id: "act_1", name: "speak", args });
 
@@ -48,7 +49,62 @@ describe("Action", () => {
   it("lists every tool name", () => {
     expect(ActionName.options).toEqual([
       "speak", "write_text", "write_timeline", "highlight", "circle_annotate",
-      "draw", "draw_result", "update_element", "remove_element", "ask_verification",
+      "draw", "draw_result", "update_element", "remove_element", "ask_verification", "draw_diagram",
     ]);
+  });
+});
+
+describe("draw_diagram", () => {
+  const resolved = {
+    id: "forcas",
+    column: "visuals",
+    title: "Forças no bloco",
+    frame: "wide",
+    view: { w: 160, h: 100 },
+    shapes: [
+      { id: "bloco", kind: "rect", x: 50, y: 40, w: 30, h: 20, angle: 0, fill: "soft", color: "ink", label: { text: "2 kg", x: 65, y: 50, size: "m" } },
+      { id: "peso", kind: "arrow", x1: 65, y1: 50, x2: 65, y2: 84, color: "blue", label: { text: "P", x: 65, y: 90, size: "m" } },
+    ],
+  };
+
+  it("accepts a resolved diagram and rejects model-style anchors in it", () => {
+    expect(Action.safeParse({ id: "a", name: "draw_diagram", args: resolved }).success).toBe(true);
+    const anchored = { ...resolved, shapes: [{ id: "f", kind: "arrow", from: { ref: "bloco" }, dir: "up" }] };
+    expect(Action.safeParse({ id: "a", name: "draw_diagram", args: anchored }).success).toBe(false);
+  });
+
+  it("caps shapes and label length and requires snake_case shape ids", () => {
+    const many = { ...resolved, shapes: Array.from({ length: 25 }, (_, i) => ({ id: `p_${i}`, kind: "point", x: i, y: 1, color: "ink" })) };
+    expect(DiagramArgs.safeParse(many).success).toBe(false);
+    const long = { ...resolved, shapes: [{ ...resolved.shapes[1], label: { text: "x".repeat(41), x: 1, y: 1, size: "m" } }] };
+    expect(DiagramArgs.safeParse(long).success).toBe(false);
+    expect(DiagramArgs.safeParse({ ...resolved, shapes: [{ ...resolved.shapes[0], id: "Bloco A" }] }).success).toBe(false);
+  });
+
+  it("lets the model anchor arrows on shapes and use data units", () => {
+    const base = {
+      id: "grafico",
+      column: "visuals",
+      title: "f(x) = x²",
+      frame: "wide",
+      shapes: [
+        { id: "eixos", kind: "axes", x_range: [-3, 3], y_range: [0, 9] },
+        { id: "curva", kind: "polyline", points: [[-3, 9], [0, 0], [3, 9]], smooth: true },
+        { id: "bloco", kind: "rect", on: { ref: "chao" }, w: 20, h: 10 },
+        { id: "seta", kind: "arrow", from: { ref: "bloco", side: "top" }, dir: "normal", magnitude: 5, label: "N" },
+      ],
+    };
+    expect(DiagramBase.safeParse(base).success).toBe(true);
+    expect(DiagramBase.safeParse({ ...base, frame: "huge" }).success).toBe(false);
+  });
+
+  it("targets one shape with highlight and circle_annotate", () => {
+    expect(Action.safeParse({ id: "h", name: "highlight", args: { target_id: "forcas", color: "yellow", shape_id: "peso" } }).success).toBe(true);
+    expect(Action.safeParse({ id: "c", name: "circle_annotate", args: { target_id: "forcas", text_to_match: "P", color: "red", shape_id: "peso" } }).success).toBe(true);
+    expect(Action.safeParse({ id: "c", name: "circle_annotate", args: { target_id: "forcas", text_to_match: "P", color: "red", shape_id: "Peso!" } }).success).toBe(false);
+  });
+
+  it("lists the labels circle_annotate can match", () => {
+    expect(diagramLabels(DiagramArgs.parse(resolved))).toEqual([{ shape_id: "bloco", text: "2 kg" }, { shape_id: "peso", text: "P" }]);
   });
 });
