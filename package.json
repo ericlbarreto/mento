@@ -31,7 +31,10 @@
     "db:stats": "tsx scripts/db-stats.ts",
     "test:rules": "tsx scripts/test-rules.ts",
     "e2e:teacher": "tsx scripts/e2e-teacher.ts",
-    "test:all": "vitest run"
+    "test:all": "vitest run",
+    "materials:render": "tsx scripts/render-materials.ts",
+    "materials:verify": "tsx scripts/verify-material.ts",
+    "materials:remove": "tsx scripts/remove-material.ts"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

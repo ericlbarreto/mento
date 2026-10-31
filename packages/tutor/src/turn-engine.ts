@@ -3,7 +3,7 @@ import type { Effort, LlmClient, LlmContentBlock, LlmMessage, ThinkingSetting } 
 import { LlmError } from "./llm";
 import { commitAction, prepareAction } from "./action-pipeline";
 import { noopDraw, noopJudge, type DrawPipeline, type Judge, type TtsStarter } from "./hooks";
-import { buildSystem, buildUserMessage, formatPassages, historyFromEvents, type CatalogEntry, type SessionSubject } from "./prompt-builder";
+import { buildSystem, buildUserMessage, formatPassages, historyFromEvents, repliesWithoutQuestion, type CatalogEntry, type SessionSubject } from "./prompt-builder";
 import type { PromptSet } from "./prompts";
 import type { TurnRepository } from "./repository";
 import { retrievalQuery } from "./retrieval-step";
@@ -58,11 +58,19 @@ interface TurnState {
   /** Successful board actions of this reply (all rounds); the bridge line and `speak`s never count. */
   boardActions: number;
   firstBoardActionMs?: number;
-  /** A question `speak` that arrived before any board action: sent later, in order (Plan C). */
+  /** A `speak` that arrived while the board is still empty in this reply: sent later, in order (Plan C). */
   held?: { block: ToolBlock; result: { outcome: string; is_error: boolean } };
-  /** The question was held once already this turn (hold and fallback happen at most once). */
-  heldOnce: boolean;
   fallback: boolean;
+  /** The model's `speak`s sent in this reply (the bridge line never counts). */
+  speaks: number;
+  /** The last model `speak` sent: the fallback card is written from it when the reply has no board action. */
+  lastSpeak?: ToolBlock;
+  /** Name of the last action the model got onto the board or the voice (all rounds). */
+  lastAction?: string;
+  verified: boolean;
+  /** `draw` images and written text blocks of this reply, for the image cap. */
+  draws: number;
+  textBlocks: number;
 }
 
 interface RoundResult {
@@ -72,14 +80,20 @@ interface RoundResult {
   stop_reason?: string;
 }
 
-/** Rounds per reply: the model often stops after one or two tool calls to wait for their results. */
+/** Rounds per reply (search included): the model often stops after one or two tool calls to wait for their results. */
 const MAX_ROUNDS = 4;
-const NO_BOARD_TEXT = "Nothing is on the board yet in this reply: your next call is `write_text` or `draw`. ";
+/** Extra rounds asked for a reply that was cut (no closing speak, nothing on the board). */
+const MAX_CONTINUES = 1;
+const NO_BOARD_TEXT = "Nothing is on the board yet in this reply: your next call is `write_text`. ";
 const CONTINUE_TEXT =
-  "Continue the same reply: circle the key words you explain (call circle_annotate right before the speak that says each one), add another picture with draw if anything new appears, explain what you put on the board, then end with one question to the student.";
+  "Continue the same reply: explain what you put on the board (call circle_annotate right before the speak that says each key word), then close with a short speak. Do not add another picture, and do not ask a question unless you are checking the key concept.";
 
 /** Board actions that count for "every reply writes or draws on the board" (pointing at an element counts). */
-const BOARD_ACTIONS = new Set(["write_text", "write_timeline", "draw", "update_element", "circle_annotate", "highlight"]);
+const BOARD_ACTIONS = new Set(["write_text", "write_timeline", "draw", "draw_diagram", "update_element", "circle_annotate", "highlight"]);
+const TEXT_BLOCKS = new Set(["write_text", "write_timeline"]);
+/** Images per reply: never more than the text blocks written so far (at least one), and never more than this. */
+const MAX_DRAWS = 1;
+const DRAW_REJECTED = "rejected: this reply already has its picture (at most one per reply, never more pictures than text). Do not draw; write the idea with write_text or point at the existing picture.";
 const FALLBACK_MAX_CHARS = 120;
 
 const isQuestion = (block: ToolBlock): boolean =>
@@ -87,19 +101,19 @@ const isQuestion = (block: ToolBlock): boolean =>
 
 const escapeHtml = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-/** The deterministic card written when a reply reached its question with nothing on the board. */
-function fallbackCard(question: string, id: string): ToolBlock {
-  const text = question.replace(/\s+/g, " ").trim();
+/** The deterministic card written when a reply reached its closing speak with nothing on the board. */
+function fallbackCard(line: string, id: string): ToolBlock {
+  const text = line.replace(/\s+/g, " ").trim();
   const short = text.length > FALLBACK_MAX_CHARS ? `${text.slice(0, FALLBACK_MAX_CHARS - 1)}…` : text;
   return { id: "board_fallback", name: "write_text", raw_input: JSON.stringify({ id, column: "side", html: `<p><b>${escapeHtml(short)}</b></p>` }) };
 }
 
-/** The reply is complete when it asked a verification or its last successful action is a question. */
-function endsWithQuestion(result: RoundResult): boolean {
-  const ok = result.results.filter((r) => !r.is_error && r.block.name !== "search_materials");
-  if (ok.some((r) => r.block.name === "ask_verification")) return true;
-  const last = ok.at(-1);
-  return last !== undefined && isQuestion(last.block);
+/**
+ * A reply that stopped for tool results is complete when it asked a verification, or when it has something on
+ * the board, at least two speaks and ends on a speak (any purpose: a reply does not have to end with a question).
+ */
+function replyComplete(state: TurnState): boolean {
+  return state.verified || (state.boardActions > 0 && state.speaks >= 2 && state.lastAction === "speak");
 }
 
 const BRIDGE_TEXT = "Deixa eu pensar um instante…";
@@ -210,7 +224,7 @@ export class TurnEngine {
       session_id, student_id: session.student_id, modality: req.modality, turn_id, rt, emit, signal, persist, t0, material_ids,
       timing: { context_ready_ms: Math.round(this.now() - t0) },
       order: 0, actionSeq: 0, emitted: 0, passages: [...passages], pending: [], ttsActions: [],
-      boardActions: 0, heldOnce: false, fallback: false,
+      boardActions: 0, fallback: false, speaks: 0, verified: false, draws: 0, textBlocks: 0,
     };
 
     const system = buildSystem({ prompts, classContext, summary, catalog, subject: session.subject });
@@ -221,20 +235,23 @@ export class TurnEngine {
       passages,
       appended: req.appended,
       interrupted: req.interrupted,
+      repliesWithoutQuestion: repliesWithoutQuestion(events),
     });
     let messages: LlmMessage[] = [{ role: "user", content: userText }];
 
     try {
       let searched = false;
+      let continues = 0;
       for (let round = 0; ; round++) {
         const result = await this.streamWithRetry(state, models.tutor, system, messages);
         if (signal.aborted) break;
         const search: boolean = result.searches.length > 0 && !searched;
-        const unfinished = result.stop_reason === "tool_use" && result.results.length > 0 && !endsWithQuestion(result);
+        const unfinished = result.stop_reason === "tool_use" && result.results.length > 0 && !replyComplete(state) && continues < MAX_CONTINUES;
         if ((!search && !unfinished) || round === MAX_ROUNDS - 1) break;
 
         const found = search ? await this.runSearches(state, result.searches) : new Map<string, string>();
         searched ||= search;
+        if (!search) continues += 1;
         const assistant: LlmContentBlock[] = result.results.map((r) => ({ type: "tool_use", id: r.block.id, name: r.block.name, input: safeJson(r.block.raw_input) }));
         const toolResults: LlmContentBlock[] = result.results.map((r) => ({
           type: "tool_result",
@@ -252,6 +269,9 @@ export class TurnEngine {
       return { turn_id };
     }
 
+    if (signal.aborted) return this.abort(state);
+    // A reply that ended with nothing on the board still gets its card (a verification is a card already).
+    if (state.boardActions === 0 && !state.verified && state.lastSpeak) await this.writeFallback(state, state.lastSpeak);
     if (signal.aborted) return this.abort(state);
     this.log("board actions", { turn_id, board_actions: state.boardActions, board_fallback: state.fallback, first_board_action_ms: state.firstBoardActionMs });
 
@@ -311,12 +331,16 @@ export class TurnEngine {
           if (ev.block.name === "search_materials") {
             result.searches.push(ev.block);
             result.results.push({ block: ev.block, outcome: "", is_error: false });
-          } else if (state.boardActions === 0 && !state.heldOnce && isQuestion(ev.block)) {
-            // A question with nothing on the board: hold it until we know whether the model writes something.
+          } else if (ev.block.name === "speak" && state.boardActions === 0 && (state.emitted > 0 || isQuestion(ev.block))) {
+            // A speak with nothing on the board yet (not the opener, which goes out at once): hold it until we know
+            // whether the model writes something, so the fallback card can come before the closing line.
             const entry = { block: ev.block, outcome: "ok", is_error: false };
             state.held = { block: ev.block, result: entry };
-            state.heldOnce = true;
             result.results.push(entry);
+          } else if (ev.block.name === "draw" && state.draws >= Math.min(MAX_DRAWS, Math.max(1, state.textBlocks))) {
+            // Pictures keep pace with the text: the extra image is never sent, and the model is told to write instead.
+            this.log("draw rejected", { turn_id: state.turn_id, draws: state.draws, text_blocks: state.textBlocks });
+            result.results.push({ block: ev.block, outcome: DRAW_REJECTED, is_error: true });
           } else {
             const outcome = await this.handleBlock(state, ev.block);
             result.results.push({ block: ev.block, outcome: outcome ?? "ok", is_error: outcome !== null });
@@ -327,7 +351,7 @@ export class TurnEngine {
       clearTimeout(bridge);
     }
     if (state.held && !state.signal.aborted) {
-      // End of the round and still nothing on the board: write the question as a card, then ask it.
+      // End of the round and still nothing on the board: write the held line as a card, then say it.
       if (state.boardActions === 0) await this.writeFallback(state, state.held.block);
       await this.releaseHeld(state);
     }
@@ -344,8 +368,8 @@ export class TurnEngine {
     held.result.is_error = outcome !== null;
   }
 
-  private async writeFallback(state: TurnState, question: ToolBlock): Promise<void> {
-    const text = String((safeJson(question.raw_input) as { text?: unknown } | null)?.text ?? "").trim();
+  private async writeFallback(state: TurnState, line: ToolBlock): Promise<void> {
+    const text = String((safeJson(line.raw_input) as { text?: unknown } | null)?.text ?? "").trim();
     if (!text) return;
     let id = `board_fallback_${state.rt.turnNo}`;
     for (let n = 2; state.rt.board.has(id); n++) id = `board_fallback_${state.rt.turnNo}_${n}`;
@@ -400,6 +424,16 @@ export class TurnEngine {
     if (BOARD_ACTIONS.has(action.name)) {
       state.boardActions += 1;
       state.firstBoardActionMs ??= Math.round(this.now() - state.t0);
+    }
+    if (block.id !== "bridge") {
+      state.lastAction = action.name;
+      if (action.name === "speak") {
+        state.speaks += 1;
+        state.lastSpeak = block;
+      }
+      if (action.name === "ask_verification") state.verified = true;
+      if (action.name === "draw") state.draws += 1;
+      if (TEXT_BLOCKS.has(action.name)) state.textBlocks += 1;
     }
 
     if (action.name === "ask_verification") {

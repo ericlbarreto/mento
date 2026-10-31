@@ -51,6 +51,19 @@ Planned run order on a clean checkout (names may change): install → seed → i
 
 Close with the one-liner: *"A escola define o que se aprende; a Mento ensina cada aluno e mostra ao professor como ele está aprendendo."*
 
+### Demo questions per subject (D76)
+
+One question per card on the home; each is answered by the subject's book with a page citation and shows a board feature.
+
+| Subject | Question | What the board shows |
+|---|---|---|
+| História do Brasil | "Por que a Independência não terminou no 7 de setembro?" | timeline 1822–1823, circled dates, cause → effect |
+| Matemática | "Como eu descubro o preço do ingresso e da pipoca se só sei quanto paguei nas duas compras?" | system as two crossing lines (`draw_diagram`) |
+| Física | "Desenha as forças num bloco empurrado no chão com atrito." | free-body diagram (F, P, N, atrito) |
+| Biologia | "Como o corpo sabe a hora de parar de produzir um hormônio? Pode desenhar?" | hormone feedback loop |
+
+More per subject: `materials/src/<key>/demo.md`. Never script a sexuality question in the demo.
+
 ## 5. Fallbacks (decide before the demo, test once)
 
 | If this fails | Do this |

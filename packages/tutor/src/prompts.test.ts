@@ -6,7 +6,7 @@ describe("loadPromptsSync", () => {
   it("reads the base prompt and every subject profile of the repository", () => {
     const set = loadPromptsSync(fileURLToPath(new URL("../../../prompts", import.meta.url)));
     expect(set.base).toContain("Brazilian Portuguese");
-    expect(Object.keys(set.subjects).sort()).toEqual(["generic", "history"]);
+    expect(Object.keys(set.subjects).sort()).toEqual(["biology", "generic", "history", "math", "physics"]);
     expect(set.subjects.history).toContain("Place every event in time");
   });
 });

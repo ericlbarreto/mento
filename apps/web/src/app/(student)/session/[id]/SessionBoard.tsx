@@ -8,6 +8,7 @@ import { Footer, Orb, TopBar, type TopBarNavItem } from "@mento/ui";
 import { API_URL, MOCK_API, apiUrl, getSession, getVoiceToken, listSessions, listStudents, streamTurn } from "@/lib/api";
 import { CaptionBar } from "../_components/caption/CaptionBar";
 import { ChatPanel } from "../_components/chat/ChatPanel";
+import { isPauseShortcut } from "../_components/controls/pauseShortcut";
 import { InputControls, PlaybackControls } from "../_components/controls/SessionControls";
 import { SessionHeader } from "../_components/header/SessionHeader";
 import { HistoryDrawer } from "../_components/history/HistoryDrawer";
@@ -72,6 +73,7 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
     tutorText,
     onFinal: (caption) => c.sendMessage(caption.text, "speech", caption),
     onBargeIn: c.interrupt,
+    paused: c.paused,
   });
   const canOpen = !!session && voice.canOpen;
   useEffect(() => {
@@ -182,6 +184,21 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
     setMuted(!muted);
   };
 
+  // Space pauses / continues (not while typing, nor on a focused button, nor behind the "Retomar conversa" modal).
+  const pauseKey = useRef({ toggle: c.togglePause, enabled: false });
+  useEffect(() => {
+    pauseKey.current = { toggle: c.togglePause, enabled: (c.paused || c.canPause) && !resumeOpen };
+  });
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (!pauseKey.current.enabled || !isPauseShortcut(e)) return;
+      e.preventDefault();
+      pauseKey.current.toggle();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const retry = () => {
     if (c.retry() === "dismissed") focusChat();
   };
@@ -224,22 +241,41 @@ export function SessionBoard({ sessionId, onOpenHistory }: { sessionId: string; 
                   }}
                 />
               )}
+              {c.paused && (
+                <span
+                  role="status"
+                  className="pointer-events-none rounded-(--radius-pill) bg-(--ink) px-3 py-1 text-xs font-bold tracking-wide text-(--paper) uppercase shadow-(--shadow-float)"
+                >
+                  Pausado
+                </span>
+              )}
               {captionsOn && caption && (
                 <CaptionBar caption={caption} speaking={c.speakingId === caption.action_id} progress={c.captionProgress} />
               )}
               {voiceOn && <InterimCaption text={voice.interim} />}
               <div className="flex w-full items-end justify-between gap-4">
                 <PlaybackControls
+                  paused={c.paused}
+                  canPause={c.canPause}
+                  onTogglePause={c.togglePause}
                   muted={muted}
                   onToggleMute={toggleMute}
                   captionsOn={captionsOn}
                   onToggleCaptions={() => setCaptionsOn((on) => !on)}
                 />
-                {/* In voice sessions the orb mutes / unmutes the mic; otherwise it opens the chat. */}
+                {/* Paused, the orb continues the lesson. In voice sessions it mutes / unmutes the mic; otherwise it opens the chat. */}
                 <button
                   type="button"
-                  onClick={micUsable ? voice.toggleMic : focusChat}
-                  aria-label={micUsable ? (voice.status === "listening" ? "Silenciar o microfone" : "Falar com o Mento") : "Escrever para o Mento"}
+                  onClick={c.paused ? c.resume : micUsable ? voice.toggleMic : focusChat}
+                  aria-label={
+                    c.paused
+                      ? "Continuar"
+                      : micUsable
+                        ? voice.status === "listening"
+                          ? "Silenciar o microfone"
+                          : "Falar com o Mento"
+                        : "Escrever para o Mento"
+                  }
                   className="pointer-events-auto rounded-full outline-none focus-visible:shadow-(--focus-ring)"
                 >
                   <Orb state={voiceOn ? voiceOrbState(c.orbState, voice.status) : c.orbState} size={120} getLevel={c.level} perkKey={c.selection?.element_id} />

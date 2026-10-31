@@ -226,22 +226,40 @@ export const MOCK_GAPS: Gap[] = [
   },
 ];
 
+// The demo textbooks (Plan E): original 8º-ano books whose PDFs ship with the front-end (public/materials) and
+// whose passages and embeddings are in the database. Materials stay mock in both modes, so this list is the tab.
 export const MOCK_MATERIALS: Material[] = [
   {
-    id: "mat_activities",
-    title: "Caderno de Atividades: Roma Antiga",
-    pages: 3,
+    id: "mat_historia_brasil",
+    title: "História do Brasil — Da crise colonial ao Segundo Reinado",
+    pages: 30,
     status: "ready",
-    created_at: "2026-10-29T17:20:00-03:00",
-    file_url: "/mock/caderno-atividades-roma.pdf",
+    created_at: "2026-10-31T10:00:00-03:00",
+    file_url: "/materials/historia-brasil-8ano.pdf",
   },
   {
-    id: "mat_rome",
-    title: ROME,
-    pages: 4,
+    id: "mat_matematica",
+    title: "Matemática 8º ano — Potências, equações e gráficos",
+    pages: 27,
     status: "ready",
-    created_at: "2026-10-02T09:00:00-03:00",
-    file_url: "/mock/roma-antiga-amostra.pdf",
+    created_at: "2026-10-31T10:00:00-03:00",
+    file_url: "/materials/matematica-8ano.pdf",
+  },
+  {
+    id: "mat_fisica",
+    title: "Física no dia a dia — Energia, eletricidade e movimento",
+    pages: 27,
+    status: "ready",
+    created_at: "2026-10-31T10:00:00-03:00",
+    file_url: "/materials/fisica-8ano.pdf",
+  },
+  {
+    id: "mat_biologia",
+    title: "Biologia 8º ano — Reprodução, hormônios e saúde",
+    pages: 20,
+    status: "ready",
+    created_at: "2026-10-31T10:00:00-03:00",
+    file_url: "/materials/biologia-8ano.pdf",
   },
 ];
 

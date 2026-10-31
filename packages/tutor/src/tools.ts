@@ -73,7 +73,7 @@ export function modelTools(): ToolDef[] {
     {
       name: "draw",
       description:
-        "Add an artistic colored-pencil illustration to the board (a scene, a person, a place, an object). Describe only the picture and never ask for text, labels, numbers or dates inside it (use write_text for labels). For exact figures (forces, graphs, geometry) use draw_diagram instead. The id must be new and unique.",
+        "Add an artistic colored-pencil illustration to the board (a place, a building, an object, a process, the key person of the topic). Use it on your own when one of them first enters the lesson; at most one per reply, never a decorative scene (a student studying, a classroom, the tutor). Describe only the picture and never ask for text, labels, numbers or dates inside it (use write_text for labels). For exact figures (forces, graphs, geometry) use draw_diagram instead. The id must be new and unique.",
       input_schema: jsonSchema(DrawArgs.omit({ is_structured: true })),
       eager_input_streaming: true,
     },

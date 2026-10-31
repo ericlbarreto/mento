@@ -189,6 +189,109 @@ describe("action queue", () => {
     expect(t.ids()).toHaveLength(3);
   });
 
+  describe("real pause", () => {
+    const say = (order: number, id: string, text: string, audio_url?: string): StreamMessage => ({
+      type: "action",
+      order,
+      action: { id, name: "speak", args: audio_url ? { text, audio_url } : { text } },
+    });
+    const writeAt = (order: number, id: string): StreamMessage => ({
+      type: "action",
+      order,
+      action: { id: `w_${id}`, name: "write_text", args: { id, column: "main", html: `<p>${id}</p>` } },
+    });
+
+    it("paused while thinking: actions buffer, nothing plays until resume", async () => {
+      const t = setup();
+      t.queue.beginTurn();
+      t.queue.pause();
+      for (const m of intro) t.queue.push(m);
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(t.ids()).toEqual([]);
+      expect(t.captions).toEqual([]);
+      expect(t.queue.getState()).toBe("paused");
+      t.queue.resume();
+      await vi.runAllTimersAsync();
+      expect(t.ids()).toEqual(["title", "colosseum", "tl_republica"]);
+      expect(t.queue.getState()).toBe("idle");
+    });
+
+    it("freezes the text clock mid-line and resumes from the same point", async () => {
+      const t = setup();
+      const text = "Roma começou como uma pequena cidade às margens do rio Tibre.";
+      t.queue.beginTurn();
+      t.queue.push(say(0, "s1", text));
+      t.queue.push(writeAt(1, "after"));
+      t.queue.push({ type: "turn_done", turn_id: "turn_a" });
+      await vi.advanceTimersByTimeAsync(1000);
+      t.queue.pause();
+      const at = t.speech.progress();
+      expect(at).toBeGreaterThan(0);
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(t.speech.progress()).toBe(at);
+      expect(t.store.animation.isPaused()).toBe(true);
+      expect(t.ids()).toEqual([]);
+      t.queue.resume();
+      expect(t.store.animation.isPaused()).toBe(false);
+      await vi.advanceTimersByTimeAsync(readingTimeMs(text) - 1000 - 10);
+      expect(t.ids()).toEqual([]);
+      await vi.advanceTimersByTimeAsync(20);
+      expect(t.ids()).toEqual(["after"]);
+    });
+
+    it("a speak whose audio fails while paused falls back to a paused text clock", async () => {
+      const t = setup();
+      const audio: SpeechPlayer = {
+        play: () => new Promise((_, reject) => setTimeout(() => reject(new Error("HTTP 503")), 100)),
+        stop: () => undefined,
+        onWord: () => () => undefined,
+        level: () => 0,
+      };
+      const queue = createActionQueue({ store: t.store, speech: t.speech, audio });
+      queue.beginTurn();
+      queue.push(say(0, "s1", "Uma frase curta.", "/audio/s1"));
+      queue.push(writeAt(1, "after"));
+      queue.push({ type: "turn_done", turn_id: "turn_a" });
+      await flush();
+      queue.pause();
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(t.speech.progress()).toBe(0);
+      expect(t.ids()).toEqual([]);
+      queue.resume();
+      await vi.runAllTimersAsync();
+      expect(t.ids()).toEqual(["after"]);
+    });
+
+    it("holds a finished drawing while paused and lands it on resume", async () => {
+      const t = setup();
+      t.queue.beginTurn();
+      t.queue.push(drawDiagram(0));
+      await flush();
+      expect(t.store.getElement("diag")?.status).toBe("placeholder");
+      t.queue.pause();
+      t.queue.push({ type: "action", order: 1, action: { id: "r", name: "draw_result", args: { element_id: "diag", url: "/files/gen/d.png" } } });
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(t.store.getElement("diag")?.status).toBe("placeholder");
+      t.queue.resume();
+      expect(t.store.getElement("diag")?.status).toBe("ready");
+    });
+
+    it("interrupt while paused clears the pause and keeps held drawings", async () => {
+      const t = setup();
+      t.queue.beginTurn();
+      t.queue.push(drawDiagram(0));
+      t.queue.push(say(1, "s1", "Olhe o mapa de Roma."));
+      await flush();
+      t.queue.pause();
+      t.queue.push({ type: "action", order: 2, action: { id: "r", name: "draw_result", args: { element_id: "diag", url: "/files/gen/d.png" } } });
+      t.queue.interrupt();
+      expect(t.queue.getState()).toBe("idle");
+      expect(t.store.animation.isPaused()).toBe(false);
+      expect(t.speech.progress()).toBe(0);
+      expect(t.store.getElement("diag")?.status).toBe("ready");
+    });
+  });
+
   it("warns on duplicate orders and unknown targets", async () => {
     const t = setup();
     t.queue.beginTurn();
