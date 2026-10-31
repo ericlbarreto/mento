@@ -91,7 +91,7 @@ export interface UserMessageInput {
 function paceNote(n: number | undefined): string | null {
   if (n === undefined) return null;
   if (n === 0) return "Your last reply asked the student a question: do not ask another one in this reply unless the student must choose a path. Close with a statement.";
-  if (n >= 2) return `Your last ${n} replies asked the student nothing: after teaching this step, end this reply by checking the key concept with \`ask_verification\`.`;
+  if (n >= 2) return `Your last ${n} replies asked the student nothing: if this reply teaches on the board, end it by checking the key concept with \`ask_verification\`; a voice-only side answer does not check.`;
   return "Your last reply asked nothing: close this one with a statement, or check the key concept if you have just finished explaining it.";
 }
 

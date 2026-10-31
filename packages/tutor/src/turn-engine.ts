@@ -55,16 +55,9 @@ interface TurnState {
   material_ids?: string[];
   pending: Promise<unknown>[];
   ttsActions: string[];
-  /** Successful board actions of this reply (all rounds); the bridge line and `speak`s never count. */
+  /** Successful board actions of this reply (all rounds), for the log; a reply with none is valid (D78). */
   boardActions: number;
   firstBoardActionMs?: number;
-  /** A `speak` that arrived while the board is still empty in this reply: sent later, in order (Plan C). */
-  held?: { block: ToolBlock; result: { outcome: string; is_error: boolean } };
-  fallback: boolean;
-  /** The model's `speak`s sent in this reply (the bridge line never counts). */
-  speaks: number;
-  /** The last model `speak` sent: the fallback card is written from it when the reply has no board action. */
-  lastSpeak?: ToolBlock;
   /** Name of the last action the model got onto the board or the voice (all rounds). */
   lastAction?: string;
   verified: boolean;
@@ -82,38 +75,25 @@ interface RoundResult {
 
 /** Rounds per reply (search included): the model often stops after one or two tool calls to wait for their results. */
 const MAX_ROUNDS = 4;
-/** Extra rounds asked for a reply that was cut (no closing speak, nothing on the board). */
+/** Extra rounds asked for a reply that was cut (it stopped on a board action, or before any speak). */
 const MAX_CONTINUES = 1;
-const NO_BOARD_TEXT = "Nothing is on the board yet in this reply: your next call is `write_text`. ";
 const CONTINUE_TEXT =
   "Continue the same reply: explain what you put on the board (call circle_annotate right before the speak that says each key word), then close with a short speak. Do not add another picture, and do not ask a question unless you are checking the key concept.";
 
-/** Board actions that count for "every reply writes or draws on the board" (pointing at an element counts). */
+/** Actions that touch the board (pointing at an element counts), for the log. */
 const BOARD_ACTIONS = new Set(["write_text", "write_timeline", "draw", "draw_diagram", "update_element", "circle_annotate", "highlight"]);
 const TEXT_BLOCKS = new Set(["write_text", "write_timeline"]);
 /** Images per reply: never more than the text blocks written so far (at least one), and never more than this. */
 const MAX_DRAWS = 1;
 const DRAW_REJECTED = "rejected: this reply already has its picture (at most one per reply, never more pictures than text). Do not draw; write the idea with write_text or point at the existing picture.";
-const FALLBACK_MAX_CHARS = 120;
-
-const isQuestion = (block: ToolBlock): boolean =>
-  block.name === "speak" && (safeJson(block.raw_input) as { purpose?: string } | null)?.purpose === "question";
-
-const escapeHtml = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-
-/** The deterministic card written when a reply reached its closing speak with nothing on the board. */
-function fallbackCard(line: string, id: string): ToolBlock {
-  const text = line.replace(/\s+/g, " ").trim();
-  const short = text.length > FALLBACK_MAX_CHARS ? `${text.slice(0, FALLBACK_MAX_CHARS - 1)}…` : text;
-  return { id: "board_fallback", name: "write_text", raw_input: JSON.stringify({ id, column: "side", html: `<p><b>${escapeHtml(short)}</b></p>` }) };
-}
 
 /**
- * A reply that stopped for tool results is complete when it asked a verification, or when it has something on
- * the board, at least two speaks and ends on a speak (any purpose: a reply does not have to end with a question).
+ * A reply that stopped for tool results is complete when it asked a verification or ends on a speak (any purpose,
+ * with or without anything on the board: a spoken-only answer is valid, D78). It is cut when it stopped on a board
+ * action or before any speak.
  */
 function replyComplete(state: TurnState): boolean {
-  return state.verified || (state.boardActions > 0 && state.speaks >= 2 && state.lastAction === "speak");
+  return state.verified || state.lastAction === "speak";
 }
 
 const BRIDGE_TEXT = "Deixa eu pensar um instante…";
@@ -224,7 +204,7 @@ export class TurnEngine {
       session_id, student_id: session.student_id, modality: req.modality, turn_id, rt, emit, signal, persist, t0, material_ids,
       timing: { context_ready_ms: Math.round(this.now() - t0) },
       order: 0, actionSeq: 0, emitted: 0, passages: [...passages], pending: [], ttsActions: [],
-      boardActions: 0, fallback: false, speaks: 0, verified: false, draws: 0, textBlocks: 0,
+      boardActions: 0, verified: false, draws: 0, textBlocks: 0,
     };
 
     const system = buildSystem({ prompts, classContext, summary, catalog, subject: session.subject });
@@ -259,7 +239,7 @@ export class TurnEngine {
           content: r.block.name === "search_materials" ? (found.get(r.block.id) ?? "(no results)") : r.outcome,
           is_error: r.is_error || undefined,
         }));
-        if (!search) toolResults.push({ type: "text", text: state.boardActions === 0 ? NO_BOARD_TEXT + CONTINUE_TEXT : CONTINUE_TEXT });
+        if (!search) toolResults.push({ type: "text", text: CONTINUE_TEXT });
         messages = [...messages, { role: "assistant", content: assistant }, { role: "user", content: toolResults }];
       }
     } catch (err) {
@@ -270,10 +250,7 @@ export class TurnEngine {
     }
 
     if (signal.aborted) return this.abort(state);
-    // A reply that ended with nothing on the board still gets its card (a verification is a card already).
-    if (state.boardActions === 0 && !state.verified && state.lastSpeak) await this.writeFallback(state, state.lastSpeak);
-    if (signal.aborted) return this.abort(state);
-    this.log("board actions", { turn_id, board_actions: state.boardActions, board_fallback: state.fallback, first_board_action_ms: state.firstBoardActionMs });
+    this.log("board actions", { turn_id, board_actions: state.boardActions, first_board_action_ms: state.firstBoardActionMs });
 
     state.timing.script_done_ms = Math.round(this.now() - t0);
     emit({ type: "script_done", turn_id });
@@ -286,7 +263,6 @@ export class TurnEngine {
   }
 
   private abort(state: TurnState): { turn_id: string } {
-    state.held = undefined;
     for (const id of state.ttsActions) this.deps.tts?.cancel?.(id);
     return { turn_id: state.turn_id };
   }
@@ -310,9 +286,8 @@ export class TurnEngine {
 
   private async consume(state: TurnState, model: string, system: ReturnType<typeof buildSystem>, messages: LlmMessage[]): Promise<RoundResult> {
     const result: RoundResult = { searches: [], results: [] };
-    state.held = undefined; // a retried round starts over
     const bridge = setTimeout(() => {
-      if (state.emitted === 0 && !state.held && !state.signal.aborted) {
+      if (state.emitted === 0 && !state.signal.aborted) {
         void this.handleBlock(state, { id: "bridge", name: "speak", raw_input: JSON.stringify({ text: BRIDGE_TEXT }) });
       }
     }, this.deps.bridgeAfterMs ?? 3000);
@@ -325,18 +300,9 @@ export class TurnEngine {
         } else if (ev.type === "stop") {
           result.stop_reason = ev.stop_reason;
         } else if (ev.type === "tool_block") {
-          // The model kept going after a held question: send it now, in its place.
-          if (state.held) await this.releaseHeld(state);
-          if (state.signal.aborted) break;
           if (ev.block.name === "search_materials") {
             result.searches.push(ev.block);
             result.results.push({ block: ev.block, outcome: "", is_error: false });
-          } else if (ev.block.name === "speak" && state.boardActions === 0 && (state.emitted > 0 || isQuestion(ev.block))) {
-            // A speak with nothing on the board yet (not the opener, which goes out at once): hold it until we know
-            // whether the model writes something, so the fallback card can come before the closing line.
-            const entry = { block: ev.block, outcome: "ok", is_error: false };
-            state.held = { block: ev.block, result: entry };
-            result.results.push(entry);
           } else if (ev.block.name === "draw" && state.draws >= Math.min(MAX_DRAWS, Math.max(1, state.textBlocks))) {
             // Pictures keep pace with the text: the extra image is never sent, and the model is told to write instead.
             this.log("draw rejected", { turn_id: state.turn_id, draws: state.draws, text_blocks: state.textBlocks });
@@ -350,33 +316,7 @@ export class TurnEngine {
     } finally {
       clearTimeout(bridge);
     }
-    if (state.held && !state.signal.aborted) {
-      // End of the round and still nothing on the board: write the held line as a card, then say it.
-      if (state.boardActions === 0) await this.writeFallback(state, state.held.block);
-      await this.releaseHeld(state);
-    }
-    if (state.signal.aborted) state.held = undefined;
     return result;
-  }
-
-  private async releaseHeld(state: TurnState): Promise<void> {
-    const held = state.held;
-    if (!held) return;
-    state.held = undefined;
-    const outcome = await this.handleBlock(state, held.block);
-    held.result.outcome = outcome ?? "ok";
-    held.result.is_error = outcome !== null;
-  }
-
-  private async writeFallback(state: TurnState, line: ToolBlock): Promise<void> {
-    const text = String((safeJson(line.raw_input) as { text?: unknown } | null)?.text ?? "").trim();
-    if (!text) return;
-    let id = `board_fallback_${state.rt.turnNo}`;
-    for (let n = 2; state.rt.board.has(id); n++) id = `board_fallback_${state.rt.turnNo}_${n}`;
-    if ((await this.handleBlock(state, fallbackCard(text, id))) === null) {
-      state.fallback = true;
-      this.log("board_fallback", { turn_id: state.turn_id, element_id: id });
-    }
   }
 
   /** Validate, send and record one tool call. Returns null on success or the reason it was dropped. */
@@ -427,10 +367,6 @@ export class TurnEngine {
     }
     if (block.id !== "bridge") {
       state.lastAction = action.name;
-      if (action.name === "speak") {
-        state.speaks += 1;
-        state.lastSpeak = block;
-      }
       if (action.name === "ask_verification") state.verified = true;
       if (action.name === "draw") state.draws += 1;
       if (TEXT_BLOCKS.has(action.name)) state.textBlocks += 1;
