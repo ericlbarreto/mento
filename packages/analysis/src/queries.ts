@@ -73,6 +73,11 @@ export async function getStudentSessions(repo: TeacherRepository, conversations:
         ended_at: s.ended_at ?? null,
         analysis_status: analysis?.status ?? null,
         insight_count: insights.filter((i) => i.session_id === s.id && i.kind !== "suggestion").length,
+        // What the conversation was about, in the tutor's words (the concepts it checked), never the student's.
+        concepts: [...new Set((analysis?.findings ?? []).map((f) => f.concept))],
+        questions: analysis?.counters?.verifications ?? 0,
+        correct: analysis?.counters?.correct ?? 0,
+        incorrect: analysis?.counters?.incorrect ?? 0,
       };
     }),
   );
@@ -84,7 +89,8 @@ export async function getStudentDetail(repo: TeacherRepository, conversations: C
   let latest: { session_id: string; summary: string; studying_lesson_id: string | null; studying_lesson_title: string | null; analyzed_at: string } | null = null;
   for (const s of [...sessions].reverse()) {
     const analysis = await repo.getAnalysisBySession(s.id);
-    if (analysis?.status === "done" && analysis.summary) {
+    // Only an analysis that found something has a summary worth showing ("short conversation, no evidence" is not).
+    if (analysis?.status === "done" && analysis.summary && analysis.findings.length > 0) {
       latest = {
         session_id: s.id,
         summary: analysis.summary,

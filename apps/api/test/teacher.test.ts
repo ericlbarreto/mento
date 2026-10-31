@@ -110,7 +110,9 @@ describe("student views (BR-19)", () => {
     const { app, studentId } = await world({ analyzeAll: true });
     const sessions = (await app.inject(`/api/students/${studentId("stu_03")}/sessions`)).json();
     expect(sessions).toHaveLength(1);
-    expect(sessions[0]).toMatchObject({ id: "ses_carla_01", lesson_id: "L7", analysis_status: "done", insight_count: 2, topic: "Coliseu" });
+    expect(sessions[0]).toMatchObject({ id: "ses_carla_01", lesson_id: "L7", analysis_status: "done", insight_count: 2, topic: null }); // D70: the topic can be the student's own words
+    expect(sessions[0].concepts.length).toBeGreaterThan(0); // what it was about, from the analysis (tutor's concepts)
+    expect(sessions[0].questions).toBeGreaterThan(0);
     expect(sessions[0].material_title).toContain("Apostila de História");
   });
 
@@ -132,6 +134,19 @@ describe("student views (BR-19)", () => {
     expect(section.critical.every((i: { severity: string }) => i.severity === "critical")).toBe(true);
     const onlyAna = (await app.inject("/api/insights?severity=medium")).json();
     expect(onlyAna.critical).toEqual([]);
+  });
+
+  it("D70 the teacher routes never send the student's own words; the database keeps them for the analysis", async () => {
+    const { app, studentId } = await world({ analyzeAll: true });
+    type Group = { critical: { id: string; evidence: unknown[] }[]; medium: { evidence: unknown[] }[]; positive: { evidence: unknown[] }[] };
+    const quotes = (g: Group) => [...g.critical, ...g.medium, ...g.positive].flatMap((i) => i.evidence);
+    const mine = (await app.inject(`/api/students/${studentId("stu_01")}/insights`)).json() as Group;
+    expect(quotes(mine)).toEqual([]);
+    expect(quotes((await app.inject("/api/insights")).json() as Group)).toEqual([]);
+    expect((await app.inject("/api/sessions/ses_ana_01/analysis")).json().findings.flatMap((f: { evidence: unknown[] }) => f.evidence)).toEqual([]);
+    const gap = mine.critical[0]!;
+    expect((await app.inject({ method: "PATCH", url: `/api/insights/${gap.id}`, payload: { status: "accepted" } })).json().evidence).toEqual([]);
+    expect((await app.container.teacherRepo.getInsight(gap.id))!.evidence.length).toBeGreaterThan(0);
   });
 });
 
