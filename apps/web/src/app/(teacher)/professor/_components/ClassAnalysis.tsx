@@ -10,7 +10,7 @@ import { gapStage } from "../_lib/status";
 import { useTeacher } from "../_lib/store";
 import { GenerateExercises } from "./ExerciseLists";
 import { IconBook, IconCalendar, IconFlag, IconShield } from "./icons";
-import { Button, Card, Chip, SimulatedBadge, cx } from "./ui";
+import { Button, Card, Chip, cx } from "./ui";
 
 const INTERVENTIONS = 3;
 
@@ -44,7 +44,6 @@ function originLine(t: Topic) {
 function Topics({ topics, total }: { topics: Topic[]; total: number }) {
   const { rows } = useTeacher();
   const nameOf = (id: string) => rows.find((r) => r.id === id)?.name ?? "Aluno";
-  const simulated = topics.some((t) => t.studentIds.some((id) => rows.find((r) => r.id === id)?.is_simulated));
 
   return (
     <section aria-labelledby="class-topics">
@@ -53,7 +52,6 @@ function Topics({ topics, total }: { topics: Topic[]; total: number }) {
         icon={<IconFlag size={20} />}
         title="Tópicos com mais dificuldade"
         description="As lacunas abertas da turma, agrupadas por tópico. Só o tópico e quem tem dificuldade: o que cada aluno escreveu fica entre ele e o tutor."
-        badge={simulated ? <SimulatedBadge /> : undefined}
       />
       {topics.length === 0 ? (
         <Card className="p-8 text-center text-[15px] text-[var(--ink-soft)]">Nenhuma lacuna aberta na turma. Quando as conversas mostrarem dificuldades, os tópicos aparecem aqui.</Card>
