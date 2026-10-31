@@ -17,6 +17,7 @@ export type TopBarProps = Omit<ComponentPropsWithRef<"header">, "children"> & {
   /** Where the logo links to. */
   logoHref?: string;
   logoSrc?: string;
+  /** @deprecated The main nav was removed from the student shell; ignored. */
   nav?: TopBarNavItem[];
   /** Class chip, e.g. "8º ano". Only real data: never an invented class name (plan §3 S1). */
   classLabel?: string;
@@ -57,11 +58,10 @@ function NavLink({ item }: { item: TopBarNavItem }) {
   );
 }
 
-/** Student shell header (Stitch S1–S7): logo, main nav, class chip, student name and avatar. */
+/** Student shell header (Stitch S1–S7): logo, class chip, student name and avatar. */
 export function TopBar({
   logoHref = "/",
   logoSrc = "/brand/logo.png",
-  nav = [],
   classLabel,
   studentName,
   studentAction,
@@ -81,15 +81,8 @@ export function TopBar({
       <div className="flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-8">
         <div className="flex min-w-0 items-center gap-6 lg:gap-10">
           <a href={logoHref} className={cx("shrink-0 rounded-(--radius-sm)", focusRing)}>
-            <img src={logoSrc} alt="Mento, início" className="h-7 w-auto" />
+            <img src={logoSrc} alt="Mento, início" className="h-10 w-auto sm:h-11" />
           </a>
-          {nav.length > 0 && (
-            <nav aria-label="Principal" className="hidden items-center gap-1 md:flex">
-              {nav.map((item) => (
-                <NavLink key={item.label} item={item} />
-              ))}
-            </nav>
-          )}
         </div>
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           {classLabel && (
