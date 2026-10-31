@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 390" font-family="Comic Sans MS, Chalkboard, sans-serif">
+  <rect width="520" height="390" fill="#fffdf7"/>
+  <!-- sky and sun -->
+  <circle cx="440" cy="70" r="32" fill="#ffd95a" stroke="#f2b632" stroke-width="3"/>
+  <path d="M60 70 q15 -18 32 -4 q14 -14 30 2 q14 2 10 14 h-78 q-6 -8 6 -12z" fill="#fff" stroke="#c9d6e8" stroke-width="2"/>
+  <path d="M300 110 q12 -14 26 -3 q12 -10 24 2 q12 2 8 11 h-64 q-4 -7 6 -10z" fill="#fff" stroke="#c9d6e8" stroke-width="2"/>
+  <!-- ground -->
+  <path d="M0 350 Q130 335 260 348 T520 342 V390 H0Z" fill="#cdeac0" stroke="#7fb36a" stroke-width="2"/>
+  <!-- supports -->
+  <g stroke="#a3714f" stroke-width="4" stroke-linecap="round">
+    <line x1="70" y1="120" x2="60" y2="350"/><line x1="110" y1="102" x2="122" y2="350"/>
+    <line x1="160" y1="150" x2="165" y2="350"/><line x1="210" y1="240" x2="212" y2="350"/>
+    <line x1="300" y1="300" x2="300" y2="348"/><line x1="380" y1="215" x2="378" y2="345"/>
+    <line x1="440" y1="250" x2="445" y2="343"/>
+    <line x1="60" y1="300" x2="122" y2="200" stroke-width="2.5"/><line x1="122" y1="300" x2="60" y2="200" stroke-width="2.5"/>
+  </g>
+  <!-- track -->
+  <path d="M20 160 C50 110 90 85 115 98 C150 115 175 260 230 300 C270 330 320 330 350 250 C370 200 400 195 425 225 C450 255 480 270 515 255"
+        fill="none" stroke="#e05a47" stroke-width="9" stroke-linecap="round"/>
+  <path d="M20 160 C50 110 90 85 115 98 C150 115 175 260 230 300 C270 330 320 330 350 250 C370 200 400 195 425 225 C450 255 480 270 515 255"
+        fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="6 8"/>
+  <!-- cart at the top -->
+  <g transform="translate(92 62) rotate(8)">
+    <rect x="0" y="10" width="46" height="24" rx="6" fill="#3b6fe0" stroke="#1d3f94" stroke-width="3"/>
+    <circle cx="13" cy="9" r="7" fill="#ffd2b0" stroke="#1d3f94" stroke-width="2"/>
+    <circle cx="31" cy="9" r="7" fill="#ffd2b0" stroke="#1d3f94" stroke-width="2"/>
+    <path d="M7 1 l-4 -8 M37 1 l4 -8" stroke="#1d3f94" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="10" cy="36" r="5" fill="#333"/><circle cx="36" cy="36" r="5" fill="#333"/>
+  </g>
+  <!-- height marker -->
+  <g stroke="#3b6fe0" stroke-width="2.5" fill="none">
+    <line x1="30" y1="96" x2="30" y2="345" stroke-dasharray="7 6"/>
+    <path d="M22 106 l8 -10 l8 10 M22 335 l8 10 l8 -10"/>
+  </g>
+  <text x="38" y="230" font-size="22" fill="#1d3f94" font-weight="bold">h</text>
+  <!-- labels -->
+  <text x="150" y="58" font-size="17" fill="#1d3f94">muita Ep</text>
+  <path d="M148 62 q-10 6 -14 18" stroke="#1d3f94" stroke-width="2" fill="none"/>
+  <text x="250" y="365" font-size="17" fill="#b8342a">muita Ec</text>
+  <path d="M258 350 q-10 -10 -8 -24" stroke="#b8342a" stroke-width="2" fill="none"/>
+</svg>
