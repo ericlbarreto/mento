@@ -1,6 +1,8 @@
 import type { ComponentPropsWithRef } from "react";
 import { cx, focusRing, transition } from "./cx";
+import { INERT_LABEL, inertClasses, inertProps } from "./inert";
 import { Spinner } from "./Spinner";
+import { VisuallyHidden } from "./VisuallyHidden";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost";
 export type ButtonSize = "sm" | "md" | "lg";
@@ -24,18 +26,46 @@ export type ButtonProps = ComponentPropsWithRef<"button"> & {
   size?: ButtonSize;
   /** Shows a spinner, sets aria-busy and blocks clicks while keeping the label. */
   loading?: boolean;
+  /**
+   * Drawn but not wired yet (plan §6): stays focusable, aria-disabled="true", "Em breve" tooltip, click does nothing.
+   * Shadows the HTML `inert` attribute on purpose; it is never forwarded to the DOM.
+   */
+  inert?: boolean;
 };
 
 export function Button({
   variant = "primary",
   size = "md",
   loading = false,
+  inert = false,
   disabled,
   type = "button",
   className,
   children,
   ...rest
 }: ButtonProps) {
+  if (inert) {
+    const { onClick: _onClick, ...safe } = rest;
+    return (
+      <button
+        type={type}
+        className={cx(
+          "inline-flex select-none items-center justify-center whitespace-nowrap rounded-(--radius-pill) font-bold",
+          transition,
+          focusRing,
+          buttonVariants[variant],
+          sizes[size],
+          inertClasses,
+          className,
+        )}
+        {...safe}
+        {...inertProps()}
+      >
+        {children}
+        <VisuallyHidden>({INERT_LABEL})</VisuallyHidden>
+      </button>
+    );
+  }
   return (
     <button
       type={type}
@@ -58,4 +88,9 @@ export function Button({
       {children}
     </button>
   );
+}
+
+/** A Button that is always inert (shortcut for `<Button inert>`). */
+export function InertButton(props: Omit<ButtonProps, "inert">) {
+  return <Button {...props} inert />;
 }
