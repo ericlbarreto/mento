@@ -8,8 +8,11 @@ export interface WsLike {
   readyState: number;
   send(data: string): void;
   close(): void;
-  on(event: "open" | "close" | "error" | "message", listener: (...args: never[]) => void): unknown;
-  once(event: "open" | "close" | "error", listener: (...args: never[]) => void): unknown;
+  // Listener arguments differ per event (Buffer, Error, none); `ws` and EventEmitter type them as any[].
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  on(event: "open" | "close" | "error" | "message", listener: (...args: any[]) => void): unknown;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  once(event: "open" | "close" | "error", listener: (...args: any[]) => void): unknown;
 }
 export type WsFactory = (url: string, headers: Record<string, string>) => WsLike;
 
