@@ -83,6 +83,8 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
   let current: Action | null = null;
   let nextOrder = 0;
   const pending = new Map<number, Action>();
+  const completedOutOfBand = new Set<number>();
+  const deferredDrawResults = new Map<string, Extract<Action, { name: "draw_result" }>>();
   const svgChunks = new Map<string, string[]>();
   const oversized = new Set<string>();
   const alignments = new Map<string, WordTiming[]>();
@@ -113,6 +115,8 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
     speech.stop();
     audio?.stop();
     pending.clear();
+    completedOutOfBand.clear();
+    deferredDrawResults.clear();
     svgChunks.clear();
     oversized.clear();
     alignments.clear();
@@ -148,6 +152,7 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
 
   /** Next action to play: the next `order`, or (once the turn is done) skip a gap with a warning. */
   const takeNext = (): Action | undefined => {
+    while (completedOutOfBand.delete(nextOrder)) nextOrder++;
     let action = pending.get(nextOrder);
     if (!action && turnDone && pending.size > 0) {
       const lowest = Math.min(...pending.keys());
@@ -193,6 +198,13 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
           warn(`${action.name} (${action.id}) failed: ${err instanceof Error ? err.message : String(err)}`);
         }
         if (gen !== generation) return; // interrupted while awaiting: the new turn owns the state
+        if (action.name === "draw") {
+          const result = deferredDrawResults.get(action.args.id);
+          if (result && store.getElement(action.args.id)?.status === "placeholder") {
+            deferredDrawResults.delete(action.args.id);
+            store.dispatch(result);
+          }
+        }
         current = null;
       }
       if (!paused && turnDone && pending.size === 0) {
@@ -251,8 +263,16 @@ export function createActionQueue(opts: ActionQueueOptions): ActionQueue {
       switch (msg.type) {
         case "action": {
           if (!turnActive) turnActive = true;
-          if (msg.order < nextOrder || pending.has(msg.order)) {
+          if (msg.order < nextOrder || pending.has(msg.order) || completedOutOfBand.has(msg.order)) {
             warn(`duplicate order ${msg.order} (${msg.action.id}); ignored`);
+            return;
+          }
+          if (msg.action.name === "draw_result") {
+            completedOutOfBand.add(msg.order);
+            const element = store.getElement(msg.action.args.element_id);
+            if (element?.status === "placeholder") store.dispatch(msg.action);
+            else deferredDrawResults.set(msg.action.args.element_id, msg.action);
+            void pump();
             return;
           }
           pending.set(msg.order, msg.action);
