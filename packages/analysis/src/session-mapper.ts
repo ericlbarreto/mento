@@ -12,6 +12,7 @@ import {
   type StoredEvidence,
   type StoredSession,
 } from "@mento/contracts";
+import { withoutBoardEdits } from "./input";
 
 /**
  * Maps what the whiteboard back-end stored (`StoredSession`, `StoredEvent`, `StoredEvidence`) to the analysis's bundle.
@@ -46,7 +47,8 @@ function mostCited<T>(items: T[], key: (item: T) => string): T | null {
 }
 
 export function toSessionBundle(raw: { session: StoredSession; events: StoredEvent[]; evidence: StoredEvidence[] }, materials: Map<string, Material>): SessionBundle {
-  const events = raw.events;
+  // The student's board edits never reach the analysis (rule 6).
+  const events = withoutBoardEdits(raw.events);
 
   // 1. Which material? The one the tutor cited most (tutor sources first, judged citations as a fallback).
   const tutorCitations = events.flatMap(sourcesOf);

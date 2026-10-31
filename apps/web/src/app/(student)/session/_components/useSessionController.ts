@@ -51,11 +51,15 @@ type TurnInput = Omit<TurnRequest, "interrupted">;
 export type SessionVoiceOutput = SpeechPlayer & { pause?(): void; resume?(): void };
 
 
+/** Actions that put a new block on the board (locked while their turn plays). */
+const CREATES_ELEMENT = new Set<Action["name"]>(["write_text", "write_timeline", "draw", "draw_diagram", "ask_verification"]);
+
 /**
  * Sessions whose opening turn this page already sent. Module-level so a remount (StrictMode, fast refresh,
  * back/forward) never sends it twice; an explicit retry bypasses it.
  */
 const openingSent = new Set<string>();
+const NO_IDS: ReadonlySet<string> = new Set();
 
 /** Wraps every default handler so the page knows which action is playing (speak vs. drawing on the board). */
 function trackHandlers(onStart: (a: Action) => void, onEnd: (a: Action) => void): HandlerMap {
@@ -79,6 +83,7 @@ export function useSessionController({
   audio,
   openingDelay = openingDelayMs,
   holdVoiceOpening = false,
+  flushEdits,
 }: {
   sessionId: string;
   api: SessionApi;
@@ -91,6 +96,11 @@ export function useSessionController({
    * student chose text only), so the greeting is heard instead of falling back to captions.
    */
   holdVoiceOpening?: boolean;
+  /**
+   * Plan F: sends the student's held board edits (a delete in its undo window) and resolves when they reached the
+   * API, or returns null when there is nothing to wait for. Called before every turn, so the tutor sees the edits.
+   */
+  flushEdits?: () => Promise<void> | null;
 }) {
   const [phase, setPhase] = useState<SessionPhase>("loading");
   /** The lesson was reopened with board content: the page shows it paused until the student resumes. */
@@ -108,9 +118,13 @@ export function useSessionController({
   const [dismissedError, setDismissedError] = useState<string | null>(null);
 
   const apiRef = useRef(api);
+  const flushRef = useRef(flushEdits);
   useEffect(() => {
     apiRef.current = api;
+    flushRef.current = flushEdits;
   });
+  /** Blocks created by the turn being sent or played: the student cannot edit them until the tutor is done. */
+  const [turnIds, setTurnIds] = useState<ReadonlySet<string>>(() => new Set());
 
   /** The error thrown by the last turn request (ApiError before the stream), to tell 503 from 404 on screen. */
   const lastTurnError = useRef<unknown>(undefined);
@@ -167,6 +181,10 @@ export function useSessionController({
     } else if (action.name === "ask_verification") {
       setOpenQuestion({ verification_id: action.args.verification_id, element_id: action.args.id });
     }
+    if (CREATES_ELEMENT.has(action.name)) {
+      const id = (action.args as { id: string }).id;
+      setTurnIds((ids) => (ids.has(id) ? ids : new Set(ids).add(id)));
+    }
   };
   const onActionEnd = (action: Action) => {
     if (action.name !== "speak" || speakingRef.current !== action.id) return;
@@ -194,7 +212,7 @@ export function useSessionController({
     handlers,
     onAlignment: (id, words) => alignments.current.set(id, words),
   });
-  const { sendTurn, restore, store } = player;
+  const { sendTurn, restore, store, interrupt: interruptPlayer } = player;
 
   // Survives StrictMode's simulated unmount (the cleanup runs, then the effect again, synchronously).
   const mounted = useRef(true);
@@ -221,12 +239,18 @@ export function useSessionController({
       setSpeakingId(null);
       setTurnOpen(true);
       setScriptDone(false);
+      setTurnIds(new Set());
       // sendTurn cuts a running turn first (stop speech, abort the fetch, keep the board) and adds `interrupted`.
       // A paused reply is cut the same way; the voice output comes back for the new turn.
-      void sendTurn(req);
+      // A held board edit goes first: cut now, stream once the edit reached the API.
+      const edits = flushRef.current?.();
+      if (edits) {
+        interruptPlayer();
+        void edits.finally(() => void sendTurn(req));
+      } else void sendTurn(req);
       endPause();
     },
-    [sendTurn, endPause],
+    [sendTurn, endPause, interruptPlayer],
   );
 
   const sendOpening = useCallback(
@@ -263,7 +287,7 @@ export function useSessionController({
     if (!mounted.current) return;
     // Reopen: redraw without animation or audio, rebuild the chat, reopen the pending question.
     const replay = replayEvents(detail.events);
-    restore(replay.actions, replay.lastTurnId);
+    restore(replay.steps, replay.lastTurnId);
     setSession(detail.session);
     modalityRef.current = detail.session.modality;
     setLines(replay.transcript.map((line, i) => ({ ...line, id: `replay_${i}` })));
@@ -372,6 +396,7 @@ export function useSessionController({
   }, [turnOpen, floor]);
 
   const paused = queueState === "paused";
+  const lockedIds = floor ? turnIds : NO_IDS;
   /** Something to pause: the tutor is thinking, talking or writing (or already paused). */
   const canPause = phase === "ready" && (paused || floor || queueState === "thinking" || queueState === "playing");
   /**
@@ -432,6 +457,8 @@ export function useSessionController({
     togglePause: () => (paused ? resume() : pause()),
     /** The tutor is talking (or about to): the mic stays muted unless the student opened it. */
     tutorHasFloor: floor,
+    /** Plan F: blocks of the turn still playing (no edit toolbar). */
+    lockedIds,
     releaseOpening,
     answerQuestion,
     retry,

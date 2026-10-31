@@ -261,3 +261,12 @@ Additive. Source of truth: `packages/contracts/src/{diagram,actions}.ts`; resolv
 - **`highlight` and `circle_annotate` gain an optional `shape_id`** that targets one shape of a diagram (validated by the server). `circle_annotate.text_to_match` still works on a diagram's labels.
 - **`draw.is_structured` is always `false`** (forced by the server, hidden from the model); `svg_chunk` stays unused.
 - Fixtures: `fixtures/turns/newton-blocks.json` (a turn) and `fixtures/diagrams/examples.json` (model input → resolved output pairs, `pnpm diagrams:golden` regenerates the outputs); both checked by `pnpm fixtures:check`.
+
+## 18. Student board edits (2026-10-31, D79, plan F)
+
+- `POST /api/sessions/:id/board` body `BoardEditRequest`: `{ op: "remove", edit_id, element_id }` or `{ op: "move", edit_id, element_id, column, after_id | null }` → 200 `BoardEditResponse { ok, result: "applied" | "already_applied" | "already_removed" }`; 404 only for an element id that never existed in the session.
+- `edit_id` is a client uuid (dedupe). A move is absolute: the element goes to `column`, right after `after_id` (`null` = top of the column).
+- Events `board_element_removed { element_id, edit_id }` and `board_element_moved { element_id, column, after_id, edit_id }` (in `EventType` and `SessionEvent`). Replayed in event order with the tutor actions (reopen shows the student's board); the tutor's board applies them (deleted ids become tombstones: actions on them are rejected and the ids are never reused).
+- **Never read by the analysis or any teacher route** (rule 6).
+- **The tutor tidies the board too:** new action `move_element { id, column, after_id: ElementId | null }` (same placement as a student move; the server checks that `id` exists and is not deleted, and that `after_id` is null or an element of that column), stored as a normal `tutor_action` and replayed like the others. `remove_element` is unchanged.
+- **`highlight` gains an optional `text_to_match`** (1–120 chars, must occur in the target's text, same server check as `circle_annotate`): highlight one passage instead of the whole element.

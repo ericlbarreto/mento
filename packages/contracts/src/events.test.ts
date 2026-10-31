@@ -8,6 +8,7 @@ describe("EventType", () => {
     expect(EventType.options).toEqual([
       "session_started", "user_message", "tutor_action", "verification_asked", "verification_answered",
       "hint_given", "evidence_recorded", "interrupted", "mic_state", "turn_timing", "session_ended", "session_resumed",
+      "board_element_removed", "board_element_moved",
     ]);
   });
 
