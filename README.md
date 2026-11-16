@@ -2,11 +2,13 @@
 
 <p align="center"><b>An AI tutor for schools that writes and draws live on a whiteboard, answers from the teacher's own materials, and turns every tutoring session into insights for the teacher.</b></p>
 
-<p align="center">
-  <a href="assets/demo/mento-demo.mp4"><img src="assets/demo/mento-demo-poster.jpg" alt="Mento demo: the tutor draws on the live whiteboard while chatting with the student (click to play)" width="720"></a>
-  <br>
-  <a href="assets/demo/mento-demo.mp4">▶ Watch the demo (1 min)</a>
-</p>
+
+<div align="center">
+  
+  https://github.com/user-attachments/assets/d59e7743-dc77-4e62-90e9-f05d6c34a6b9
+  
+</div>
+
 
 > **Status:** hackathon prototype built in ~24h (Teachy-backed hackathon). Not a product in production: no paying customers, no efficacy study. Data shown in the teacher views is seeded and carries a "simulated data" badge.
 
